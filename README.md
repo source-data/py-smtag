@@ -1,2 +1,2 @@
 # py-smtag
-pyTorch version of the SourceData SmaratTag engine
+pyTorch version of the SourceData SmartTag engine
