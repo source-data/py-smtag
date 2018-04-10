@@ -25,6 +25,25 @@ Install Anaconda https://www.anaconda.com/download/#macos
     # To deactivate an active environment, use
     conda deactivate
 
+
+# Command Line Interface Usage
+
+Run the help command to get a list of options
+
+    $ python -m smtag.meta --help
+    smtag
+    Usage:
+      meta.py [-f <file>]
+
+    Options:
+      -f --file <file>     namebase of dataset to import [default: test]
+      -h --help     Show this screen.
+      --version     Show version.
+
+WORK IN PROGRESS for meta
+
+    python -m smtag.meta --file=test_train
+
 # Contributing
 
 * Remember to update the `requirements.txt` whenever you add a new python dependency to the project by running
