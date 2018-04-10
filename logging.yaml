@@ -1,0 +1,47 @@
+version: 1
+disable_existing_loggers: False
+formatters:
+    simple:
+        format: "[%(levelname)s %(asctime)s %(name)s] %(message)s"
+
+handlers:
+    console:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: simple
+        stream: ext://sys.stdout
+
+    info_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        formatter: simple
+        filename: log/info.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 9
+        encoding: utf8
+
+    error_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: ERROR
+        formatter: simple
+        filename: log/errors.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 9
+        encoding: utf8
+    #   email:
+    #     class: logging.handlers.SMTPHandler
+    #     mailhost: localhost
+    #     fromaddr: my_app@domain.tld
+    #     toaddrs:
+    #       - support_team@domain.tld
+    #       - dev_team@domain.tld
+    #     subject: Houston, we have a problem.
+loggers:
+    my_module:
+        level: ERROR
+        handlers: [console]
+        propagate: no
+
+root:
+    level: INFO
+    handlers: [console, info_file_handler, error_file_handler]
