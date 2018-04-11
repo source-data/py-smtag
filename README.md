@@ -52,7 +52,7 @@ WORK IN PROGRESS for meta
     pip freeze > requirements.txt
     ```
     
-* How to set up a breakpoint and debug in django
+* How to set up a breakpoint to get an interactive debugger console in Python
 
     ```
     import pdb; pdb.set_trace()
