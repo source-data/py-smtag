@@ -104,16 +104,16 @@ class Loader:
         if self.validation_fraction == 0:
             logger.info("testset mode; for benchmarking")
             datasets["test"]= {} #--testset mode; for benchmarking
-            datasets["test"]["first_example"] = 1
+            datasets["test"]["first_example"] = 0
             datasets["test"]["last_example"] = math.ceil(N*self.fraction)
         else:
             logger.info("normal trainset and validation set mode")
             datasets["train"] = {} #--normal trainset and validation set mode
             datasets["valid"] = {}
-            datasets["train"]["first_example"] = 1
+            datasets["train"]["first_example"] = 0
             datasets["train"]["last_example"] = math.floor(self.fraction*N*(1-self.validation_fraction))
             datasets["valid"]["first_example"] = math.ceil(N*(1-self.validation_fraction+0.000001)) #--the size of the validation set is kept unchanged and not affected by fraction
-            datasets["valid"]["last_example"] = N
+            datasets["valid"]["last_example"] = N-1
 
 
 
