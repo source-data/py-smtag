@@ -7,6 +7,8 @@ Make sure to have `python3` available and run from to root of the project https:
     source .venv/bin/activate
     pip install -r requirements.txt
 
+Copy `.env.example` to `.env` and update accordingly. Defaults may work but pay special attentionn to `SMTAG_LUA_CLI_PATH` and `TORCH_PATH`, which will define where to find both `smtagCli.lua` and `th` (run `which th`) files. Consider using absolute paths instead of relatives as in the example file.
+
 # Contributing
 
 * Run the web server
