@@ -1,10 +1,26 @@
-from flask import request
+from flask import request, render_template
 from smtag_api import app
 from smtag_api import predictors
 
-@app.route('/')
+@app.route('/hello_world')
 def hello_world():
     return 'Hello, World!'
+
+@app.route('/')
+def root():
+    return render_template('index.html')
+
+@app.route('/demo1')
+def sdtag_demo1():
+    return render_template('sdtag/demo1.html')
+
+@app.route('/demo2')
+def sdtag_demo2():
+    return render_template('sdtag/demo2.html')
+
+@app.route('/demo3')
+def sdtag_demo3():
+    return render_template('sdtag/demo3.html')
 
 
 # smtagapi_app = turbo.web.Application({

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SourceData SmartTag Editor</title>
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
+  <style>
+    body {font-family: "Open Sans"}
+    .container {width: 90% /*50em;*/}
+  	#button {background-color: #4CAF50; padding: 6px 12px;; border-radius: 3px; color: white}
+  	#button:hover {box-shadow: 1px 1px 5px rgba(0,0,0,0.2)}
+  	#clear_button {background-color: ligthgrey; padding: 6px 12px;; border-radius: 3px; color: #555555;}
+  	#clear_button:hover {box-shadow: 1px 1px 5px rgba(0,0,0,0.2)}
+  	#input_box, #tagged_html, #tagged_xml, #panelized, #entity_tagged_only, #tagger, #from_pretagged {font-family: Courier; font-size: 1em;width:100%; height:100%; box-sizing: border-box;padding: 10px 5px 10px 5px;}
+    #tagged_xml, #tagged_html, #panelized, #entity_tagged_only, #tagger, #from_pretagged {border:1px solid; background-color: Cornsilk;}
+  	label, a, .legend {font-family: "Open Sans", Arial; font-weight: 50; font-size: 0.6em}
+  	.legend > span {padding: 2px 5px 2px 5px}
+  	.sdchar {color:white}
+  	.type_score_0 {opacity: 0.1}
+  	.type_score_1 {opacity: 0.2}
+  	.type_score_2 {opacity: 0.3}
+  	.type_score_3 {opacity: 0.4}
+  	.type_score_4 {opacity: 0.5}
+  	.type_score_5 {opacity: 0.6}
+  	.type_score_6 {opacity: 0.7}
+  	.type_score_7 {opacity: 0.8}
+  	.type_score_8 {opacity: 0.9}
+  	.type_score_9 {opacity: 1}
+  	.assayed.intervention { background-color: #7A9A8A; }
+  	.sd-tag {background-color:grey; color:white}
+  	.sd-tag.intervention {background-color:#ff6666}
+  	.sd-tag.assayed {background-color: #135EFF}
+  	.sd-tag.reporter {background-color: #5DDE70}
+  	.sd-tag.molecule::after {font-size:0.1em; vertical-align: super; content: "{mol}"}
+  	.sd-tag.geneprod::after {font-size:0.1em; vertical-align: super; content: "{geneprod}"}
+  	.sd-tag.subcellular::after {font-size:0.1em; vertical-align: super; content: "{subcell}"}
+  	.sd-tag.cell::after {font-size:0.1em; vertical-align: super; content: "{cell}"}
+  	.sd-tag.tissue::after {font-size:0.1em; vertical-align: super; content: "{tissue}"}
+  	.sd-tag.organism::after {font-size:0.1em; vertical-align: super; content: "{species}"}
+  	.sd-tag.assay::after {font-size:0.1em; vertical-align: super; content: "{exp_assay}"}
+
+</style>
+  <!--script src="js/jquery.js"></script-->
+  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+</head>
+
+<body>
+	<h1>SourceData SmartTag Editor</h1>
+	<div class="container">
+		<label for="#input">Input</label>
+		<textarea rows="4" id="input_box" type="text" placeholder="Type a typical figure legend..."></textarea>
+		<button id="button">Process legend</button>
+		<button id="clear_button">Clear</button>
+		<a id="demo-link" href="">Or try it with demo text!</a>&nbsp;&nbsp;<a id="fun-link" href="">Or have some fun...</a>
+	</div>
+	<br/>
+	<div class="container">
+	    <label for="#tagged_html">Tagged html with panel segmentation (<code>/smtag?text=input_string&format=html</code>)</label>
+	    <div id="tagged_html"></div>
+	    <p class="legend">Key: <span class="sd-tag intervention">Perturbations</span>&nbsp;<span class="sd-tag assayed">Measurements</span>&nbsp;<span class="sd-tag reporter">Reporter</span></p>
+	</div>
+	<br/>
+	<div class="container">
+	    <label for="#tagged_xml">Tagged xml (<code>/smtag?text=input_string&format=xml</code>)</label>
+	    <div id="tagged_xml"></div>
+	</div>
+	<br/>
+	<div class="container">
+	    <label for="#panelized">Panel segmentation only (<code>/panel?text=input_string&format=html</code>)</label>
+	    <div id="panelized"></div>
+	</div>
+	<br/>
+	<div class="container">
+	    <label for="#entity_tagged_only">Tagging only (<code>/entity?text=input_string&format=html</code>)</label>
+	    <div id="entity_tagged_only"></div>
+	</div>
+	<br/>
+	<div class="container">
+	    <label for="#tagger">Entity Tagging and role prediction (<code>/tag?text=input_string&format=html</code>)</label>
+	    <div id="tagger"></div>
+	</div>
+	<br/>
+	<div class="container">
+	    <label for="#from_pretagged">Only roles from pre-tagged entities (<code>/role?pretagged=input_xml_string&tag=sd-tag</code>)</label>
+	    <div id="from_pretagged"></div>
+	</div>
+	<script>
+
+	$("#button").bind("click", function(event) {//$("#input_box").bind("input" for AJAX
+	  var text = $("#input_box").val()
+	  rest = "http://sdtag.net:7475/" //Amazon EC2 instance Turbo Lua
+	  //rest = "http://localhost:7475/" //local Turbo lua server
+
+	  $.post(rest+"smtag", {format: "html", text: text}, function(data) {
+	    $("#tagged_html").html(data);
+	  });
+	  $.post(rest+"smtag", {format: "xml", text: text}, function(xml) {
+	    var xml_string= (new XMLSerializer()).serializeToString(xml);
+	    $("#tagged_xml").text(xml_string);
+	  });
+	  $.post(rest +"panelize", {format: "html", text: text}, function(data) {
+	    $("#panelized").html(data);
+	  });
+	  $.post(rest+"entity", {format: "html", text: text}, function(data) {
+	    $("#entity_tagged_only").html(data);
+	  });
+	  $.post(rest+"tag", {format: "html", text: text}, function(data) {
+	    $("#tagger").html(data);
+	  });
+	  $.post(rest+"entity", {format: "xml", text: text}, function(xml_1) {
+	    var xml_string_1= (new XMLSerializer()).serializeToString(xml_1);
+	    $.post(rest+"role", {pretagged: xml_string_1, tag: 'sd-tag'}, function(xml_2) {
+	        var xml_string_2= (new XMLSerializer()).serializeToString(xml_2);
+	        $("#from_pretagged").text(xml_string_2);
+	    })
+	  });
+	});
+
+	$("#clear_button").click(function(event) {
+        $("#input_box").val("")
+        $("#tagged_html").html("")
+        $("#panelized").html("")
+        $("#tagged_xml").text("")
+        $("#entity_tagged_only").html("")
+        $("#tagger").html("")
+        $("#from_pretagged").text("")
+
+	});
+
+	var demo_text = "(a) Macrophages were treated with control (Ctrl), Drp1, or Mfn1 siRNA for 72 hr in presence of absence of FK506. Mitochondria and autophagosome lysates were probed as in (b) by immunoblot for Drp1 and Mfn1 to show the efficiency of depletion. (b) We also observed a reduced expression of Bcl-2 expression levels in the brain, heart and kidney of Drp1-deficient mice. (c) Calcium levels are significantly reduced."
+	$("#demo-link").click(function (e) {
+	    e.preventDefault();
+	    $("#input_box").val(demo_text);
+	    //$("#input_box").trigger("input");
+	    $("#button").trigger("click")
+	});
+
+	var fun_text = "Trump-1 overexpression in the brain of Melania typhimurium provoked the collapse of the America-293 cell population and a decrease of optimismin secretion as assessed by kremlinoblotting."
+	$("#fun-link").click(
+	    function (e) {
+	        e.preventDefault();
+	        $("#input_box").val(fun_text);
+	        //$("#input_box").trigger("input");
+	        $("#button").trigger("click")
+	});
+
+
+	</script>
+</body>
+</html>
