@@ -39,23 +39,23 @@ def sdtag_demo3():
 # })
 
 
-@app.route('/smtag', methods=['POST'])
+@app.route('/smtag', methods=['GET', 'POST'])
 def smtag():
     return run_predictor('smtag', request)
 
-@app.route('/entity', methods=['POST'])
+@app.route('/entity', methods=['GET', 'POST'])
 def entity():
     return run_predictor('entity', request)
 
-@app.route('/role', methods=['POST'])
+@app.route('/role', methods=['GET', 'POST'])
 def role():
     return run_predictor('role', request)
 
-@app.route('/tag', methods=['POST'])
+@app.route('/tag', methods=['GET', 'POST'])
 def tagger():
     return run_predictor('tagger', request)
 
-@app.route('/panelize', methods=['POST'])
+@app.route('/panelize', methods=['GET', 'POST'])
 def panelize():
     return run_predictor('panelize', request)
 
