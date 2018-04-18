@@ -63,7 +63,7 @@ def panelize():
 def run_predictor(method, req):
     input_string = req.values.get("text", "")
     tag = req.values.get("tag", "sd-tag")
-    format = req.values.get("format", "xml").lower()
+    format = req.values.get("format", "html").lower()
     predictor = predictors.LuaCliPredictor(smtag_lua_cli_path=app.config['SMTAG_LUA_CLI_PATH'], torch_path=app.config['TORCH_PATH'])
     if method == "entity":
         return predictor.entity(input_string, format, tag)
