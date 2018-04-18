@@ -51,7 +51,7 @@ def entity():
 def role():
     return run_predictor('role', request)
 
-@app.route('/tagger', methods=['POST'])
+@app.route('/tag', methods=['POST'])
 def tagger():
     return run_predictor('tagger', request)
 
