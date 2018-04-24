@@ -4,7 +4,7 @@ from smtag_api import predictors
 
 @app.route('/hello_world')
 def hello_world():
-    return 'Hello, World!'
+    return 'Hello, World!!'
 
 @app.route('/')
 def root():
