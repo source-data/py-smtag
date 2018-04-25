@@ -26,7 +26,7 @@ puts(fetch(:branch))
 append :linked_files, "www/.env"
 
 # Default value for linked_dirs is []
-# append :linked_dirs, "node_modules"
+append :linked_dirs, "www/log"
 
 # Default value for default_env is {}
 # set :default_env, { path: "/opt/ruby/bin:$PATH" }
