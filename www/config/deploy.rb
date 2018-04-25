@@ -23,7 +23,7 @@ puts(fetch(:branch))
 # set :pty, true
 
 # Default value for :linked_files is []
-append :linked_files, ".env"
+append :linked_files, "www/.env"
 
 # Default value for linked_dirs is []
 # append :linked_dirs, "node_modules"
