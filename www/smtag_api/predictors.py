@@ -58,7 +58,7 @@ class LuaCliPredictor(PredictorImplementor):
         logger = logging.getLogger('smtag_api')
         logger.debug(f"LuaCliPredictor.{method}(format={format}, tag={tag})")
         text = cleanup(text)
-        command = f'cd {self.smtag_lua_cli_path} && {self.torch_path} smtagCli.lua -t "{text}" -D true -f {format} -m {method}'
+        command = f'cd {self.smtag_lua_cli_path} && {self.torch_path} smtagCLI.lua -t "{text}" -D true -f {format} -m {method}'
         if len(tag) > 0:
             command = f"{command} -g {tag}"
         # print(command)
