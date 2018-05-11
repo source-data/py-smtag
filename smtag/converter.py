@@ -1,15 +1,27 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+#Licence:
+#test in test/test_converter.py 
+
 import numpy as np
 import argparse
 import torch
 
-class Converter(object):
-
+class Converter():
+    """
+    Conversion operations between unicode strings and tensors.
+    """
+    
     @staticmethod
     def t_encode(input_string):
-        #input_string: string to convert
-        #returns: 4D tensor 1x32x1xL (1 example, 32 bit,  1 row of characters, L characters) representing characters as 32 features
+        """
+        Static method that encodes an input string into a 4D tensor.
+        Args
+            input_string (str): string to convert
+        Returns
+            (torch.Tensor): 4D tensor 1x32x1xL (1 example x 32 bits x 1 row of characters x L characters) representing characters as 32 features
+        """
         L = len(input_string)
         tensor = torch.zeros(1,32,1,L)
         for i in range(L):
@@ -25,6 +37,13 @@ class Converter(object):
 
     @staticmethod
     def t_decode(t):
+        """
+        Static method that decodes a 4D tensor into a unicode string.
+        Args:
+            t (torch.Tensor): 4D tensor 1x32x1xL (1 example x 32 bits x 1 row of characters x L characters) representing characters as 32 features
+        Returns
+            (str): resulting string
+        """
         #tensor is 4D
         L = t.shape[3]
         str = ""
@@ -43,4 +62,6 @@ if __name__ == "__main__":
     parser.add_argument('input_string', nargs='?', default= "this is so ☾😎 😎 L ‼️", help="The string to convert")
     args = parser.parse_args()
     input_string = args.input_string.decode('utf-8')
-    print "the decoded of encoded:", Converter.t_decode(Converter.t_encode(input_string))
+    print("the decoded of encoded:", Converter.t_decode(Converter.t_encode(input_string)))
+    
+    
