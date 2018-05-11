@@ -5,6 +5,7 @@ import logging
 import math
 from converter import Converter
 import mapper
+from viz import Visualization 
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')
@@ -94,6 +95,11 @@ class Loader:
     def prepare_datasets(self, file_basename):
         """
         Processes a raw dataset into a ready-to-go dataset by converting text into tensor and assembling selected combinations of features into output features.
+        Args:
+            file_basename (str): the basename of the text, provenance and feature files to be uploaded and prepared.
+            
+        Returns:
+            datasets (array of Dataset): the train/validation Dataset objects or the test Dataset that can be processed further by smtag.
         """
         raw_dataset = Dataset()
         raw_dataset.from_files(file_basename)
@@ -111,7 +117,6 @@ class Loader:
         
         logger.debug(f"Creating dataset with selected features {self.selected_features}, and shuffling {N} examples.")
         shuffled_indices = torch.randperm(N) #shuffled_indices = range(N); shuffle(shuffled_indices)
-        print(shuffled_indices)
         datasets = {}
         if self.validation_fraction == 0:
             logger.info("testset mode; for benchmarking")
@@ -152,7 +157,7 @@ class Loader:
                 dataset.text[index] = raw_dataset.text[i]
                 dataset.provenance[index] = raw_dataset.provenance[i]
                 dataset.input[index, 0:32 , :, : ] = Converter.t_encode(raw_dataset.text[i])
-        
+                
                 #SELECTION AND COMBINATION OF OUTPUT FEATURES
                 for f in self.features2input:
                     #argh we need j as the index
@@ -174,6 +179,7 @@ class Loader:
                     dataset.output[index, self.nf_overlap_feature, : , : ] = dataset.output[index, self.nf_overlap_feature, : , : ] * raw_dataset.output[i, mapper.label2index[f], : , : ]
     
             datasets[k] = dataset
+        return datasets
 
 def tester():
     logger.debug("> testing")
@@ -183,9 +189,9 @@ def tester():
     assert loader.nf_input == config.NBITS + len(features2input) , "Number of features in input should equal NBITS (defined in config) + the number of features to input"
     assert loader.nf_output == len(selected_features), "Number of output features is equal to the number of selected features"
 
-    loader.prepare_datasets("test_train")
+    d = loader.prepare_datasets("test_train")
     logger.debug("> All OK")
-
+    Visualization.show_example([d['train']])
 
 if __name__ == '__main__':           # Only when run
     tester()                         # Not when imported
