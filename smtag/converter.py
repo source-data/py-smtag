@@ -45,7 +45,7 @@ class Converter():
             (str): resulting string
         """
         #tensor is 4D
-        L = t.shape[3]
+        L = t.size(3)
         str = ""
         for i in range(L):
             code = 0
@@ -54,7 +54,7 @@ class Converter():
                 code += bit*(2**j)
                 #print i, j, bit, 2**j, code
             #what if code is malformed utf8? like unichr(57085) or unichr(55349)
-            str += unichr(code)
+            str += chr(code) #python 2: unichr()
         return str     
 
 if __name__ == "__main__":
