@@ -59,21 +59,20 @@ class Visualization():
 
     @staticmethod
     def print_pretty_color(features, text):
-        print(text)
         nf = features.size(1)
         colored_track = ""
         pos = 0
         for c in text:
             max  = 1
-            max_f = 0
+            max_f = -1
             for f in range(nf): # range(2) is 0, 1 should be blue red
                 score = math.floor(features[0, f, 0, pos]*10)
                 if score > max:
                      max = score
                      max_f = f
             if text:
-                colored_track += f"{COLORS[(max_f % len(COLORS))+1]}{c}{CLOSE_COLOR}"
+                colored_track += f"{COLORS[max_f + 1]}{c}{CLOSE_COLOR}"
             else:
-                colored_track += f"{COLORS[(max_f % len(COLORS))+1]}{symbols[max+1]}{CLOSE_COLOR}"
+                colored_track += f"{COLORS[max_f + 1]}{symbols[max+1]}{CLOSE_COLOR}"
             pos = pos + 1
         print(colored_track)

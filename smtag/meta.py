@@ -31,4 +31,5 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
     arguments = docopt(__doc__, version='0.1')
     ldr = loader.Loader([])
-    ldr.prepare_datasets(arguments['--file'])
+    dataset = ldr.prepare_datasets(arguments['--file'])
+    minibatches = Minibatches(dataset)

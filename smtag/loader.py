@@ -1,4 +1,4 @@
-from smtag import config
+import config
 import numpy as np
 import torch
 import logging
@@ -11,10 +11,6 @@ from viz import Visualization
 # logging.config.fileConfig('logging.conf')
 logger = logging.getLogger(__name__)
 
-
-#Dataset class should have text, input_features, output_features and provenance members
-#separate from file loading
-#separate from computing selected features and randomization
 
 class Dataset:
     class LineTooLong(Exception):
