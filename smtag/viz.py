@@ -30,8 +30,9 @@ class Visualization():
         rand_i = math.floor(M * random())
         rand_j = math.floor(N *  random())
         input = minibatches[rand_i].input[rand_j:rand_j+1, : , : , : ] #crappy syntax for pytorch; otherwise result is 3D
-        print("inpud size",input.size())
+        print("input size",input.size())
         target = minibatches[rand_i].output[rand_j:rand_j+1, : , : , : ]
+        print("output size, target", target.size())
         original_text =  minibatches[rand_i].text[rand_j]
         provenance = minibatches[rand_i].provenance[rand_j]
         nf_input = input.size(1)
