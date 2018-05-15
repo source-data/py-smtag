@@ -27,10 +27,10 @@ class Dataset:
         logger.info(f"Loading {features_filename} as features for the dataset.")
         np_features = np.load(features_filename) #saved file is 3D; need to change this?
         self.N = np_features.shape[0] #number of examples
-        self.nf = np_features.shape[1] #number of features
+        self.nf_output = np_features.shape[1] #number of features
         self.L = np_features.shape[2] #length of text snippet 
         #convert into 4D for the whole smtag package to be able to use 4D convolution modules
-        np_features.resize(self.N, self.nf, 1, self.L)
+        np_features.resize(self.N, self.nf_output, 1, self.L)
         self.output = torch.from_numpy(np_features) #saved files are from numpy, need conversion to torch
         logger.info(f"Loading {text_filename} for the original texts of the dataset.")
         with open(text_filename, 'r') as f:
@@ -43,9 +43,10 @@ class Dataset:
         with open(provenance_filename, 'r') as f:
             for line in f:
                 self.provenance.append(line)
-        logger.info("Dataset dimensions:")
+        logger.info(f"Dataset dimensions:")
         logger.info(f"{self.N} text examples of size {self.L}")
-        logger.info(f"{self.nf} encoded features.")
+        logger.info(f"{self.nf_input} input features (in-channels).")
+        logger.info(f"{self.nf_output} output features (out-channels).")
 
         
     def __init__(self, N=0, nf_input=0, nf_output=0, L=0):
@@ -101,7 +102,7 @@ class Loader:
         raw_dataset.from_files(file_basename)
         N = raw_dataset.N
         L = raw_dataset.L
-        nf = raw_dataset.nf
+        nf = raw_dataset.nf_output
         assert N != 0, "zero examples"
         
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
@@ -111,7 +112,7 @@ class Loader:
         nf += 1
         raw_dataset.output = extended_features
         
-        logger.debug(f"Creating dataset with selected features {self.selected_features}, and shuffling {N} examples.")
+        logger.info(f"Creating dataset with selected features {self.selected_features}, and shuffling {N} examples.")
         shuffled_indices = torch.randperm(N) #shuffled_indices = range(N); shuffle(shuffled_indices)
         datasets = {}
         if self.validation_fraction == 0:
@@ -141,9 +142,9 @@ class Loader:
             N_examples = last_example - first_example + 1
             dataset = Dataset(N_examples, self.nf_input, self.nf_output, L)
             
-            print(f"Generating {k} set with {N_examples} examples ({first_example}, {last_example})")
-            print(f"input dataset['{k}'] tensor created")
-            print(f"output dataset['{k}'] tensor created")
+            logger.info(f"Generating {k} set with {N_examples} examples ({first_example}, {last_example})")
+            logger.info(f"input dataset['{k}'] tensor created")
+            logger.info(f"output dataset['{k}'] tensor created")
             for example_i in range(first_example, last_example):
                 
                 i = shuffled_indices[example_i]
@@ -152,7 +153,7 @@ class Loader:
                 assert len(raw_dataset.text[i]) == L, "FATAL: {} > {} with {}".format(len(raw_dataset.text[i]), L, raw_dataset.text[i])
                 dataset.text[index] = raw_dataset.text[i]
                 dataset.provenance[index] = raw_dataset.provenance[i]
-                dataset.input[index, 0:32 , :, : ] = Converter.t_encode(raw_dataset.text[i])
+                dataset.input[index, 0:32 , : , : ] = Converter.t_encode(raw_dataset.text[i])
                 
                 #SELECTION AND COMBINATION OF OUTPUT FEATURES
                 for f in self.features2input:
@@ -163,7 +164,7 @@ class Loader:
                 for f in self.selected_features:
                     j = self.selected_features.index(f)
                     dataset.output[index, j, : , : ] = raw_dataset.output[i, mapper.label2index[f], : , : ]
-
+                    
                 #dataset.output[index, nf_collapsed_feature,:,:] is already initialized with zeros
                 for f in self.collapsed_features:
                     dataset.output[index, self.nf_collapsed_feature, : , : ] = dataset.output[index, self.nf_collapsed_feature, : , : ] + raw_dataset.output[i, mapper.label2index[f], : , : ]  
@@ -173,7 +174,7 @@ class Loader:
                     dataset.output[index, self.nf_overlap_feature, : , : ].fill_(1)
                 for f in self.overlap_features:
                     dataset.output[index, self.nf_overlap_feature, : , : ] = dataset.output[index, self.nf_overlap_feature, : , : ] * raw_dataset.output[i, mapper.label2index[f], : , : ]
-    
+
             datasets[k] = dataset
         return datasets
 
