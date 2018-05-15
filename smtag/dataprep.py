@@ -1,4 +1,3 @@
-#!/usr/local/Cellar/python/2.7.10/bin/python
 #T. Lemberger, 2018
 
 #from abc import ABC, abstractmethod
@@ -81,7 +80,7 @@ class DataPreparator(object):
         random_shifting = self.options['random_shifting']
         min_padding = self.options['padding']
         N = len(dataset)
-        print "N=",N
+        print("N=",N)
         length = self.options['length']
         iterations = self.options['iterations']
         index = 0
@@ -89,7 +88,7 @@ class DataPreparator(object):
         provenance4th = []
         tensor4th = np.zeros((N * iterations, number_of_features, length+min_padding)) #would it be better to have the 4D convention already here?
         length_statistics = []
-        print "generating {}*{} x {} x {} tensor.".format(N, self.options['iterations'], number_of_features, length+min_padding)
+        print("generating {}*{} x {} x {} tensor.".format(N, self.options['iterations'], number_of_features, length+min_padding))
 
         for i in range(N):
             text_i = dataset[i]['text'] 
@@ -163,7 +162,7 @@ class DataPreparator(object):
         The list of raw examples is split early on into trainset and testset, to make sure they are kept completely separate.
         """
         test_fraction = self.options['testset_fraction']
-        print "number of raw_examples", len(raw_examples)
+        print("number of raw_examples", len(raw_examples))
         #hmmm, what if raw_examples is a dictionary instead of a list as is the case in sdgraph2th        
         N = len(raw_examples)
         N_train = int(floor(N * (1 - test_fraction)))
@@ -223,9 +222,9 @@ class DataPreparator(object):
                   for line in self.dataset4th[k]['provenance4th']: f.write(", ".join([str(line[k]) for k in ['id','index']]).encode('utf-8') + "\n")
              f.close()
 
-             print "Provenance ids saved to {}".format(provenance_filename)
-             print "Text examples saved to {}".format(text_filename)
-             print "Tensor saved to {}".format(tensor_filename)
+             print("Provenance ids saved to {}".format(provenance_filename))
+             print("Text examples saved to {}".format(text_filename))
+             print("Tensor saved to {}".format(tensor_filename))
 
     def log_errors(self, errors):
         """
@@ -233,9 +232,9 @@ class DataPreparator(object):
         """
         for e in errors:
             if errors[e]: 
-                print "####################################################"
-                print " Writing {} {} errors to errors_{}.log".format(len(errors[e]), e, e)
-                print "####################################################" 
+                print("####################################################")
+                print(" Writing {} {} errors to errors_{}.log".format(len(errors[e]), e, e))
+                print("####################################################" )
             #write log file anyway, even if zero errors, to remove old copy 
             with open('errors_{}.log'.format(e), 'w') as f:
                 for line in errors[e]: 
@@ -251,10 +250,10 @@ class DataPreparator(object):
     
         for i in range(N):
             print
-            print "Text:"
-            print text4th[i].encode('utf-8')
+            print("Text:")
+            print(text4th[i].encode('utf-8'))
             for j in range(featsize):
                 feature = index2label[j]
                 track = [int(tensor4th[i, j, k]) for k in range(L)]
-                print ''.join([['-','+'][x] for x in track]), feature
+                print(''.join([['-','+'][x] for x in track]), feature)
 

@@ -51,7 +51,7 @@ def caption_text2xml(panel_caption, tags, tags2anonym, safe_mode = True, exclusi
         
         #protection against carriage return
         if re.search('[\r\n]', panel_caption):
-            print "WARNING: removing return characters"
+            print("WARNING: removing return characters")
             panel_caption = re.sub('[\r\n]','', panel_caption)
         
         #protection against <br> instead of <br/>
@@ -62,8 +62,8 @@ def caption_text2xml(panel_caption, tags, tags2anonym, safe_mode = True, exclusi
         panel_caption = re.sub(r'<link href="(.*)"/>(\n|.)*</link>', r'<link href="\1">\2</link>', panel_caption)
         #protection agains missing <sd-panel> tags
         if re.search(r'^{}(\n|.)*{}$'.format(SD_PANEL_OPEN, SD_PANEL_CLOSE), panel_caption) is None:
-            print "WARNING: correcting missing <sd-panel> </sd-panel> tags!"
-            print panel_caption
+            print("WARNING: correcting missing <sd-panel> </sd-panel> tags!")
+            print(panel_caption)
             panel_caption = SD_PANEL_OPEN + panel_caption + SD_PANEL_CLOSE
         
 
@@ -79,8 +79,8 @@ def caption_text2xml(panel_caption, tags, tags2anonym, safe_mode = True, exclusi
     tags_neo_id = [u"sdTag{}".format(t['data']['id']) for t in tags]
     tags_not_found = set(tags_neo_id) - set([t.attrib['id'] for t in tags_xml])
     if tags_not_found:
-        print "WARNING, tag(s) not found: ", tags_not_found
-        print panel_caption
+        print("WARNING, tag(s) not found: ", tags_not_found)
+        print(panel_caption)
         tag_errors.append(tags_not_found)
     
     #keep attributes only for the selected tags and clear the rest 
@@ -90,7 +90,7 @@ def caption_text2xml(panel_caption, tags, tags2anonym, safe_mode = True, exclusi
                 if not t_xml.attrib['id'] in tags_neo_id: 
                     t_xml.attrib.clear()
             else:
-                print "WARNING, tag", tostring(t_xml), "has no id" 
+                print("WARNING, tag", tostring(t_xml), "has no id" )
     
     if keep_roles_only_for_selected_tags:
         for t_xml in tags_xml:
@@ -140,7 +140,7 @@ def neo2xml(source, options):
         doi = a[1]
         if doi == '': doi = a_id
         if doi in figure_captions_xml:
-            print 'WARNING! {} ALREADY EXISTS'.format(doi)
+            print('WARNING! {} ALREADY EXISTS'.format(doi))
             paper_errors.append({a_id, doi})
         else:
 			q_figures = '''
@@ -170,9 +170,9 @@ def neo2xml(source, options):
 			   
 				  '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
 				results_panels = DB.query(q_panel)
-				#print "querying with:"
-				#print q_panel
-				print (u"{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi)).encode('utf-8')
+				#print("querying with:")
+				#print(q_panel)
+				print((u"{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi)).encode('utf-8'))
 			
 				if results_panels:              
 					figure_xml_element = Element('figure-caption')
@@ -199,9 +199,9 @@ def neo2xml(source, options):
 						except Exception as e:
 							panel_id = results_labeled[p]['panel_id']
 							fig_label = results_labeled[p]['fig_label']
-							print (u"problem parsing fig {} panel {} (panel_id:{}) in article {}".format(fig_label, p, panel_id, doi)).encode('utf-8')
-							print panel_caption.encode('utf-8')
-							print " ==> error: ", e, "\n"
+							print((u"problem parsing fig {} panel {} (panel_id:{}) in article {}".format(fig_label, p, panel_id, doi)).encode('utf-8'))
+							print(panel_caption.encode('utf-8'))
+							print(" ==> error: ", e, "\n")
 							caption_errors.append([doi, fig_label, p, panel_id, e, panel_caption])
 				
 					#for f in figure_xml_element_list: figure_captions[a_id].append(f)
@@ -213,12 +213,12 @@ def neo2xml(source, options):
 					#panel_inner_text = ''.join([s for s in figure_xml_element.itertext()])
 					#fig_original_caption = "<fig>{}</fig>".format(fig_original_caption)
 					#original_inner_text = ''.join([s for s in fromstring(fig_original_caption).itertext()])
-					#print "\n\n\npanel_inner_text:\n"
-					#print panel_inner_text
-					#print "\n\n\noriginal_inner_text:\n"
-					#print original_inner_text
+					#print("\n\n\npanel_inner_text:\n")
+					#print(panel_inner_text)
+					#print("\n\n\noriginal_inner_text:\n")
+					#print(original_inner_text)
 				
-			print "number of figures in ", a_id, doi, len(figure_captions_xml[doi])
+			print("number of figures in ", a_id, doi, len(figure_captions_xml[doi]))
     return figure_captions_xml, {'paper_level':paper_errors, 'caption_level': caption_errors, 'tag_level': tag_level_errors} #figure_captions_text
     
  

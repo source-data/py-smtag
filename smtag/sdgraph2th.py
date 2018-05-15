@@ -21,7 +21,7 @@ class SDGraphPreparator(DataPreparator):
         parser.add_argument('-N', '--not_safe_mode', action='store_true', help='protects against some misformed XML in caption; set this option to False for debugging')
                 
         self.options = self.set_options(parser.parse_args())
-        if self.options['verbose']: print self.options
+        if self.options['verbose']: print(self.options)
         super(SDGraphPreparator, self).main()
         
     @staticmethod
@@ -57,11 +57,11 @@ class SDGraphPreparator(DataPreparator):
             if year_range[0]: year_range_clause = "toInteger(a.year) >= {} AND toInteger(a.year) <= {}".format(year_range[0], year_range[1]) 
             if journals[0]: journal_clause = " OR ".join(["a.journalName =~ '(?i).*{}.*' ".format(j) for j in journals])
             where_clause += " AND ".join(["({})".format(c) for c in [single_doi_clause, year_range_clause, journal_clause] if c])
-            print "where_clause", where_clause
+            print("where_clause", where_clause)
 
         if limit:    
             limit_clause = " LIMIT {} ".format(limit)
-            print "limit_clause", limit_clause
+            print("limit_clause", limit_clause)
 
         if type: 
             if type == 'entity':
@@ -76,13 +76,13 @@ class SDGraphPreparator(DataPreparator):
                 entity_type_clause += ' t.type = '
             entity_type_clause += " OR t.type = ".join(["'{}'".format(t) for t in type_list])
             entity_type_clause = "AND ({}) ".format(entity_type_clause)
-            print "entity_type_clause", entity_type_clause
+            print("entity_type_clause", entity_type_clause)
 
         if role: 
             entity_role_clause = ' t.role = '
             entity_role_clause += " OR t.role = ".join(["'{}'".format(t.strip()) for t in role.split(",")])
             entity_role_clause = "AND ({}) ".format(entity_role_clause)
-            print "entity_role_clause", entity_role_clause 
+            print("entity_role_clause", entity_role_clause )
 
         #, [t in tags WHERE t in ["protein","gene"]] AS tags_to_anonymize   
         if tags2anonymize: 
@@ -90,12 +90,12 @@ class SDGraphPreparator(DataPreparator):
                 tags2anonymize = "molecule, gene, protein, subcellular, cell, tissue, organism, undefined"
             tags2anonymize = ['"{}"'.format(t.strip()) for t in tags2anonymize.split(',')]
             tags2anonmymize_clause = ", ".join(tags2anonymize)
-        print "tags2anonmymize_clause", tags2anonmymize_clause
+        print("tags2anonmymize_clause", tags2anonmymize_clause)
 
         if donotanonymize: 
             donotanonymize = ['"{}"'.format(t.strip()) for t in donotanonymize.split(',')]
             donotanonymize_clause = ", ".join(donotanonymize)
-        print "donotanonymize_clause", donotanonymize_clause
+        print("donotanonymize_clause", donotanonymize_clause)
         
         options['where_clause'] = where_clause
         options['entity_type_clause'] = entity_type_clause
@@ -116,7 +116,7 @@ class SDGraphPreparator(DataPreparator):
         dataset = []
 
         for id in xml_papers:
-            #print "Paper: ", id, xml_papers[id]
+            #print("Paper: ", id, xml_papers[id])
             for i in range(len(xml_papers[id])):        
                 figure_xml = xml_papers[id][i]
                 text = ''.join([s for s in figure_xml.itertext()])
@@ -125,8 +125,8 @@ class SDGraphPreparator(DataPreparator):
                 if text:
                     dataset.append({'provenance':{'id':id,'index':i+1}, 'text': text,'features': features})
                 else:
-                    print "skipping an example in paper with id=", id
-                    print "<xml>{}</xml>".format(tostring(figure_xml))
+                    print("skipping an example in paper with id=", id)
+                    print("<xml>{}</xml>".format(tostring(figure_xml)))
                     print
 
         return dataset

@@ -13,7 +13,7 @@ class AnnPreparator(DataPreparator):
         super(AnnPreparator, self).__init__(parser) #hopefully parser is mutable otherwise use self.parser
         parser.add_argument('dir', type=str, default='../corpora/test/train', help='path to directory to scan')
         self.options = self.set_options(parser.parse_args())
-        if self.options['verbose']: print self.options
+        if self.options['verbose']: print(self.options)
         super(AnnPreparator, self).main()
         
     @staticmethod
