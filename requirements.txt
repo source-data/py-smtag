@@ -5,3 +5,4 @@ PyYAML==3.12
 six==1.11.0
 torch==0.4.0
 torchvision==0.2.0
+neo4jrestclient=2.1.1
