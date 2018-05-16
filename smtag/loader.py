@@ -5,7 +5,8 @@ import logging
 import math
 from converter import Converter
 import mapper
-from viz import Visualization 
+from progress import progress
+from viz import Show 
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')
@@ -21,9 +22,9 @@ class Dataset:
             return f"FATAL: Example line is too long: {len(self.line)} > {self.max_length}"
 
     def from_files(self, basename):
-        features_filename = f"./data/{basename}.npy"
-        text_filename = f'./data/{basename}.txt'
-        provenance_filename = f'./data/{basename}.prov'
+        features_filename = f"data/{basename}.npy"
+        text_filename = f'data/{basename}.txt'
+        provenance_filename = f'data/{basename}.prov'
         logger.info(f"Loading {features_filename} as features for the dataset.")
         np_features = np.load(features_filename) #saved file is 3D; need to change this?
         self.N = np_features.shape[0] #number of examples
@@ -146,7 +147,7 @@ class Loader:
             logger.info(f"input dataset['{k}'] tensor created")
             logger.info(f"output dataset['{k}'] tensor created")
             for example_i in range(first_example, last_example):
-                
+                progress(example_i, N_examples, status=f"loading examples into dataset['{k}']")
                 i = shuffled_indices[example_i]
                 index = example_i - first_example + 1
                 #TEXT SAMPLES AND INPUT TEXT ENCODING
@@ -188,7 +189,7 @@ def tester():
 
     d = loader.prepare_datasets("test_train")
     logger.debug("> All OK")
-    Visualization.show_example([d['train']])
+    Show.example([d['train']])
 
 if __name__ == '__main__':           # Only when run
     tester()                         # Not when imported
