@@ -20,30 +20,37 @@ COLORS = ["\033[30;1m", #grey
           "\033[45;37;1m"] #turquoise back
 CLOSE_COLOR = "\033[0m"
 
-class Visualization():
+class Show():
 
     @staticmethod
-    def show_example(minibatches):
-        M = len(minibatches)
-        N = minibatches[0].N
+    def example(model, minibatches):
+        M = len(minibatches) # M minibatches
+        N = minibatches[0].N # N examples per minibatch
         #select random j-th example in i-th minibatch
         rand_i = math.floor(M * random())
         rand_j = math.floor(N *  random())
-        input = minibatches[rand_i].input[rand_j:rand_j+1, : , : , : ] #crappy syntax for pytorch; otherwise result is 3D
-        print("input size",input.size())
-        target = minibatches[rand_i].output[rand_j:rand_j+1, : , : , : ]
-        print("output size, target", target.size())
+        input = minibatches[rand_i].input[[rand_j], : , : , : ] # rand_j index as list to keep the tensor 4D
+        target = minibatches[rand_i].output[[rand_j], : , : , : ]
+        
         original_text =  minibatches[rand_i].text[rand_j]
         provenance = minibatches[rand_i].provenance[rand_j]
         nf_input = input.size(1)
+        
+        model.eval()
+        prediction = model(input)
+        model.train()
+        prediction.add_(-0.5).clamp_(0).ceil_() # apply threshold and binarize to 0 or 1, all in-place
 
-        text = Converter.t_decode(input[0:1, 0:31, :, : ]) #sometimes input has more than 32 features if feature2input option was chosen
+        text = Converter.t_decode(input[[0], 0:31, :, : ]) #sometimes input has more than 32 features if feature2input option was chosen
         if nf_input > 32:
             print("Additional input features:")
-            Visualization.print_pretty(input[0:1, 32:nf_input, : , : ])
+            Show.print_pretty(input[[0], 32:nf_input, : , : ])
     
         print("Expected:")
-        Visualization.print_pretty_color(target, text)
+        Show.print_pretty_color(target, text)
+        
+        print("Predicted:")
+        Show.print_pretty_color(prediction, text)
     
 
     @staticmethod
