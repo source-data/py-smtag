@@ -51,6 +51,8 @@ class Show():
         
         print("Predicted:")
         Show.print_pretty_color(prediction, text)
+        
+        print("From: {provenance}")
     
 
     @staticmethod

@@ -45,7 +45,7 @@ def anonymize_sdtags(panel_xml, tags_neo):
 
 def caption_text2xml(panel_caption, tags, tags2anonym, safe_mode = True, exclusive_mode = False, keep_roles_only_for_selected_tags = False):
     tag_errors = []
-    panel_caption = panel_caption.encode('utf-8')
+    panel_caption = panel_caption#.encode('utf-8')
     if safe_mode:
         #need protection agains missing spaces
         
@@ -143,82 +143,82 @@ def neo2xml(source, options):
             print('WARNING! {} ALREADY EXISTS'.format(doi))
             paper_errors.append({a_id, doi})
         else:
-			q_figures = '''
-				MATCH (a:Article )-->(f:Figure)
-				WHERE id(a) = {}
-				RETURN id(f), f.fig_label, f.caption
-				ORDER BY f.fig_label ASC
-				'''.format(a_id)
-			results_figures = DB.query(q_figures)
-		
-			figure_captions_xml[doi]= []
-			#figure_captions_text[doi] = []
-		
-			for f in results_figures:
-				f_id = f[0]
-				fig_label = f[1]
-				fig_original_caption = f[2].encode('utf-8')
-				#fig_original_caption = cleanup(fig_original_caption)
-			  
-				q_panel = '''
-				   MATCH (f:Figure)-->(p:Panel)-->(t:Tag)
-				   WHERE id(f) = {} AND t.in_caption = true
-				   {} //AND t.type = some_entity_type OR some other type
-				   {} //AND t.role = some role OR some role
-				   WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, COLLECT(DISTINCT t) AS tags
-				   RETURN formatted_caption, label, panel_id, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
-			   
-				  '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
-				results_panels = DB.query(q_panel)
-				#print("querying with:")
-				#print(q_panel)
-				print((u"{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi)).encode('utf-8'))
-			
-				if results_panels:              
-					figure_xml_element = Element('figure-caption')
-					#figure_original_text = ''
-					#panels not in the proper order, need resorting via label
-					results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'fig_label':fig_label, 'tags':p[3], 'tags2anonym':p[4]} for p in results_panels}
-					sorted_panel_labels = results_labeled.keys()
-					sorted_panel_labels.sort()
-				
-					for p in sorted_panel_labels:      
-						panel_caption = results_labeled[p]['panel_caption']
-						tags = results_labeled[p]['tags']
-						tags2anonym = results_labeled[p]['tags2anonym']
-						try:
-							panel_xml_element, tag_errors = caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
-							#generate multiple data augmented figures
-							#for i in range(len(figure_xml_element_list)): figure_xml_element_list[i].append(panel_xml_element[i])
-							figure_xml_element.append(panel_xml_element)
-							#figure_original_text = figure_original_text + ''.join([t for t in panel_xml_element.itertext()])
-							if tag_errors:
-								panel_id = results_labeled[p]['panel_id']
-								fig_label = results_labeled[p]['fig_label']
-								tag_level_errors.append([doi, fig_label, p, panel_id, panel_caption, tag_errors])
-						except Exception as e:
-							panel_id = results_labeled[p]['panel_id']
-							fig_label = results_labeled[p]['fig_label']
-							print((u"problem parsing fig {} panel {} (panel_id:{}) in article {}".format(fig_label, p, panel_id, doi)).encode('utf-8'))
-							print(panel_caption.encode('utf-8'))
-							print(" ==> error: ", e, "\n")
-							caption_errors.append([doi, fig_label, p, panel_id, e, panel_caption])
-				
-					#for f in figure_xml_element_list: figure_captions[a_id].append(f)
-					figure_captions_xml[doi].append(figure_xml_element)
-				
-					#figure_captions_text[doi].append(figure_original_text)
-				
-					#cleanup xml for missing spaces
-					#panel_inner_text = ''.join([s for s in figure_xml_element.itertext()])
-					#fig_original_caption = "<fig>{}</fig>".format(fig_original_caption)
-					#original_inner_text = ''.join([s for s in fromstring(fig_original_caption).itertext()])
-					#print("\n\n\npanel_inner_text:\n")
-					#print(panel_inner_text)
-					#print("\n\n\noriginal_inner_text:\n")
-					#print(original_inner_text)
-				
-			print("number of figures in ", a_id, doi, len(figure_captions_xml[doi]))
+            q_figures = '''
+                MATCH (a:Article )-->(f:Figure)
+                WHERE id(a) = {}
+                RETURN id(f), f.fig_label, f.caption
+                ORDER BY f.fig_label ASC
+                '''.format(a_id)
+            results_figures = DB.query(q_figures)
+        
+            figure_captions_xml[doi]= []
+            #figure_captions_text[doi] = []
+        
+            for f in results_figures:
+                f_id = f[0]
+                fig_label = f[1]
+                fig_original_caption = f[2].encode('utf-8')
+                #fig_original_caption = cleanup(fig_original_caption)
+              
+                q_panel = '''
+                   MATCH (f:Figure)-->(p:Panel)-->(t:Tag)
+                   WHERE id(f) = {} AND t.in_caption = true
+                   {} //AND t.type = some_entity_type OR some other type
+                   {} //AND t.role = some role OR some role
+                   WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, COLLECT(DISTINCT t) AS tags
+                   RETURN formatted_caption, label, panel_id, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
+               
+                  '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
+                results_panels = DB.query(q_panel)
+                #print("querying with:")
+                #print(q_panel)
+                print((u"{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi)).encode('utf-8'))
+            
+                if results_panels:              
+                    figure_xml_element = Element('figure-caption')
+                    #figure_original_text = ''
+                    #panels not in the proper order, need resorting via label
+                    results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'fig_label':fig_label, 'tags':p[3], 'tags2anonym':p[4]} for p in results_panels}
+                    sorted_panel_labels = list(results_labeled.keys())
+                    sorted_panel_labels.sort()
+                
+                    for p in sorted_panel_labels:      
+                        panel_caption = results_labeled[p]['panel_caption']
+                        tags = results_labeled[p]['tags']
+                        tags2anonym = results_labeled[p]['tags2anonym']
+                        try:
+                            panel_xml_element, tag_errors = caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
+                            #generate multiple data augmented figures
+                            #for i in range(len(figure_xml_element_list)): figure_xml_element_list[i].append(panel_xml_element[i])
+                            figure_xml_element.append(panel_xml_element)
+                            #figure_original_text = figure_original_text + ''.join([t for t in panel_xml_element.itertext()])
+                            if tag_errors:
+                                panel_id = results_labeled[p]['panel_id']
+                                fig_label = results_labeled[p]['fig_label']
+                                tag_level_errors.append([doi, fig_label, p, panel_id, panel_caption, tag_errors])
+                        except Exception as e:
+                            panel_id = results_labeled[p]['panel_id']
+                            fig_label = results_labeled[p]['fig_label']
+                            print((u"problem parsing fig {} panel {} (panel_id:{}) in article {}".format(fig_label, p, panel_id, doi)).encode('utf-8'))
+                            print(panel_caption.encode('utf-8'))
+                            print(" ==> error: ", e, "\n")
+                            caption_errors.append([doi, fig_label, p, panel_id, e, panel_caption])
+                
+                    #for f in figure_xml_element_list: figure_captions[a_id].append(f)
+                    figure_captions_xml[doi].append(figure_xml_element)
+                
+                    #figure_captions_text[doi].append(figure_original_text)
+                
+                    #cleanup xml for missing spaces
+                    #panel_inner_text = ''.join([s for s in figure_xml_element.itertext()])
+                    #fig_original_caption = "<fig>{}</fig>".format(fig_original_caption)
+                    #original_inner_text = ''.join([s for s in fromstring(fig_original_caption).itertext()])
+                    #print("\n\n\npanel_inner_text:\n")
+                    #print(panel_inner_text)
+                    #print("\n\n\noriginal_inner_text:\n")
+                    #print(original_inner_text)
+                
+            print("number of figures in ", a_id, doi, len(figure_captions_xml[doi]))
     return figure_captions_xml, {'paper_level':paper_errors, 'caption_level': caption_errors, 'tag_level': tag_level_errors} #figure_captions_text
     
  

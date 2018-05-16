@@ -15,7 +15,7 @@ class DataPreparator(object):
     An abstract class to prepare text examples as dataset that can be imported in smtag
     """
     
-    DATA_DIR = "../data"
+    DATA_DIR = "data"
     
     def __init__(self, parser):
         """
@@ -171,7 +171,7 @@ class DataPreparator(object):
             self.split_examples['train'] = raw_examples[:N_train]
             self.split_examples['test'] = raw_examples[N_train:]
         elif isinstance(raw_examples, dict):
-            keys = raw_examples.keys()
+            keys = list(raw_examples.keys())
             shuffle(keys)
             self.split_examples['train'] = {k:raw_examples[k] for k in keys[:N_train]}
             self.split_examples['test'] =  {k:raw_examples[k] for k in keys[N_train:]}
@@ -215,11 +215,11 @@ class DataPreparator(object):
              np.save(tensor_filename, self.dataset4th[k]['tensor4th']) 
              text_filename = os.path.join(DataPreparator.DATA_DIR, filenamebase+"_"+k+".txt")
              with open(text_filename, 'w') as f:
-                  for line in self.dataset4th[k]['text4th']: f.write(line.encode('utf-8') + "\n")
+                  for line in self.dataset4th[k]['text4th']: f.write(f"{line}\n")
              f.close()
              provenance_filename = os.path.join(DataPreparator.DATA_DIR,filenamebase+"_"+k+".prov")
              with open(provenance_filename, 'w') as f:
-                  for line in self.dataset4th[k]['provenance4th']: f.write(", ".join([str(line[k]) for k in ['id','index']]).encode('utf-8') + "\n")
+                  for line in self.dataset4th[k]['provenance4th']: f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
              f.close()
 
              print("Provenance ids saved to {}".format(provenance_filename))

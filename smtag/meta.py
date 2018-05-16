@@ -5,7 +5,7 @@ Usage:
 Options:
   -f <file>, --file <file>                Namebase of dataset to import [default: test_train]
   -E <int>, --epochs <int>                Number of training epochs [default: 120]
-  -Z <int>, --minibatch_size <int>        Minibatch size [default:128]
+  -Z <int>, --minibatch_size <int>        Minibatch size [default: 128]
   -R <float> , --learning_rate <float>    Learning rate [default: 0.001]
   -h --help     Show this screen.
   --version     Show version.
@@ -38,9 +38,7 @@ if __name__ == '__main__':
     setup_logging()
     logger = logging.getLogger(__name__)
     arguments = docopt(__doc__, version='0.1')
-    print(arguments)
     #map arguments to opt to decouple command line options from internal representation
-
     opt = {}
     opt['namebase'] = arguments['--file']
     opt['learning_rate'] = float(arguments['--learning_rate'])

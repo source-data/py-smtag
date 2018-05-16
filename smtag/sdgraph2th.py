@@ -1,8 +1,10 @@
 import argparse
 from getpass import getpass
+from xml.etree.ElementTree import tostring
 from dataprep import DataPreparator
 from featurizer import XMLFeaturizer
 import neo2leg
+
 
 class SDGraphPreparator(DataPreparator):
 
@@ -19,7 +21,7 @@ class SDGraphPreparator(DataPreparator):
         parser.add_argument('-s', '--selective', action='store_true', help='keep the roles only for the entities selected by the -y option')
         parser.add_argument('-r', '--role', default='', help='makes sure each example has entities with the specified role')
         parser.add_argument('-N', '--not_safe_mode', action='store_true', help='protects against some misformed XML in caption; set this option to False for debugging')
-                
+
         self.options = self.set_options(parser.parse_args())
         if self.options['verbose']: print(self.options)
         super(SDGraphPreparator, self).main()
@@ -117,7 +119,8 @@ class SDGraphPreparator(DataPreparator):
 
         for id in xml_papers:
             #print("Paper: ", id, xml_papers[id])
-            for i in range(len(xml_papers[id])):        
+            number_of_figures = len(xml_papers[id])
+            for i in range(number_of_figures):
                 figure_xml = xml_papers[id][i]
                 text = ''.join([s for s in figure_xml.itertext()])
                 features, _, _ = XMLFeaturizer.xml2features(figure_xml)

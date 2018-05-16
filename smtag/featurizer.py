@@ -88,7 +88,7 @@ class XMLFeaturizer(object):
             except Exception as e:
                 print(element.text, element.tag, element.attrib)
                 print(features)
-                print L_tot
+                print(L_tot)
                 raise(e)   
 
         return features, L_tot, L_tail
