@@ -89,6 +89,8 @@ class XMLFeaturizer(object):
                 print(element.text, element.tag, element.attrib)
                 print(features)
                 print(L_tot)
-                raise(e)   
+                raise(e)
+                
+            #add 'virtual' computed features here?  
 
         return features, L_tot, L_tail

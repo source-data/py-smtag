@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# From https://gist.github.com/vladignatyev/06860ec2040cb497f0f3
 # The MIT License (MIT)
 # Copyright (c) 2016 Vladimir Ignatev
 #

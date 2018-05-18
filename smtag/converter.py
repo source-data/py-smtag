@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 #Licence:
@@ -22,18 +21,14 @@ class Converter():
         Returns
             (torch.Tensor): 4D tensor 1x32x1xL (1 example x 32 bits x 1 row of characters x L characters) representing characters as 32 features
         """
+
         L = len(input_string)
-        tensor = torch.zeros(1,32,1,L)
+        t = torch.zeros(1,32,1,L)
         for i in range(L):
             code = ord(input_string[i])
-            bits = list("{0:032b}".format(code))
-            b = 0
-            while bits: 
-                bit = int(bits.pop())
-                tensor[0][b][0][i] = bit
-                b += 1
-                
-        return tensor
+            bits = torch.Tensor([int(b) for b in "{0:032b}".format(code)][::-1])
+            t[0, : , 0, i] = bits
+        return t
 
     @staticmethod
     def t_decode(t):
@@ -61,7 +56,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser( description="Encode decode string into binary tensors" )
     parser.add_argument('input_string', nargs='?', default= "this is so ☾😎 😎 L ‼️", help="The string to convert")
     args = parser.parse_args()
-    input_string = args.input_string.decode('utf-8')
+    input_string = args.input_string#.encod('utf-8')
     print("the decoded of encoded:", Converter.t_decode(Converter.t_encode(input_string)))
     
     

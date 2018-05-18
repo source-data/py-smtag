@@ -24,15 +24,23 @@ class Dataset:
     def from_files(self, basename):
         features_filename = f"data/{basename}.npy"
         text_filename = f'data/{basename}.txt'
+        #textcoded_filename = f"data/{basename}_textcoded.npy"
         provenance_filename = f'data/{basename}.prov'
+        
         logger.info(f"Loading {features_filename} as features for the dataset.")
         np_features = np.load(features_filename) #saved file is 3D; need to change this?
         self.N = np_features.shape[0] #number of examples
         self.nf_output = np_features.shape[1] #number of features
         self.L = np_features.shape[2] #length of text snippet 
-        #convert into 4D for the whole smtag package to be able to use 4D convolution modules
+        #convert into 4D for the whole smtag package to be able to use 4D convolution modules; #should be implemented as unsequeeze() rather than resize()
         np_features.resize(self.N, self.nf_output, 1, self.L)
         self.output = torch.from_numpy(np_features) #saved files are from numpy, need conversion to torch
+        
+        #logger.info(f"Loading {textcoded_filename} as encoded text for the dataset.")
+        #text_coded = np.load(textcoded_filename) #saved file is 3D; need to change this?
+        #text_coded = resize(self.N, 32, 1, self.L) #should be implemented as unsequeeze() rather than resize()
+        #self.text_coded = torch.from_numpy(text_coded)
+        
         logger.info(f"Loading {text_filename} for the original texts of the dataset.")
         with open(text_filename, 'r') as f:
             for line in f:
@@ -40,10 +48,12 @@ class Dataset:
                 if len(line) > self.L :
                     raise LineTooLong(line, L)
                 self.text.append(line)
+        
         logger.info(f"Loading {provenance_filename} as provenance info for the examples in the dataset.")
         with open(provenance_filename, 'r') as f:
             for line in f:
                 self.provenance.append(line)
+        
         logger.info(f"Dataset dimensions:")
         logger.info(f"{self.N} text examples of size {self.L}")
         logger.info(f"{self.nf_input} input features (in-channels).")
@@ -64,7 +74,7 @@ class Loader:
     def __init__(self,
                  selected_features,
                  collapsed_features=[],
-                 overlap_features={},
+                 overlap_features=[],
                  features2input=[],
                  noise=0,
                  fraction=1,
@@ -81,12 +91,12 @@ class Loader:
         self.nf_collapsed_feature = 0
         self.nf_overlap_feature = 0
         self.nf_output = len(selected_features)
-        if len(features2input) > 0:
+        if features2input:
             self.nf_input = self.nf_input + len(features2input)
-        if len(collapsed_features) > 0:
+        if collapsed_features:
             self.nf_output = self.nf_output + 1
             self.nf_collapsed_feature = self.nf_output
-        if len(overlap_features) > 0:
+        if overlap_features:
             self.nf_output = self.nf_output + 1
             self.nf_overlap_feature = self.nf_output
 
@@ -103,15 +113,12 @@ class Loader:
         raw_dataset.from_files(file_basename)
         N = raw_dataset.N
         L = raw_dataset.L
-        nf = raw_dataset.nf_output
-        assert N != 0, "zero examples"
+        nf = raw_dataset.nf_output # it already includes the last row for 'geneprod'!!
+        assert N != 0, "zero examples!"
         
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
-        extended_features = torch.zeros(N, nf+1 ,1, L)
-        extended_features[ : , 0:nf, : , : ] = raw_dataset.output
-        extended_features[ : , nf, : , : ] = raw_dataset.output[ : , mapper.label2index['gene'], : , : ] + raw_dataset.output[ : ,  mapper.label2index['protein'], : , : ]
-        nf += 1
-        raw_dataset.output = extended_features
+        #THIS HAS TO GO! BELONGS TO DATAPREP!!! Probably in Featurizer
+        raw_dataset.output[ : , nf-1, : , : ] = raw_dataset.output[ : , mapper.label2index['gene'], : , : ] + raw_dataset.output[ : ,  mapper.label2index['protein'], : , : ]
         
         logger.info(f"Creating dataset with selected features {self.selected_features}, and shuffling {N} examples.")
         shuffled_indices = torch.randperm(N) #shuffled_indices = range(N); shuffle(shuffled_indices)
@@ -147,20 +154,23 @@ class Loader:
             logger.info(f"input dataset['{k}'] tensor created")
             logger.info(f"output dataset['{k}'] tensor created")
             for example_i in range(first_example, last_example):
-                progress(example_i, N_examples, status=f"loading examples into dataset['{k}']")
+                progress(example_i - first_example, N_examples, status=f"loading {N_examples} examples ({first_example} to {last_example}) into dataset['{k}']")
                 i = shuffled_indices[example_i]
                 index = example_i - first_example + 1
                 #TEXT SAMPLES AND INPUT TEXT ENCODING
                 assert len(raw_dataset.text[i]) == L, "FATAL: {} > {} with {}".format(len(raw_dataset.text[i]), L, raw_dataset.text[i])
                 dataset.text[index] = raw_dataset.text[i]
                 dataset.provenance[index] = raw_dataset.provenance[i]
+                
+                #this is very slow! Shift to data prep!
                 dataset.input[index, 0:32 , : , : ] = Converter.t_encode(raw_dataset.text[i])
+                #dataset.input[index, 0:32 , : , : ] = raw_dataset.textcoded[i, : , : , : ]
                 
                 #SELECTION AND COMBINATION OF OUTPUT FEATURES
                 for f in self.features2input:
                     #argh we need j as the index
-                    j = self.features2input.index(f) # j-1???
-                    dataset.input[index, self.nf_input - len(self.features2input) + j, : , : ] = raw_dataset.output[i, mapper.label2index[f], : , : ]
+                    j = self.features2input.index(f) # for example: j=0, nf_input = 32 => 32 + 0 - 1= 31
+                    dataset.input[index, self.nf_input + j - 1, : , : ] = raw_dataset.output[i, mapper.label2index[f], : , : ]
 
                 for f in self.selected_features:
                     j = self.selected_features.index(f)
@@ -175,21 +185,21 @@ class Loader:
                     dataset.output[index, self.nf_overlap_feature, : , : ].fill_(1)
                 for f in self.overlap_features:
                     dataset.output[index, self.nf_overlap_feature, : , : ] = dataset.output[index, self.nf_overlap_feature, : , : ] * raw_dataset.output[i, mapper.label2index[f], : , : ]
-
+            print("\ndone\n")
             datasets[k] = dataset
         return datasets
 
 def tester():
     logger.debug("> testing")
-    selected_features = ['protein', 'gene']
-    features2input = ['small_molecule']
+    selected_features = ['geneprod', 'small_molecule']
+    features2input = ['protein']
     loader = Loader(selected_features, features2input=features2input)
     assert loader.nf_input == config.NBITS + len(features2input) , "Number of features in input should equal NBITS (defined in config) + the number of features to input"
     assert loader.nf_output == len(selected_features), "Number of output features is equal to the number of selected features"
 
     d = loader.prepare_datasets("test_train")
     logger.debug("> All OK")
-    Show.example([d['train']])
+    for i in range(10): Show.example([d['train']])
 
 if __name__ == '__main__':           # Only when run
     tester()                         # Not when imported

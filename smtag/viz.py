@@ -23,7 +23,7 @@ CLOSE_COLOR = "\033[0m"
 class Show():
 
     @staticmethod
-    def example(model, minibatches):
+    def example(minibatches, model = None):
         M = len(minibatches) # M minibatches
         N = minibatches[0].N # N examples per minibatch
         #select random j-th example in i-th minibatch
@@ -35,34 +35,37 @@ class Show():
         original_text =  minibatches[rand_i].text[rand_j]
         provenance = minibatches[rand_i].provenance[rand_j]
         nf_input = input.size(1)
-        
-        model.eval()
-        prediction = model(input)
-        model.train()
-        prediction.add_(-0.5).clamp_(0).ceil_() # apply threshold and binarize to 0 or 1, all in-place
+        if model is not None: 
+            model.eval()
+            prediction = model(input)
+            model.train()
 
         text = Converter.t_decode(input[[0], 0:31, :, : ]) #sometimes input has more than 32 features if feature2input option was chosen
         if nf_input > 32:
-            print("Additional input features:")
+            print("\nAdditional input features:")
             Show.print_pretty(input[[0], 32:nf_input, : , : ])
     
-        print("Expected:")
+        print("\nExpected:")
         Show.print_pretty_color(target, text)
         
-        print("Predicted:")
-        Show.print_pretty_color(prediction, text)
+        if model is not None:
+            print("\nPredicted:")
+            Show.print_pretty_color(prediction, text)
         
-        print("From: {provenance}")
+            print("\nFeatures:")
+            Show.print_pretty(prediction)
+        
+        #print(f"From: {provenance}")
     
 
     @staticmethod
     def print_pretty(features):
         symbols = ['_','.',':','^','|'] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1 
-        N = len(symbols)
+        N = len(symbols) # = 5
         for i in range(features.size(1)):
             track = ""
             for j in range(features.size(3)):
-                k = math.ceil(N*features[0, i, 0, j]) - 1
+                k = min(N-1, math.floor(N*features[0, i, 0, j]))
                 track += symbols[k]
             print(f"Tagging track {i}")
             print(track)

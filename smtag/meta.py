@@ -1,12 +1,14 @@
 """smtag
 Usage:
-  meta.py [-f <file> -Z <int> -E <int> -R <float>]
+  meta.py [-f <file> -Z <int> -E <int> -R <float> -o <str> -n <str>]
 
 Options:
   -f <file>, --file <file>                Namebase of dataset to import [default: test_train]
   -E <int>, --epochs <int>                Number of training epochs [default: 120]
-  -Z <int>, --minibatch_size <int>        Minibatch size [default: 128]
-  -R <float> , --learning_rate <float>    Learning rate [default: 0.001]
+  -Z <int>, --minibatch_size <int>        Minibatch size [default: 32]
+  -R <float>, --learning_rate <float>     Learning rate [default: 0.001]
+  -o <str>, --output_features <str>       Selected output features (use quotes if comma+space delimited) [default: geneprod]
+  -n <str>, --nf_table <str>             Selected number of features for each hidden layer (use quotes if comma+space delimited) [default: 8,8,8]
   -h --help     Show this screen.
   --version     Show version.
 """
@@ -44,12 +46,13 @@ if __name__ == '__main__':
     opt['learning_rate'] = float(arguments['--learning_rate'])
     opt['epochs'] = int(arguments['--epochs'])
     opt['minibatch_size'] = int(arguments['--minibatch_size'])
-    opt['selected_features'] = ['gene','protein']
-    opt['nf_table'] =  [8, 8, 8]
+    output_features = [x.strip() for x in arguments['--output_features'].split(',')]
+    nf_table = [int(x.strip()) for x in arguments['--nf_table'].split(',')]
+    opt['selected_features'] = output_features
+    opt['nf_table'] =  nf_table
     opt['pool_table'] = [2, 2, 2]
     opt['kernel_table'] = [6, 6, 6]
     opt['dropout'] = 0.1
-    opt['autoencode'] = False
     print("; ".join(opt))
     ldr = Loader(opt['selected_features'])
     datasets = ldr.prepare_datasets(opt['namebase'])

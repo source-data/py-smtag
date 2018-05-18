@@ -86,13 +86,19 @@ class DataPreparator(object):
         index = 0
         text4th = []
         provenance4th = []
+        # number_of_features includes the virtual geneprod feature
         tensor4th = np.zeros((N * iterations, number_of_features, length+min_padding)) #would it be better to have the 4D convention already here?
+        #textcoded4th = np.zeros((N * iterations, 32, length+min_padding))
+        
         length_statistics = []
         print("generating {}*{} x {} x {} tensor.".format(N, self.options['iterations'], number_of_features, length+min_padding))
 
         for i in range(N):
             text_i = dataset[i]['text'] 
+            #add textcoded4th
+            #textcoded4th[i] = Converter.t_encode(text_i)
             features_i = dataset[i]['features']
+            #compute_features_i['marks']['sd-tag']['geneprod'] here or somethign
             provenance_i = dataset[i]['provenance']
             #Example.text Example.features Example.provenance RawDataset[i] yields Example_i
             L = len(text_i)
@@ -131,6 +137,9 @@ class DataPreparator(object):
                     text_ij = left_padding_chars + sub_text + right_padding_chars
 
                 text4th.append(text_ij)
+                #add textcoded4th
+                #pad textcoded4th[i] with suitable encoded spaces matrices
+                
                 provenance4th.append(provenance_i)
 
                 #fill tensor of features   
@@ -142,7 +151,6 @@ class DataPreparator(object):
                                 code = f[pos]
                                 if code is not None:
                                     tensor4th[index][code][pos] = 1
-                #compute geneprod feature here
                 index += 1
 
         text_avg = float(sum(length_statistics) / N)
@@ -153,8 +161,9 @@ class DataPreparator(object):
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_sd, text_min, text_max))
         if self.options['verbose']:
             self.display(text4th, tensor4th)
-            
-        return {'text4th':text4th, 'provenance4th':provenance4th, 'tensor4th':tensor4th}
+        
+        #add 'textcoded4th':textcoded4th, 
+        return {'text4th':text4th, 'provenance4th':provenance4th, 'tensor4th':tensor4th} 
 
 
     def split_trainset_testset(self, raw_examples):  
@@ -213,10 +222,15 @@ class DataPreparator(object):
         for k in self.dataset4th:
              tensor_filename = os.path.join(DataPreparator.DATA_DIR, filenamebase+"_"+k+".npy")
              np.save(tensor_filename, self.dataset4th[k]['tensor4th']) 
+             
+             #textcoded_filename = os.path.join(DataPreparator.DATA_DIR, filenamebase+"_"+k+"_textcoded".npy")
+             #np.save(textcoded_filename, self.dataset4th[k]['textcoded4th']) 
+             
              text_filename = os.path.join(DataPreparator.DATA_DIR, filenamebase+"_"+k+".txt")
              with open(text_filename, 'w') as f:
                   for line in self.dataset4th[k]['text4th']: f.write(f"{line}\n")
              f.close()
+             
              provenance_filename = os.path.join(DataPreparator.DATA_DIR,filenamebase+"_"+k+".prov")
              with open(provenance_filename, 'w') as f:
                   for line in self.dataset4th[k]['provenance4th']: f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
@@ -224,6 +238,7 @@ class DataPreparator(object):
 
              print("Provenance ids saved to {}".format(provenance_filename))
              print("Text examples saved to {}".format(text_filename))
+             print("Encoded text examples saved to {}".format(textcoded_filename))
              print("Tensor saved to {}".format(tensor_filename))
 
     def log_errors(self, errors):
