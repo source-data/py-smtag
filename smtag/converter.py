@@ -19,36 +19,34 @@ class Converter():
         Args
             input_string (str): string to convert
         Returns
-            (torch.Tensor): 4D tensor 1x32x1xL (1 example x 32 bits x 1 row of characters x L characters) representing characters as 32 features
+            (torch.Tensor): 3D tensor 1x32x1xL (1 example x 32 bits x L characters) representing characters as 32 features
         """
-
+        
         L = len(input_string)
-        t = torch.zeros(1,32,1,L)
+        t = torch.zeros(1,32,L)
         for i in range(L):
             code = ord(input_string[i])
             bits = torch.Tensor([int(b) for b in "{0:032b}".format(code)][::-1])
-            t[0, : , 0, i] = bits
+            t[0, : , i] = bits
         return t
 
     @staticmethod
     def t_decode(t):
         """
-        Static method that decodes a 4D tensor into a unicode string.
+        Static method that decodes a 3D tensor into a unicode string.
         Args:
-            t (torch.Tensor): 4D tensor 1x32x1xL (1 example x 32 bits x 1 row of characters x L characters) representing characters as 32 features
+            t (torch.Tensor): 3D tensor 1x32xL (1 example x 32 bits x L characters) representing characters as 32 features
         Returns
             (str): resulting string
         """
-        #tensor is 4D
-        L = t.size(3)
+        #tensor is 3D
+        L = t.size(2)
         str = ""
         for i in range(L):
             code = 0
             for j in range(31):
-                bit = int(t[0][j][0][i])
+                bit = int(t[0][j][i])
                 code += bit*(2**j)
-                #print i, j, bit, 2**j, code
-            #what if code is malformed utf8? like unichr(57085) or unichr(55349)
             str += chr(code) #python 2: unichr()
         return str     
 

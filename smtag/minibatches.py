@@ -32,8 +32,8 @@ class Minibatches: #Minibatches(Dataset)?
             #minibatch_size is 1 for online training 
             start = i * self.minibatch_size
             stop = start + self.minibatch_size
-            this_minibatch.input = dataset.input[start:stop, : , : , : ] #.clone()
-            this_minibatch.output = dataset.output[start:stop, : , : , : ] #.clone()
+            this_minibatch.input = dataset.input[start:stop, : , : ]
+            this_minibatch.output = dataset.output[start:stop, : , : ]
             this_minibatch.text = dataset.text[start:stop]
             this_minibatch.provenance = dataset.provenance[start:stop]
             self.minibatches.append(this_minibatch) 
@@ -59,7 +59,7 @@ class Minibatches: #Minibatches(Dataset)?
     
 def tester():
     logger.debug("> testing")
-    d = Dataset(4, 32, 1, 10)
+    d = Dataset(4, 32, 10)
     d.text = ["1234567890", "0987654321", "1234567890", "0987654321"]
     d.provenance = ["a", "b", "c", "d"]
     minibatches = Minibatches(d, 2)
