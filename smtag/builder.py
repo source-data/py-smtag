@@ -14,10 +14,10 @@ class Builder():
         self.model = self.build()
     
     def build(self):
-        pre = nn.BatchNorm2d(self.nf_input)
+        pre = nn.BatchNorm1d(self.nf_input)
         core = nn.Sequential(Unet2(self.nf_input, self.nf_table, self.kernel_table, self.pool_table, self.dropout),
-                             nn.Conv2d(self.nf_input, self.nf_output, (1, 1), (1, 1)),
-                             nn.BatchNorm2d(self.nf_output)
+                             nn.Conv1d(self.nf_input, self.nf_output, 1, 1),
+                             nn.BatchNorm1d(self.nf_output)
                             )
         post = nn.Sigmoid()
         return nn.Sequential(pre, core, post)
@@ -41,47 +41,47 @@ class Unet2(nn.Module):
         
         self.dropout = nn.Dropout(self.dropout_rate)
         self.conv_down_A = nn.Sequential(
-            nn.Conv2d(self.nf_input, self.nf_input, (1, self.kernel), (1, 1), (0, self.padding)),
-            nn.BatchNorm2d(self.nf_input),
+            nn.Conv1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding),
+            nn.BatchNorm1d(self.nf_input),
             nn.ReLU(True)
         )
         self.conv_down_B = nn.Sequential(
-            nn.Conv2d(self.nf_input, self.nf_output, (1, self.kernel), (1, 1), (0, self.padding)),
-            nn.BatchNorm2d(self.nf_output),
+            nn.Conv1d(self.nf_input, self.nf_output, self.kernel, 1, self.padding),
+            nn.BatchNorm1d(self.nf_output),
             nn.ReLU(True)
         )
         self.conv_up_B = nn.Sequential(
-            nn.ConvTranspose2d(self.nf_output, self.nf_input, (1, self.kernel), (1, 1), (0, self.padding)),
-            nn.BatchNorm2d(self.nf_input),
+            nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, 1, self.padding),
+            nn.BatchNorm1d(self.nf_input),
             nn.ReLU(True),
         )
         self.conv_up_A = nn.Sequential(
-            nn.ConvTranspose2d(self.nf_input, self.nf_input, (1, self.kernel), (1, 1), (0, self.padding)),
-            nn.BatchNorm2d(self.nf_input),
+            nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding),
+            nn.BatchNorm1d(self.nf_input),
             nn.ReLU(True)
         )
         if len(self.nf_table) > 0:
             self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, self.dropout_rate)
         else:
             self.unet2 = None
-        self.reduce = nn.Conv2d(2*self.nf_input, self.nf_input, 1, 1)
+        self.reduce = nn.Conv1d(2*self.nf_input, self.nf_input, 1, 1)
                 
     def forward(self, x):
         y = self.dropout(x)
         y = self.conv_down_A(y)
         y_size_1 = y.size()
-        y, pool_1_indices = nn.MaxPool2d((1, self.pool), (1, self.pool), return_indices=True)(y)
+        y, pool_1_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
         y = self.conv_down_B(y)
         
         if self.unet2 is not None:
             y_size_2 = y.size()
-            y, pool_2_indices = nn.MaxPool2d((1, self.pool), (1, self.pool), return_indices=True)(y)
+            y, pool_2_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
             y = self.unet2(y)
-            y = nn.MaxUnpool2d((1, self.pool), (1, self.pool))(y, pool_2_indices, y_size_2)
+            y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_2_indices, y_size_2)
         
         y = self.dropout(y)
         y = self.conv_up_B(y)
-        y = nn.MaxUnpool2d((1, self.pool), (1, self.pool))(y, pool_1_indices, y_size_1)
+        y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_1_indices, y_size_1)
         y = self.conv_up_A(y)
         
         y = x + y # residual block way

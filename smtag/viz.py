@@ -29,8 +29,8 @@ class Show():
         #select random j-th example in i-th minibatch
         rand_i = math.floor(M * random())
         rand_j = math.floor(N *  random())
-        input = minibatches[rand_i].input[[rand_j], : , : , : ] # rand_j index as list to keep the tensor 4D
-        target = minibatches[rand_i].output[[rand_j], : , : , : ]
+        input = minibatches[rand_i].input[[rand_j], : , : ] # rand_j index as list to keep the tensor 4D
+        target = minibatches[rand_i].output[[rand_j], : , : ]
         
         original_text =  minibatches[rand_i].text[rand_j]
         provenance = minibatches[rand_i].provenance[rand_j]
@@ -40,10 +40,10 @@ class Show():
             prediction = model(input)
             model.train()
 
-        text = Converter.t_decode(input[[0], 0:31, :, : ]) #sometimes input has more than 32 features if feature2input option was chosen
+        text = Converter.t_decode(input[[0], 0:31, : ]) #sometimes input has more than 32 features if feature2input option was chosen
         if nf_input > 32:
             print("\nAdditional input features:")
-            Show.print_pretty(input[[0], 32:nf_input, : , : ])
+            Show.print_pretty(input[[0], 32:nf_input, : ])
     
         print("\nExpected:")
         Show.print_pretty_color(target, text)
@@ -64,8 +64,8 @@ class Show():
         N = len(symbols) # = 5
         for i in range(features.size(1)):
             track = ""
-            for j in range(features.size(3)):
-                k = min(N-1, math.floor(N*features[0, i, 0, j]))
+            for j in range(features.size(2)):
+                k = min(N-1, math.floor(N*features[0, i, j]))
                 track += symbols[k]
             print(f"Tagging track {i}")
             print(track)
@@ -79,7 +79,7 @@ class Show():
             max  = 1
             max_f = -1
             for f in range(nf): # range(2) is 0, 1 should be blue red
-                score = math.floor(features[0, f, 0, pos]*10)
+                score = math.floor(features[0, f, pos]*10)
                 if score > max:
                      max = score
                      max_f = f
