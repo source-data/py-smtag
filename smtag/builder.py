@@ -64,6 +64,7 @@ class Unet2(nn.Module):
             self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, self.dropout_rate)
         else:
             self.unet2 = None
+        self.concat = lambda x, y: torch.cat((x,y), 1)
         self.reduce = nn.Conv1d(2*self.nf_input, self.nf_input, 1, 1)
                 
     def forward(self, x):
@@ -84,9 +85,11 @@ class Unet2(nn.Module):
         y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_1_indices, y_size_1)
         y = self.conv_up_A(y)
         
-        y = x + y # residual block way
-        #y = torch.cat((x, y), 1) # original way of doing the shortcut; seems not not work anymore :-(
-        #y = self.reduce(y) 
+        #y = x + y # residual block way simpler, less params
+        
+        #merge via concatanation of output layers followed by reducing from 2*nf_output to nf_output
+        y = self.concat(x, y) 
+        y = self.reduce(y) 
             
         return y
 
