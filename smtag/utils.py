@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
+from collections import namedtuple
 
+Token = namedtuple('Token', ['text', 'start', 'end'])
 
 def tokenize(s):
     #patterns derived from python nltk library http://www.nltk.org/_modules/nltk/tokenize/punkt.html#PunktLanguageVars.word_tokenize
@@ -35,6 +37,8 @@ def tokenize(s):
                     'Hyphenated': re_hyphenated
                     }, re.VERBOSE)
     #tokenizing_re = re.compile(r'''(?=[^\./\(\"\`{\[:;&\#\*@\)}\]\-–—‐−,])\S+?(?=(?:[\.\+?!)\";}\]\*:@\'\({\[])|\s|$)''', re.VERBOSE)
-    token = tokenizing_re.findall(s) 
-    #need to find positions!
-    return token
+    matches = tokenizing_re.finditer(s)
+    token_list = []
+    for m in matches:
+        token_list.append(Token(m.group(0), m.start(), m.end()))
+    return token_list

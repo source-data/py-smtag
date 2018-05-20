@@ -14,9 +14,10 @@ class TokenizerTest(unittest.TestCase):
 
     def test_tokenize(self):
         for example in self.examples:
-            token = tokenize(example[0])
-            print(token)
-            self.assertEqual(example[1], token)
+            token_list = tokenize(example[0])
+            token_terms = [t.text for t in token_list]
+            print([f"[{t.start}]{t.text}[{t.end}]" for t in token_list])
+            self.assertEqual(example[1], token_terms)
 
 if __name__ == '__main__':
     unittest.main()
