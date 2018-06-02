@@ -1,8 +1,7 @@
 from torch import nn, optim
 from random import shuffle
 import logging
-#to start tensorboard server: tensorboard --logdir runs
-from tensorboardX import SummaryWriter
+from tensorboardX import SummaryWriter #to see dashboard, launch tensorboard server with: tensorboard --logdir runs
 from viz import Show
 
 class Trainer:
@@ -10,11 +9,10 @@ class Trainer:
     def __init__(self, training_minibatches, validation_minibatches, model):
 
         self.model = model
-        #visualization of the training with tensorboardX
-        self.writer = SummaryWriter()
+        self.writer = SummaryWriter() # to visualize training with tensorboardX
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
-        self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() #
+        self.loss_fn = nn.SmoothL1Loss() # nn.BCELoss() #
 
     def validate(self):
         self.model.eval()
@@ -54,6 +52,7 @@ class Trainer:
                 Show.example(self.validation_minibatches, self.model)
                 counter += 1
 
+            # Logging
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
             avg_validation_loss = self.validate() # the average loss over the validation minibatches
             print(f"\nepoch {e}\tavg_train_loss={avg_train_loss}\tavg_validation_loss={avg_validation_loss}")
@@ -65,4 +64,3 @@ class Trainer:
                 self.writer.add_histogram(name+'/grad', param.grad.clone().cpu().data.numpy(), e)
 
         self.writer.close()
-

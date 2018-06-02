@@ -36,12 +36,13 @@ class Minibatches: #Minibatches(Dataset)?
             this_minibatch.output = dataset.output[start:stop, : , : ]
             this_minibatch.text = dataset.text[start:stop]
             this_minibatch.provenance = dataset.provenance[start:stop]
-            self.minibatches.append(this_minibatch) 
+            self.minibatches.append(this_minibatch)
+        self.minibatches = iter(self.minibatches) 
             #if CUDA_ON:
                 #print("CUDA ON: minibatches input and output tensors as cuda")
                 #make them CUDA
 
-    #make it iterable
+    #make it iterable and shuffable
     def __iter__(self):
         return self.minibatches.__iter__()
 

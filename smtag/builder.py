@@ -1,6 +1,12 @@
+from math import floor
 import torch
 from torch import nn
-from collections import OrderedDict
+
+class SmtagModel(nn.Module):
+    
+    def __init__(self, module, selected_features):
+        self.output_semantics = selected_features
+        super(SmtagModel, self).__init__()
 
 class Builder():
     
@@ -12,6 +18,7 @@ class Builder():
         self.pool_table = opt['pool_table']
         self.dropout = opt['dropout']
         self.model = self.build()
+        self.selected_features = opt['selected_features']
     
     def build(self):
         pre = nn.BatchNorm1d(self.nf_input)
@@ -20,7 +27,7 @@ class Builder():
                              nn.BatchNorm1d(self.nf_output)
                             )
         post = nn.Sigmoid()
-        return nn.Sequential(pre, core, post)
+        return SmtagModel(nn.Sequential(pre, core, post), self.selected_features) #should return a SmtagModel object with pytorch module and OutputSemantics object also used in SmtagPrediction object
 
 class Unet2(nn.Module):
     def __init__(self, nf_input, nf_table, kernel_table, pool_table, dropout):
@@ -36,7 +43,7 @@ class Unet2(nn.Module):
         if self.kernel % 2 == 0:
            self.padding = int(self.kernel/2)
         else:
-           self.padding = math.floor((self.kernel-1)/2)
+           self.padding = floor((self.kernel-1)/2)
         self.dropout_rate = dropout
         
         self.dropout = nn.Dropout(self.dropout_rate)

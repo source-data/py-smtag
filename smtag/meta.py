@@ -53,7 +53,9 @@ if __name__ == '__main__':
     opt['pool_table'] = [2, 2, 2]
     opt['kernel_table'] = [6, 6, 6]
     opt['dropout'] = 0.1
-    print("; ".join(opt))
+    print("; ".join([f"opt[{o}]={opt[o]}" for o in opt]))
+    
+    #LOAD DATA
     ldr = Loader(opt['selected_features'])
     datasets = ldr.prepare_datasets(opt['namebase'])
     training_minibatches = Minibatches(datasets['train'], opt['minibatch_size'])
@@ -61,6 +63,13 @@ if __name__ == '__main__':
     opt['nf_input'] = datasets['train'].nf_input
     opt['nf_output'] =  datasets['train'].nf_output
     logger.info(f"input, output sizes: {training_minibatches[0].output.size()}, {training_minibatches[0].output.size()}")
+    
+    #TRAIN MODEL
     model = Builder(opt).model
     t = Trainer(training_minibatches, validation_minibatches, model)
     t.train(opt)
+    
+    #ahem, save the model maybe?
+    #torch.save(the_model.state_dict(), PATH)
+    #the_model = TheModelClass(*args, **kwargs)
+    #the_model.load_state_dict(torch.load(PATH))
