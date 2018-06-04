@@ -14,7 +14,6 @@ Options:
 """
 from docopt import docopt
 
-
 import os
 import yaml
 import logging
@@ -27,11 +26,12 @@ def setup_logging(path="logging.yaml", default_level=logging.INFO):
     else:
         logging.basicConfig(level=default_level)
 
+import torch
 from smtag.loader import Loader
 from smtag.minibatches import Minibatches
 from smtag.trainer import Trainer
 from smtag.builder import Builder
-
+from smtag.config import MODEL_DIR
 
 if __name__ == '__main__':
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)
@@ -69,7 +69,14 @@ if __name__ == '__main__':
     t = Trainer(training_minibatches, validation_minibatches, model)
     t.train(opt)
     
-    #ahem, save the model maybe?
-    #torch.save(the_model.state_dict(), PATH)
+    #SAVE MODEL
+    ext = "sddl"
+    suffixes = []
+    suffixes[1] = "_".join([f for f in opt['selected_features']])
+    #suffixes[2] = _".join([f for f in opt['collapsed_features']])
+    #suffixes[3] = # current time in year month day hour minute second
+    suffix = "_".join(suffixes)
+    model_filename = os.path.join(MODEL_DIR, f"{opt['namebase']}_{suffixes}.{ext}")
+    torch.save(model.state_dict(), model_filename) # not sure about that. Needs to build same model when uploading it. Complete serialization?
     #the_model = TheModelClass(*args, **kwargs)
     #the_model.load_state_dict(torch.load(PATH))

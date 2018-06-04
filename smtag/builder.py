@@ -5,8 +5,11 @@ from torch import nn
 class SmtagModel(nn.Module):
     
     def __init__(self, module, selected_features):
-        self.output_semantics = selected_features
         super(SmtagModel, self).__init__()
+        self.module = module
+        self.output_semantics = selected_features
+    def forward(self, x):
+        return self.module.forward(x)
 
 class Builder():
     
@@ -17,8 +20,8 @@ class Builder():
         self.kernel_table = opt['kernel_table']
         self.pool_table = opt['pool_table']
         self.dropout = opt['dropout']
-        self.model = self.build()
         self.selected_features = opt['selected_features']
+        self.model = self.build()
     
     def build(self):
         pre = nn.BatchNorm1d(self.nf_input)

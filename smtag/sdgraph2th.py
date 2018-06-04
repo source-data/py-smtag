@@ -1,8 +1,8 @@
 import argparse
 from getpass import getpass
 from xml.etree.ElementTree import tostring
-from dataprep import DataPreparator
-from featurizer import XMLFeaturizer
+from smtag.dataprep import DataPreparator
+from smtag.featurizer import XMLFeaturizer
 import neo2leg
 
 

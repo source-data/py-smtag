@@ -1,11 +1,10 @@
 import torch
 from math import ceil
 from collections import namedtuple
-from converter import Converter
-from binarize import Binarized
-from serializer import Serializer
-from utils import tokenize
-
+from smtag.converter import Converter
+from smtag.binarize import Binarized
+from smtag.serializer import Serializer
+from smtag.utils import tokenize
 
 class Predictor: #(nn.Module?)
     MIN_PADDING = 20 # this should be a common param with dataimport

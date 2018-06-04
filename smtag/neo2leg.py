@@ -146,7 +146,7 @@ def neo2xml(source, options):
             q_figures = '''
                 MATCH (a:Article )-->(f:Figure)
                 WHERE id(a) = {}
-                RETURN id(f), f.fig_label, f.caption
+                RETURN id(f), f.fig_label //, f.caption
                 ORDER BY f.fig_label ASC
                 '''.format(a_id)
             results_figures = DB.query(q_figures)
@@ -157,7 +157,7 @@ def neo2xml(source, options):
             for f in results_figures:
                 f_id = f[0]
                 fig_label = f[1]
-                fig_original_caption = f[2].encode('utf-8')
+                #fig_original_caption = f[2].encode('utf-8')
                 #fig_original_caption = cleanup(fig_original_caption)
               
                 q_panel = '''

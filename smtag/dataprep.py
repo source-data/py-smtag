@@ -3,19 +3,19 @@
 #from abc import ABC, abstractmethod
 import argparse
 import numpy as np
+from string import ascii_letters
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
 from math import floor
 from mapper import index2label, number_of_features
 import os.path
+from smtag.config import DATA_DIR
 
 #class DataPreparator(ABC):
 class DataPreparator(object):
     """
     An abstract class to prepare text examples as dataset that can be imported in smtag
     """
-    
-    DATA_DIR = "data"
     
     def __init__(self, parser):
         """
@@ -39,6 +39,7 @@ class DataPreparator(object):
         parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
         parser.add_argument('-c', '--rand_char_padding', action='store_true', help='padding with random characters instead of white spaces') 
         parser.add_argument('-p', '--padding', default=20, help='minimum padding added to text')
+        self.options = {}
         #implementation: self.options = self.set_options(parser.parse_args())
         #implementation: call self.main()? Maybe OTT
 
@@ -220,26 +221,26 @@ class DataPreparator(object):
         Saving datasets prepared for torch to a text file with text example, a npy file for the extracted features and a provenance file that keeps track of origin of each example.
         """
         for k in self.dataset4th:
-             tensor_filename = os.path.join(DataPreparator.DATA_DIR, filenamebase+"_"+k+".npy")
-             np.save(tensor_filename, self.dataset4th[k]['tensor4th']) 
+            tensor_filename = os.path.join(DATA_DIR, filenamebase+"_"+k+".npy")
+            np.save(tensor_filename, self.dataset4th[k]['tensor4th']) 
              
-             #textcoded_filename = os.path.join(DataPreparator.DATA_DIR, filenamebase+"_"+k+"_textcoded".npy")
-             #np.save(textcoded_filename, self.dataset4th[k]['textcoded4th']) 
+            #textcoded_filename = os.path.join(DATA_DIR, filenamebase+"_"+k+"_textcoded".npy")
+            #np.save(textcoded_filename, self.dataset4th[k]['textcoded4th']) 
              
-             text_filename = os.path.join(DataPreparator.DATA_DIR, filenamebase+"_"+k+".txt")
-             with open(text_filename, 'w') as f:
-                  for line in self.dataset4th[k]['text4th']: f.write(f"{line}\n")
-             f.close()
+            text_filename = os.path.join(DATA_DIR, filenamebase+"_"+k+".txt")
+            with open(text_filename, 'w') as f:
+               for line in self.dataset4th[k]['text4th']: f.write(f"{line}\n")
+            f.close()
              
-             provenance_filename = os.path.join(DataPreparator.DATA_DIR,filenamebase+"_"+k+".prov")
-             with open(provenance_filename, 'w') as f:
-                  for line in self.dataset4th[k]['provenance4th']: f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
-             f.close()
+            provenance_filename = os.path.join(DATA_DIR,filenamebase+"_"+k+".prov")
+            with open(provenance_filename, 'w') as f:
+               for line in self.dataset4th[k]['provenance4th']: f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
+            f.close()
 
-             print("Provenance ids saved to {}".format(provenance_filename))
-             print("Text examples saved to {}".format(text_filename))
-             print("Encoded text examples saved to {}".format(textcoded_filename))
-             print("Tensor saved to {}".format(tensor_filename))
+            print("Provenance ids saved to {}".format(provenance_filename))
+            print("Text examples saved to {}".format(text_filename))
+            #print("Encoded text examples saved to {}".format(textcoded_filename))
+            print("Tensor saved to {}".format(tensor_filename))
 
     def log_errors(self, errors):
         """
@@ -254,7 +255,7 @@ class DataPreparator(object):
             with open('errors_{}.log'.format(e), 'w') as f:
                 for line in errors[e]: 
                     ids, err = line
-                    f.write(u"\nerror:\t{}\n".format('\t'.join(ids), err))
+                    f.write(u"\nerror:\t{}\t{}\n".format('\t'.join(ids), err))
             f.close()
 
     def display(self, text4th, tensor4th):

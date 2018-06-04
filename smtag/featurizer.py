@@ -1,4 +1,4 @@
-from mapper import brat_map, xml_map
+from smtag.mapper import brat_map, xml_map
 
 #features should be instance of Features()
 #define abstract Featurizer class that takes Example and returns Features

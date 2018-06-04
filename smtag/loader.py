@@ -1,12 +1,12 @@
-import config
+from smtag.config import NBITS
 import numpy as np
 import torch
 import logging
 import math
-from converter import Converter
+from smtag.converter import Converter
 import mapper
 from progress import progress
-from viz import Show 
+from smtag.viz import Show 
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')
@@ -43,7 +43,7 @@ class Dataset:
             for line in f:
                 line = line.rstrip('\n')
                 if len(line) > self.L :
-                    raise LineTooLong(line, L)
+                    raise LineTooLong(line, self.L)
                 self.text.append(line)
         
         logger.info(f"Loading {provenance_filename} as provenance info for the examples in the dataset.")
@@ -84,7 +84,7 @@ class Loader:
         self.noise = noise
         self.fraction = fraction  # fraction of the training set to actually us for training
         self.validation_fraction = validation_fraction  # fraction of the whole dataset to be used for validation during training
-        self.nf_input = config.NBITS
+        self.nf_input = NBITS
         self.nf_collapsed_feature = 0
         self.nf_overlap_feature = 0
         self.nf_output = len(selected_features)
@@ -191,12 +191,12 @@ def tester():
     selected_features = ['geneprod', 'small_molecule']
     features2input = ['protein']
     loader = Loader(selected_features, features2input=features2input)
-    assert loader.nf_input == config.NBITS + len(features2input) , "Number of features in input should equal NBITS (defined in config) + the number of features to input"
+    assert loader.nf_input == NBITS + len(features2input) , "Number of features in input should equal NBITS (defined in config) + the number of features to input"
     assert loader.nf_output == len(selected_features), "Number of output features is equal to the number of selected features"
 
     d = loader.prepare_datasets("test_train")
     logger.debug("> All OK")
-    for i in range(10): Show.example([d['train']])
+    for _ in range(10): Show.example([d['train']])
 
 if __name__ == '__main__':           # Only when run
     tester()                         # Not when imported

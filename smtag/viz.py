@@ -57,16 +57,16 @@ class Show():
         
         #print(f"From: {provenance}")
     
-
+    symbols = ['_','.',':','^','|'] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1 
+        
     @staticmethod
     def print_pretty(features):
-        symbols = ['_','.',':','^','|'] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1 
-        N = len(symbols) # = 5
+        N = len(Show.symbols) # = 5
         for i in range(features.size(1)):
             track = ""
             for j in range(features.size(2)):
                 k = min(N-1, math.floor(N*features[0, i, j]))
-                track += symbols[k]
+                track += Show.symbols[k]
             print(f"Tagging track {i}")
             print(track)
 
@@ -86,6 +86,6 @@ class Show():
             if text:
                 colored_track += f"{COLORS[max_f + 1]}{c}{CLOSE_COLOR}"
             else:
-                colored_track += f"{COLORS[max_f + 1]}{symbols[max+1]}{CLOSE_COLOR}"
+                colored_track += f"{COLORS[max_f + 1]}{Show.symbols[max+1]}{CLOSE_COLOR}"
             pos = pos + 1
         print(colored_track)
