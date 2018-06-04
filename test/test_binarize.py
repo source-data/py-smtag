@@ -6,6 +6,10 @@ from smtag.binarize import Binarized
 
 class BinarizeTest(unittest.TestCase):
 
+    @staticmethod
+    def assertTensorEqual(a, b, tolerance=1e-4):
+        return a.sub(b).abs().max() < tolerance
+
     def test_binarize(self):
         '''
         Testing the binarization without fusion.
@@ -30,10 +34,9 @@ class BinarizeTest(unittest.TestCase):
         print(b.start)
         print(b.stop)
         print(b.marks)
-        
-        self.assertEqual([x for x in expected_start.resize_(18)], [x for x in b.start.resize_(18)])
-        self.assertEqual([x for x in expected_stop.resize_(18)], [x for x in b.stop.resize_(18)])
-        self.assertEqual([x for x in expected_marks.resize_(18)], [x for x in b.marks.resize_(18)])
+        self.assertTensorEqual(expected_start, b.start)
+        self.assertTensorEqual(expected_stop, b.stop)
+        self.assertTensorEqual(expected_marks, b.marks)
     
     def test_fuse_adjascent_1(self):
         '''
@@ -60,9 +63,11 @@ class BinarizeTest(unittest.TestCase):
         #print(b.start)
         #print(b.stop)
         #print(b.marks)
-        self.assertEqual([x for x in expected_start.resize_(17)], [x for x in b.start.resize_(17)])
-        self.assertEqual([x for x in expected_stop.resize_(17)], [x for x in b.stop.resize_(17)])
-        self.assertEqual([x for x in expected_marks.resize_(17)], [x for x in b.marks.resize_(17)])
+
+        self.assertTensorEqual(expected_start, b.start)
+        self.assertTensorEqual(expected_stop, b.stop)
+        self.assertTensorEqual(expected_marks, b.marks)
+
 
     def test_fuse_adjascent_2(self):
         '''
@@ -90,9 +95,9 @@ class BinarizeTest(unittest.TestCase):
         #print(b.stop)
         #print(b.marks)
 
-        self.assertEqual([x for x in expected_start.resize_(7)], [x for x in b.start.resize_(7)])
-        self.assertEqual([x for x in expected_stop.resize_(7)], [x for x in b.stop.resize_(7)])
-        self.assertEqual([x for x in expected_marks.resize_(7)], [x for x in b.marks.resize_(7)])
+        self.assertTensorEqual(expected_start, b.start)
+        self.assertTensorEqual(expected_stop, b.stop)
+        self.assertTensorEqual(expected_marks, b.marks)
 
 
 
