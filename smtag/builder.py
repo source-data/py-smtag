@@ -1,6 +1,7 @@
 from math import floor
 import torch
 from torch import nn
+from copy import deepcopy
 
 class SmtagModel(nn.Module):
     
@@ -8,21 +9,22 @@ class SmtagModel(nn.Module):
         super(SmtagModel, self).__init__()
         self.module = module
         self.output_semantics = selected_features
+    
     def forward(self, x):
         return self.module.forward(x)
 
 class Builder():
     
     def __init__(self, opt):
-        self.nf_input = opt['nf_input']
+        self.nf_input = opt['nf_input'] 
         self.nf_output = opt['nf_output']
-        self.nf_table = opt['nf_table']
-        self.kernel_table = opt['kernel_table']
-        self.pool_table = opt['pool_table']
+        self.nf_table = deepcopy(opt['nf_table']) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
+        self.kernel_table = deepcopy(opt['kernel_table']) # need to deep copy/clone
+        self.pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
         self.dropout = opt['dropout']
-        self.selected_features = opt['selected_features']
+        self.selected_features = opt['selected_features'] # need to deep copy/clone
         self.model = self.build()
-    
+
     def build(self):
         pre = nn.BatchNorm1d(self.nf_input)
         core = nn.Sequential(Unet2(self.nf_input, self.nf_table, self.kernel_table, self.pool_table, self.dropout),
@@ -30,7 +32,7 @@ class Builder():
                              nn.BatchNorm1d(self.nf_output)
                             )
         post = nn.Sigmoid()
-        return SmtagModel(nn.Sequential(pre, core, post), self.selected_features) #should return a SmtagModel object with pytorch module and OutputSemantics object also used in SmtagPrediction object
+        return SmtagModel(nn.Sequential(pre, core, post), self.selected_features)
 
 class Unet2(nn.Module):
     def __init__(self, nf_input, nf_table, kernel_table, pool_table, dropout):
@@ -103,5 +105,3 @@ class Unet2(nn.Module):
             
         return y
 
-
-    

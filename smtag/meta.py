@@ -31,6 +31,7 @@ from smtag.loader import Loader
 from smtag.minibatches import Minibatches
 from smtag.trainer import Trainer
 from smtag.builder import Builder
+from smtag.importexport import export_model, load_model
 from smtag.config import MODEL_DIR
 
 if __name__ == '__main__':
@@ -63,20 +64,10 @@ if __name__ == '__main__':
     opt['nf_input'] = datasets['train'].nf_input
     opt['nf_output'] =  datasets['train'].nf_output
     logger.info(f"input, output sizes: {training_minibatches[0].output.size()}, {training_minibatches[0].output.size()}")
-    
     #TRAIN MODEL
     model = Builder(opt).model
-    t = Trainer(training_minibatches, validation_minibatches, model)
-    t.train(opt)
+    #t = Trainer(training_minibatches, validation_minibatches, model)
+    #t.train(opt)
     
     #SAVE MODEL
-    ext = "sddl"
-    suffixes = []
-    suffixes[1] = "_".join([f for f in opt['selected_features']])
-    #suffixes[2] = _".join([f for f in opt['collapsed_features']])
-    #suffixes[3] = # current time in year month day hour minute second
-    suffix = "_".join(suffixes)
-    model_filename = os.path.join(MODEL_DIR, f"{opt['namebase']}_{suffixes}.{ext}")
-    torch.save(model.state_dict(), model_filename) # not sure about that. Needs to build same model when uploading it. Complete serialization?
-    #the_model = TheModelClass(*args, **kwargs)
-    #the_model.load_state_dict(torch.load(PATH))
+    export_model(model, opt)
