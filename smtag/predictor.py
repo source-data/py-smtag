@@ -19,7 +19,7 @@ class Predictor: #(nn.Module?)
     def padding(self, input_string):
         def generate_pad(N):
              return " " * self.padding_length #other implementation could return random string 
-        self.padding_length = ceil(max(self.MIN_SIZE - len(self.L), self.MIN_PADDING)/2)
+        self.padding_length = ceil(max(self.MIN_SIZE - len(input_string), self.MIN_PADDING)/2)
         pad = generate_pad(self.padding_length) 
         return f"{pad}{input_string}{pad}"
         
@@ -44,12 +44,12 @@ class Predictor: #(nn.Module?)
         self.model.train()
     
         #remove safety padding
-        prediction = prediction[ : , : , self.padding_length+1 : self.L-self.padding_length]
+        prediction = prediction[ : , : , self.padding_length : self.L-self.padding_length]
         return prediction
         
 class EntityPredictor(Predictor):
     
-    def __init__(self, model, tag, format):
+    def __init__(self, model, tag='sd-tag', format='xml'):
         super(EntityPredictor, self).__init__(model) # the model should carry the semantics with him, transmit it to pred and be used by Tagger.element()
         self.tag = tag
         self.format = format
@@ -59,11 +59,11 @@ class EntityPredictor(Predictor):
 
     def markup(self, input_string):
         prediction = self.forward(input_string)
-        bin_pred = Binarized(input_string, prediction, self.model.output_semantics) # this is where the transfer of the output semantics from the model to the binarized prediction happen; will be used for serializing
+        bin_pred = Binarized([input_string], prediction, self.model.output_semantics) # this is where the transfer of the output semantics from the model to the binarized prediction happen; will be used for serializing
         token_list = tokenize(input_string) #, positions
-        bin_pred.binarize_with_token(token_list)
+        bin_pred.binarize_with_token([token_list])
         bin_pred.fuse_adjascent(regex=" ")
-        tagger = Serializer(self.tag, format)
+        tagger = Serializer(self.tag, self.format)
         tagged_ml_string= tagger.serialize(bin_pred) # bin_pred has output_semantics
 
         return tagged_ml_string

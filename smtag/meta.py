@@ -5,7 +5,7 @@ Usage:
 Options:
   -f <file>, --file <file>                Namebase of dataset to import [default: test_train]
   -E <int>, --epochs <int>                Number of training epochs [default: 120]
-  -Z <int>, --minibatch_size <int>        Minibatch size [default: 32]
+  -Z <int>, --minibatch_size <int>        Minibatch size [default: 128]
   -R <float>, --learning_rate <float>     Learning rate [default: 0.001]
   -o <str>, --output_features <str>       Selected output features (use quotes if comma+space delimited) [default: geneprod]
   -n <str>, --nf_table <str>             Selected number of features for each hidden layer (use quotes if comma+space delimited) [default: 8,8,8]

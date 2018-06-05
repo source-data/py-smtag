@@ -49,7 +49,7 @@ class Minibatches: #Minibatches(Dataset)?
         return self.minibatches.__iter__()
 
     def __next__(self):
-        return self.minibatches.__next__()
+        return next(self.minibatches)
         
     def __len__(self):
         return len(self.minibatches)
