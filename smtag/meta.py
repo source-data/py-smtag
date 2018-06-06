@@ -66,8 +66,8 @@ if __name__ == '__main__':
     logger.info(f"input, output sizes: {training_minibatches[0].output.size()}, {training_minibatches[0].output.size()}")
     #TRAIN MODEL
     model = Builder(opt).model
-    #t = Trainer(training_minibatches, validation_minibatches, model)
-    #t.train(opt)
+    t = Trainer(training_minibatches, validation_minibatches, model)
+    t.train(opt)
     
     #SAVE MODEL
     export_model(model, opt)

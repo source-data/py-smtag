@@ -1,6 +1,7 @@
 import torch
 import re
 from smtag.utils import xml_escape
+from smtag.mapper import THRESHOLDS
 
 
 class Binarized:
@@ -57,8 +58,8 @@ class Binarized:
                     avg_score = float(self.prediction[i, k, start:stop].sum()) / token_length
                     #feature_name = attrmap[k][1]
                     #local threshold = CONFIG.THRESHOLDS[feature_name].word_score
-                    threshold = 0.5 # OVERSIMPLIFICATION; NEEDS TO BE ADJUSTABLE AND FEATURE-specific
-                    if avg_score >= threshold: 
+                    concept = self.output_semantics[k]
+                    if avg_score >= THRESHOLDS[concept]: 
                         self.start[i, k, start] = 1
                         self.stop[i, k, stop-1] = 1 # should stop mark be stop-1 to be the last character and not the next? otherwise need to test if stop < length: 
                         self.score[i, k, start] = round(100*avg_score)

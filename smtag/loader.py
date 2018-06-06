@@ -4,8 +4,8 @@ import torch
 import logging
 import math
 from smtag.converter import Converter
-import mapper
-from progress import progress
+import smtag.mapper as mapper
+from smtag.progress import progress
 from smtag.viz import Show 
 
 # import logging.config

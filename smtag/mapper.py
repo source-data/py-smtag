@@ -27,3 +27,7 @@ xml_map = {
            }
 
 number_of_features = len(index2label)
+
+THRESHOLDS = {
+        'geneprod': 0.7
+}
