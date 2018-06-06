@@ -9,6 +9,8 @@ from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serial
 from smtag.builder import SmtagModel
 from smtag.predictor import EntityPredictor
 from smtag.viz import Show
+from smtag.importexport import load_model
+from smtag.config import PROD_DIR
 
 #maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
 
@@ -26,9 +28,9 @@ class FakeModel(nn.Module):
 
 class PredictorTest(unittest.TestCase):
     def setUp(self):
-        self.text_example = "000 111 000"
+        self.text_example = "AAA XXX AAA"
         self.x = Converter.t_encode(self.text_example) #torch.ones(1, 32, len(self.text_example)) #
-        self.y = torch.Tensor(#"T h e   c a t   w i t h   a   h a t ."
+        self.y = torch.Tensor(#"A A A   X X X   A A A"
                               # 0 0 0 0 1 1 1 0 0 0 0
                              [[[0,0,0,0,1,1,1,0,0,0,0]]])
         self.selected_features = ["geneprod"]
@@ -68,8 +70,19 @@ class PredictorTest(unittest.TestCase):
         p = EntityPredictor(self.model)
         ml = p.markup(self.text_example)
         #print(ml)
-        expected_ml = '000 <sd-tag type="geneprod">111</sd-tag> 000'
+        expected_ml = 'AAA <sd-tag type="geneprod">XXX</sd-tag> AAA'
         self.assertEqual(expected_ml, ml[0])
+
+    def test_entity_predictor_3(self):
+        real_model = load_model('geneprod.zip', PROD_DIR)
+        real_example = "Cells were transfected with HA-Akt (A) or Myc-RSK (B), and/or Flag-ATG1α WT or KI plasmids."
+        p = EntityPredictor(real_model)
+        ml = p.markup(real_example)[0]
+        print(ml)
+        input = Converter.t_encode(real_example)
+        prediction = self.model(input)
+        Show.print_pretty_color(prediction, real_example)
+        Show.print_pretty(prediction)
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,6 +2,8 @@
 import re
 from xml.sax.saxutils import escape
 from collections import namedtuple
+from contextlib import contextmanager
+import os
 
 def xml_escape(s):
     return escape(s)
@@ -109,3 +111,17 @@ class PositionIter:
            return self.it.__iter__()
     def __next__(self):
            return next(self.it)
+
+
+@contextmanager
+def cd(newdir):
+    '''
+    From: https://stackoverflow.com/questions/431684/how-do-i-change-directory-cd-in-python/24176022#24176022
+    '''
+    
+    prevdir = os.getcwd()
+    os.chdir(os.path.expanduser(newdir))
+    try:
+        yield
+    finally:
+        os.chdir(prevdir)
