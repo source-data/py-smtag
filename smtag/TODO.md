@@ -1,0 +1,8 @@
+- move Converter.t_encode(example) from loader to dataprep to save datatasets as 4 file bundles
+- save datasets as zip archive to save disk space? (depends how long it takes to decompress)
+- restructure smtag package in subpackages datagen, train, predict, common ?
+- include commenting and check commenting style
+- finish options for meta (collapse, overlap, OR tables)
+- revise anonymization and use OR gate
+- classes to combine entity, pure context, context-text, boundary models
+- accuracy and benchmarking classes

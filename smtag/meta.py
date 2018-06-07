@@ -1,3 +1,4 @@
+#! /Users/lemberger/Documents/code/py-smtag/.venv/bin/python
 """smtag
 Usage:
   meta.py [-f <file> -Z <int> -E <int> -R <float> -o <str> -n <str>]
@@ -30,7 +31,7 @@ import torch
 from smtag.loader import Loader
 from smtag.minibatches import Minibatches
 from smtag.trainer import Trainer
-from smtag.builder import Builder
+from smtag.builder import build
 from smtag.importexport import export_model, load_model
 from smtag.config import MODEL_DIR
 
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     opt['kernel_table'] = [6, 6, 6]
     opt['dropout'] = 0.1
     print("; ".join([f"opt[{o}]={opt[o]}" for o in opt]))
-    
+
     #LOAD DATA
     ldr = Loader(opt['selected_features'])
     datasets = ldr.prepare_datasets(opt['namebase'])
@@ -65,9 +66,9 @@ if __name__ == '__main__':
     opt['nf_output'] =  datasets['train'].nf_output
     logger.info(f"input, output sizes: {training_minibatches[0].output.size()}, {training_minibatches[0].output.size()}")
     #TRAIN MODEL
-    model = Builder(opt).model
+    model = build(opt)
     t = Trainer(training_minibatches, validation_minibatches, model)
-    t.train(opt)
-    
+    t.train()
+
     #SAVE MODEL
-    export_model(model, opt)
+    export_model(model)

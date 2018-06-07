@@ -7,7 +7,7 @@ class ConverterTest(unittest.TestCase):
     def setUp(self):
         self.input_string = u"😎😇" 
         code = 0x03B1 #GREEK SMALL LETTER ALPHA Unicode: U+03B1, UTF-8: CE B1
-        self.single_character = unichr(code)
+        self.single_character = chr(code) # python 2: unichr(code)
         bits = list("{0:032b}".format(code))
         bits.reverse()
         self.tensor = torch.Tensor([int(b) for b in bits]).resize_(1,32,1,1)

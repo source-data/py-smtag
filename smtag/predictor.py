@@ -38,7 +38,8 @@ class Predictor: #(nn.Module?)
         self.L = len(padded_string) #includes the padding! 
         encoded_input_string = Converter.t_encode(padded_string) # not optimal for speed: we could pad with a tensor with pre-define code for spaces or relevant padding character
         self.combine_with_input_features(encoded_input_string, additional_input_features)
-        #FORWARD PREDICTION IS HERE
+        
+        #PREDICTION
         self.model.eval()
         prediction = self.model(self.combined_input)
         self.model.train()
@@ -65,5 +66,4 @@ class EntityPredictor(Predictor):
         bin_pred.fuse_adjascent(regex=" ")
         tagger = Serializer(self.tag, self.format)
         tagged_ml_string= tagger.serialize(bin_pred) # bin_pred has output_semantics
-
         return tagged_ml_string

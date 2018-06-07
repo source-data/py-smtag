@@ -13,19 +13,20 @@ from torch import nn
 import torch
 from docopt import docopt
 from smtag.importexport import load_model
+from smtag.builder import Concat
 from smtag.predictor import EntityPredictor
 from smtag.config import PROD_DIR
 
-class Concat(nn.Module):#SmtagModel?
+class Combine(nn.Module):#SmtagModel?
 
     def __init__(self, model_list):
-        super(Concat, self).__init__()
+        super(Combine, self).__init__()
         self.model_list = []
         self.output_semantics = []
         for m in model_list:
             self.add_module('_'.join(m.output_semantics), m)
             self.output_semantics += m.output_semantics
-        self.concat = lambda tensor_list: torch.cat(tensor_list, 1)
+        self.concat = Concat(1)
 
     def forward(self, x):
         y = []
@@ -44,8 +45,8 @@ model_list = []
 for filename in entity_models:
     model_list.append(load_model(filename, PROD_DIR))
 #assemble into single model
-entity_model = Concat(model_list)
-
+#entity_model = Combine(model_list)
+entity_model = load_model('geneprod.zip', PROD_DIR) # for debugging
 #NON ANONYMIZED SEMANTICS
 #PURE CONTEXT SEMANTICS
 #BOUNDARIES

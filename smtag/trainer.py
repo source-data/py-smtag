@@ -10,6 +10,8 @@ class Trainer:
 
         self.model = model
         self.writer = SummaryWriter() # to visualize training with tensorboardX
+        model_descriptor = "\n".join([f"{k}={self.model.opt[k]}" for k in self.model.opt])
+        print(model_descriptor)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
         self.loss_fn = nn.SmoothL1Loss() # nn.BCELoss() #
@@ -29,8 +31,8 @@ class Trainer:
 
         return avg_loss
 
-    def train(self, opt):
-
+    def train(self):
+        opt = self.model.opt
         self.learning_rate = opt['learning_rate']
         self.epochs = opt['epochs']
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)

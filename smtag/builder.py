@@ -5,34 +5,38 @@ from copy import deepcopy
 
 class SmtagModel(nn.Module):
     
-    def __init__(self, module, selected_features):
+    def __init__(self, module, opt): # change this to only opt
         super(SmtagModel, self).__init__()
         self.module = module
-        self.output_semantics = selected_features
+        self.output_semantics = opt['selected_features']
+        self.opt = opt
     
     def forward(self, x):
         return self.module.forward(x)
 
-class Builder():
-    
-    def __init__(self, opt):
-        self.nf_input = opt['nf_input'] 
-        self.nf_output = opt['nf_output']
-        self.nf_table = deepcopy(opt['nf_table']) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
-        self.kernel_table = deepcopy(opt['kernel_table']) # need to deep copy/clone
-        self.pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
-        self.dropout = opt['dropout']
-        self.selected_features = opt['selected_features'] # need to deep copy/clone
-        self.model = self.build()
+def build(opt):
+    nf_input = opt['nf_input'] 
+    nf_output = opt['nf_output']
+    nf_table = deepcopy(opt['nf_table']) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
+    kernel_table = deepcopy(opt['kernel_table']) # need to deep copy/clone
+    pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
+    dropout = opt['dropout']
+    selected_features = opt['selected_features'] # need to deep copy/clone
+    pre = nn.BatchNorm1d(nf_input)
+    core = nn.Sequential(Unet2(nf_input, nf_table, kernel_table, pool_table, dropout),
+                            nn.Conv1d(nf_input, nf_output, 1, 1),
+                            nn.BatchNorm1d(nf_output)
+                        )
+    post = nn.Sigmoid()
+    return SmtagModel(nn.Sequential(pre, core, post), opt)
 
-    def build(self):
-        pre = nn.BatchNorm1d(self.nf_input)
-        core = nn.Sequential(Unet2(self.nf_input, self.nf_table, self.kernel_table, self.pool_table, self.dropout),
-                             nn.Conv1d(self.nf_input, self.nf_output, 1, 1),
-                             nn.BatchNorm1d(self.nf_output)
-                            )
-        post = nn.Sigmoid()
-        return SmtagModel(nn.Sequential(pre, core, post), self.selected_features)
+class Concat(nn.Module):
+    def __init__(self, dim):
+        super(Concat, self).__init__()
+        self.dim = dim
+
+    def forward(self, sequence): #**kwargs?
+        return torch.cat(sequence, self.dim)
 
 class Unet2(nn.Module):
     def __init__(self, nf_input, nf_table, kernel_table, pool_table, dropout):
@@ -50,33 +54,34 @@ class Unet2(nn.Module):
         else:
            self.padding = floor((self.kernel-1)/2)
         self.dropout_rate = dropout
-        
+        self.BN_nf_input = nn.BatchNorm1d(self.nf_input, track_running_stats=True)
+        self.BN_nf_output = nn.BatchNorm1d(self.nf_output, track_running_stats=True)
         self.dropout = nn.Dropout(self.dropout_rate)
         self.conv_down_A = nn.Sequential(
             nn.Conv1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding),
-            nn.BatchNorm1d(self.nf_input),
+            self.BN_nf_input,
             nn.ReLU(True)
         )
         self.conv_down_B = nn.Sequential(
             nn.Conv1d(self.nf_input, self.nf_output, self.kernel, 1, self.padding),
-            nn.BatchNorm1d(self.nf_output),
+            self.BN_nf_output,
             nn.ReLU(True)
         )
         self.conv_up_B = nn.Sequential(
             nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, 1, self.padding),
-            nn.BatchNorm1d(self.nf_input),
+            self.BN_nf_input,
             nn.ReLU(True),
         )
         self.conv_up_A = nn.Sequential(
             nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding),
-            nn.BatchNorm1d(self.nf_input),
+            self.BN_nf_input,
             nn.ReLU(True)
         )
         if len(self.nf_table) > 0:
             self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, self.dropout_rate)
         else:
             self.unet2 = None
-        self.concat = lambda x, y: torch.cat((x,y), 1)
+        self.concat = Concat(1)
         self.reduce = nn.Conv1d(2*self.nf_input, self.nf_input, 1, 1)
                 
     def forward(self, x):
@@ -98,9 +103,8 @@ class Unet2(nn.Module):
         y = self.conv_up_A(y)
         
         #y = x + y # residual block way simpler, less params
-        
         #merge via concatanation of output layers followed by reducing from 2*nf_output to nf_output
-        y = self.concat(x, y) 
+        y = self.concat((x, y))
         y = self.reduce(y) 
             
         return y

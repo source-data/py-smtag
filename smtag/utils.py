@@ -125,3 +125,6 @@ def cd(newdir):
         yield
     finally:
         os.chdir(prevdir)
+
+def assertTensorEqual(a, b, tolerance=1e-4):
+    return a.sub(b).abs().max() < tolerance

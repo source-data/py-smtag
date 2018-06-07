@@ -29,5 +29,19 @@ xml_map = {
 number_of_features = len(index2label)
 
 THRESHOLDS = {
-        'geneprod': 0.7
+        'small_molecule': 0.5,
+        'gene': 0.5,
+        'geneprod': 0.5,
+        'protein': 0.5,
+        'subcellular': 0.5,
+        'cell': 0.5,
+        'tissue': 0.5,
+        'organism': 0.5,
+        'exp_assay': 0.5,
+        'intervention': 0.5,
+        'assayed': 0.5,
+        'reporter': 0.5,
+        'time': 0.5,
+        'physical': 0.5,
+        'disease': 0.5
 }
