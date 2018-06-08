@@ -6,5 +6,8 @@
 - finish options for meta (collapse, overlap, OR tables)
 - revise anonymization and use OR gate instead of lable character
 - classes to combine entity, pure context, context-text, boundary models
+- train all models
+- connect Flask server
 - accuracy and benchmarking classes
 - implement GPU computing
+- implement Hinton's capsules
