@@ -1,0 +1,10 @@
+- move Converter.t_encode(example) from loader to dataprep to save datatasets as 4 file bundles
+- pre-tokenize when generating datasets
+- save datasets as zip archive to save disk space? (depends how long it takes to decompress)
+- restructure smtag package in subpackages: datagen/, train/, predict/, common/ ?
+- add pydoc comments on all classes and check commenting style
+- finish options for meta (collapse, overlap, OR tables)
+- revise anonymization and use OR gate instead of lable character
+- classes to combine entity, pure context, context-text, boundary models
+- accuracy and benchmarking classes
+- implement GPU computing

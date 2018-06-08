@@ -11,5 +11,5 @@ nltk==3.2.4
 #install manually tensorflow with pip3 install --upgrade https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-1.8.0-py3-none-any.whl
 #tensorflow-tensorboard==1.5.1 #supposedly not dependent on tensorflow, but did not work 
 tensorboardX==1.2
-#visualdl
+#visualdl==0.0.2
 #bokeh==0.12.15

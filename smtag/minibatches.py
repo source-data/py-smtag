@@ -1,15 +1,12 @@
-from loader import Dataset
+from smtag.loader import Dataset
 from math import floor
 import logging
 logger = logging.getLogger(__name__)
 
 class Minibatches: #Minibatches(Dataset)?
-    """
+    '''
     Chunks a Dataset of already randomized examples into an array of minibatches.
     Minibatches is iterable and yields successively one minibatch (Dataset).
-    Constructor takes:
-        minibatch_size (int): the number of examples per minibatch
-        dataset (Dataset): the dataset to randomly split into minibatches
     Usage:
         minibatches = Minibatches(dataset, 128)
         for minibatch in minibatches:
@@ -17,8 +14,13 @@ class Minibatches: #Minibatches(Dataset)?
             target = m.output
             prediction = model(input)
             loss = loss_fn(prediction, target)
-    """
+    '''
     def __init__(self, dataset, minibatch_size):
+        '''
+        Args:
+            dataset (Dataset): the dataset to randomly split into minibatches
+            minibatch_size (int): the number of examples per minibatch
+        '''
 
         self.L = dataset.L
         self.nf_input = dataset.nf_input
@@ -36,17 +38,18 @@ class Minibatches: #Minibatches(Dataset)?
             this_minibatch.output = dataset.output[start:stop, : , : ]
             this_minibatch.text = dataset.text[start:stop]
             this_minibatch.provenance = dataset.provenance[start:stop]
-            self.minibatches.append(this_minibatch) 
+            self.minibatches.append(this_minibatch)
+        #self.minibatches = iter(self.minibatches) 
             #if CUDA_ON:
                 #print("CUDA ON: minibatches input and output tensors as cuda")
                 #make them CUDA
 
-    #make it iterable
+    #make it iterable and shuffable
     def __iter__(self):
         return self.minibatches.__iter__()
 
     def __next__(self):
-        return self.minibatches.__next__()
+        return next(self.minibatches)
         
     def __len__(self):
         return len(self.minibatches)

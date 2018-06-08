@@ -1,3 +1,4 @@
+#! /Users/lemberger/Documents/code/py-smtag/.venv/bin/python
 """smtag
 Usage:
   meta.py [-f <file> -Z <int> -E <int> -R <float> -o <str> -n <str>]
@@ -5,7 +6,7 @@ Usage:
 Options:
   -f <file>, --file <file>                Namebase of dataset to import [default: test_train]
   -E <int>, --epochs <int>                Number of training epochs [default: 120]
-  -Z <int>, --minibatch_size <int>        Minibatch size [default: 32]
+  -Z <int>, --minibatch_size <int>        Minibatch size [default: 128]
   -R <float>, --learning_rate <float>     Learning rate [default: 0.001]
   -o <str>, --output_features <str>       Selected output features (use quotes if comma+space delimited) [default: geneprod]
   -n <str>, --nf_table <str>             Selected number of features for each hidden layer (use quotes if comma+space delimited) [default: 8,8,8]
@@ -13,7 +14,6 @@ Options:
   --version     Show version.
 """
 from docopt import docopt
-
 
 import os
 import yaml
@@ -27,11 +27,13 @@ def setup_logging(path="logging.yaml", default_level=logging.INFO):
     else:
         logging.basicConfig(level=default_level)
 
+import torch
 from smtag.loader import Loader
 from smtag.minibatches import Minibatches
 from smtag.trainer import Trainer
-from smtag.builder import Builder
-
+from smtag.builder import build
+from smtag.importexport import export_model, load_model
+from smtag.config import MODEL_DIR
 
 if __name__ == '__main__':
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)
@@ -53,7 +55,9 @@ if __name__ == '__main__':
     opt['pool_table'] = [2, 2, 2]
     opt['kernel_table'] = [6, 6, 6]
     opt['dropout'] = 0.1
-    print("; ".join(opt))
+    print("; ".join([f"opt[{o}]={opt[o]}" for o in opt]))
+
+    #LOAD DATA
     ldr = Loader(opt['selected_features'])
     datasets = ldr.prepare_datasets(opt['namebase'])
     training_minibatches = Minibatches(datasets['train'], opt['minibatch_size'])
@@ -61,6 +65,10 @@ if __name__ == '__main__':
     opt['nf_input'] = datasets['train'].nf_input
     opt['nf_output'] =  datasets['train'].nf_output
     logger.info(f"input, output sizes: {training_minibatches[0].output.size()}, {training_minibatches[0].output.size()}")
-    model = Builder(opt).model
+    #TRAIN MODEL
+    model = build(opt)
     t = Trainer(training_minibatches, validation_minibatches, model)
-    t.train(opt)
+    t.train()
+
+    #SAVE MODEL
+    export_model(model)

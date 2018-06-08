@@ -1,4 +1,5 @@
 NBITS = 32
-feature_map = {}
-feature_map['gene'] = 1
-feature_map['protein'] = 2
+DATA_DIR = "data"
+MODEL_DIR = "models"
+PROD_DIR = "rack"
+RUNS_LOG_DIR = "runs"
