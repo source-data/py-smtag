@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 """smtag
 Usage:
   cli.py [-m <str> -t <str> -f <xml]
@@ -9,6 +12,7 @@ Options:
   -g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: xml]
 """	
 
+import time
 from torch import nn
 import torch
 from docopt import docopt
@@ -69,5 +73,9 @@ entity_model = Combine(model_list)
 
 #PREDICT
 p = EntityPredictor(entity_model)
+start_time = time.time()
 ml = p.markup(input_string)
+end_time = time.time()
 print(ml[0])
+prediction_time = end_time - start_time
+print("Prediction time: {0:.3f}s".format(prediction_time))

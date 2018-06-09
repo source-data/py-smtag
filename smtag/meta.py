@@ -1,4 +1,6 @@
-#! /Users/lemberger/Documents/code/py-smtag/.venv/bin/python
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 """smtag
 Usage:
   meta.py [-f <file> -Z <int> -E <int> -R <float> -o <str> -n <str>]

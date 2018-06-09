@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import argparse
 from getpass import getpass
 from xml.etree.ElementTree import tostring

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import math
 from random import random
 from smtag.converter import Converter
@@ -32,8 +35,8 @@ class Show():
         input = minibatches[rand_i].input[[rand_j], : , : ] # rand_j index as list to keep the tensor 4D
         target = minibatches[rand_i].output[[rand_j], : , : ]
         
-        original_text =  minibatches[rand_i].text[rand_j]
-        provenance = minibatches[rand_i].provenance[rand_j]
+        # original_text =  minibatches[rand_i].text[rand_j]
+        # provenance = minibatches[rand_i].provenance[rand_j]
         nf_input = input.size(1)
         if model is not None: 
             model.eval()

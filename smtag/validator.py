@@ -1,4 +1,5 @@
-
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
 
 class validator:
     def __init__():

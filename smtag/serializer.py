@@ -1,19 +1,10 @@
-#from mapper import xml_serializing_map
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 #from abc import ABC
 import xml.etree.ElementTree as ET
 from smtag.utils import xml_escape
-
-
-# mapping each concept to a attribute-value pair that can be used in XML serialization
-# should go into mapper.py
-serializing_map = {
-    'assayed': ('role', 'assayed'),
-    'intervention': ('role', 'intervention'),
-    'small_molecule': ('type', 'molecule'),
-    'geneprod': ('type', 'geneprod'),
-    'gene': ('type', 'gene'),
-    'protein': ('type', 'protein')
-}
+from smtag.mapper import serializing_map
 
 
 class AbstractElementSerializer(object): # (ABC)

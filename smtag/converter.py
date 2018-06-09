@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
-#Licence:
-#test in test/test_converter.py 
 
 import numpy as np
 import argparse

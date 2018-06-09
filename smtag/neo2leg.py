@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import re
 from xml.etree.ElementTree import fromstring, Element, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node

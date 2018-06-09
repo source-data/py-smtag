@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 from smtag.config import NBITS
 import numpy as np
 import torch

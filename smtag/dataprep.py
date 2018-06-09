@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
 #from abc import ABC, abstractmethod

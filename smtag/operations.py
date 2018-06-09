@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import torch
 
 def t_replace(x, mask, replacement):

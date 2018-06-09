@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 from math import floor
 import torch
 from torch import nn
@@ -21,7 +24,6 @@ def build(opt):
     kernel_table = deepcopy(opt['kernel_table']) # need to deep copy/clone
     pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
     dropout = opt['dropout']
-    selected_features = opt['selected_features'] # need to deep copy/clone
     pre = nn.BatchNorm1d(nf_input)
     core = nn.Sequential(Unet2(nf_input, nf_table, kernel_table, pool_table, dropout),
                             nn.Conv1d(nf_input, nf_output, 1, 1),

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 from torch import nn, optim
 from random import shuffle
 import logging

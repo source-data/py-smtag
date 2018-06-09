@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
+
 import os
 from zipfile import ZipFile
 import json

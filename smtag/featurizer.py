@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 from smtag.mapper import brat_map, xml_map
 
 #features should be instance of Features()

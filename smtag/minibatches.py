@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 from smtag.loader import Dataset
 from math import floor
 import logging
