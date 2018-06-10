@@ -21,6 +21,9 @@ def t_replace(x, mask, replacement):
         x (torch.Tensor): a 3D N x nf x L Tensor filled with 0 or 1 values, where N is number of examples with L columns, nf number of features in a column, L is length of a row or number of columns.
         mask (torch.Tensor): a 2D N x L Tensor, filled with 0 or 1 values. For each example, the columns to be changes in x (second dimension) are labeled with 1 in mask.
         replacement (torch.Tensor): a 1D nf Tensor filled with 0 or 1 values. Each column of x labeled by mask will be replaced by replacement. 
+    
+    Returns:
+       (torch.Tensor): a 3D tensor where the columns labeled by the mask have been replaced by the replacement column.
     '''
 
     assert(x.size(1)==replacement.size(0))

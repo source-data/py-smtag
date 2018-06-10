@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
+
 import unittest
 import torch
 from torch import nn, optim

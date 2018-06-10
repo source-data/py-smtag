@@ -1,14 +1,14 @@
-#x = torch.Tensor([[0,1,0,1],[1,1,0,0],[0,0,0,1]])
-    #replacement = torch.Tensor([1,0,1]).resize_(3,1)
-
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
+
 import unittest
 import torch
 from smtag.operations import t_replace
 from smtag.utils import assertTensorEqual
 from smtag.converter import Converter
 
-class ConverterTest(unittest.TestCase):
+class OperationsTest(unittest.TestCase):
     
     @staticmethod
     def assertTensorEqual(x, y):
