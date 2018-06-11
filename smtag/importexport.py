@@ -12,6 +12,7 @@ from smtag.builder import build
 from smtag.utils import cd
 
 def export_model(model, custom_name = '', model_dir = MODEL_DIR):
+    model.cpu() # model.cpu().double() ?
     opt = model.opt
     if custom_name:
         name = custom_name

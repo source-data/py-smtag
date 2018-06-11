@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
+import torch
 from torch import nn, optim
 from random import shuffle
 import logging
@@ -10,8 +11,12 @@ from viz import Show
 class Trainer:
 
     def __init__(self, training_minibatches, validation_minibatches, model):
-
         self.model = model
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.device_count() > 1:
+            print(torch.cuda.device_count(), "GPUs available.")
+            self.model = nn.DataParallel(self.model)
+        self.model.to(device)
         self.writer = SummaryWriter() # to visualize training with tensorboardX
         model_descriptor = "\n".join([f"{k}={self.model.opt[k]}" for k in self.model.opt])
         print(model_descriptor)
