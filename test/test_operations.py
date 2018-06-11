@@ -33,9 +33,13 @@ class OperationsTest(unittest.TestCase):
                              [1,0,1,0]  # example 2
                             ] 
                            ) # 2 x 4
-        replacement = torch.Tensor([1,
-                                    1,
-                                    1]) # 3
+        replacement = torch.Tensor([
+                                    [
+                                     [1],
+                                     [1],
+                                     [1]
+                                    ]
+                                   ]) # 1 x 3 x 1
         replaced = t_replace(x, mask, replacement)
         expected = torch.Tensor(
                           [
@@ -58,7 +62,7 @@ class OperationsTest(unittest.TestCase):
         x = Converter.t_encode(text)
         mask = torch.Tensor([[0,0,1,1,0]])
         character = "&"
-        replacement = Converter.t_encode(character).resize_(32)
+        replacement = Converter.t_encode(character)
         anonymized = t_replace(x, mask, replacement)
         expected = "ha&&o"
         results = Converter.t_decode(anonymized)
