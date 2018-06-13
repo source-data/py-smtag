@@ -24,6 +24,10 @@ class Converter():
         t = torch.zeros(1,32,L)
         for i in range(L):
             code = ord(input_string[i])
+            # the integer is first represented as binary in a string
+            # the bits are read from left to right to fill the tensor
+            # the tensor is then inverted using [::-1]
+            # in this way the bits from right to left populate the final Tensor (column) from left (top) to right (bottom)
             bits = torch.Tensor([int(b) for b in "{0:032b}".format(code)][::-1])
             t[0, : , i] = bits
         return t
@@ -43,12 +47,12 @@ class Converter():
         for i in range(L):
             code = 0
             for j in range(31):
-                bit = int(t[0][j][i])
+                bit = int(t[0, j, i])
                 code += bit*(2**j)
             str += chr(code) #python 2: unichr()
         return str
 
-class TString(object): # (str)?
+class TString(object): # (str) or (torch.Tensor)?
     '''
     Composition between torch tensor and string such that both representation coexist. A string is converted into a 3D 1 x 32 x L Tensor and vice versa.
 
@@ -73,6 +77,9 @@ class TString(object): # (str)?
 
     def __len__(self):
         return len(self.s)
+
+    def __getitem__(self, key):
+        return self.s[key]
 
     def __getattr__(self, attr):
         return getattr(self.t, attr)

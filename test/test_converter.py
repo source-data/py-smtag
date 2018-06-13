@@ -39,6 +39,8 @@ class TStringTest(SmtagTestCase):
         self.assertEqual(text, s2.s)
         self.assertTensorEqual(tensor, s2.t)
         self.assertEqual(tensor.size(), s1.size())
+        self.assertEqual(len(text), len(s1))
+        self.assertEqual(s1[1], s1.s[1])
 
 
 if __name__ == '__main__':
