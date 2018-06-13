@@ -46,7 +46,37 @@ class Converter():
                 bit = int(t[0][j][i])
                 code += bit*(2**j)
             str += chr(code) #python 2: unichr()
-        return str     
+        return str
+
+class TString(object): # (str)?
+    '''
+    Composition between torch tensor and string such that both representation coexist. A string is converted into a 3D 1 x 32 x L Tensor and vice versa.
+
+    Args:
+        x: either a string, in in which case it is converted into the corresonding Tensor, or a Tensor, in which case it is converted into a string.
+
+    Methods:
+        all methods from torch.Tensor
+        __str__(): allows to print the TString
+        __len__(): provide length with len(TString)
+    '''
+    def __init__(self, x):
+        if isinstance(x, str):
+            self.s = x
+            self.t = Converter.t_encode(x)
+        elif isinstance(x, torch.Tensor):
+            self.s = Converter.t_decode(x)
+            self.t = x
+
+    def __str__(self):
+        return self.s
+
+    def __len__(self):
+        return len(self.s)
+
+    def __getattr__(self, attr):
+        return getattr(self.t, attr)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( description="Encode decode string into binary tensors" )
