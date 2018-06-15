@@ -46,6 +46,13 @@ class EngineTest(SmtagTestCase):
         expected = 'stained by anti‐<sd-tag type="geneprod">SEPA‐1</sd-tag> antibodies'
         self.assertEqual(expected, ml)
 
+    def test_engine_combo(self):
+        e = SmtagEngine()
+        ml = e.entity_and_context('stained on SEPA‐1 deficient mice')
+        print(ml)
+        expected = 'stained on <sd-tag type="geneprod" role="intervention">SEPA‐1</sd-tag> deficient mice'
+        self.assertEqual(expected, ml)
+
 
 if __name__ == '__main__':
     unittest.main()
