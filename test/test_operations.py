@@ -5,14 +5,11 @@
 import unittest
 import torch
 from smtag.operations import t_replace
-from smtag.utils import assertTensorEqual
+from test.smtagunittest import SmtagTestCase
 from smtag.converter import Converter
 
-class OperationsTest(unittest.TestCase):
+class OperationsTest(SmtagTestCase):
     
-    @staticmethod
-    def assertTensorEqual(x, y):
-        return assertTensorEqual(x, y)
 
     def test_replace(self):
         x = torch.Tensor(

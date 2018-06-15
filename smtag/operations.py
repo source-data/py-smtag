@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import torch
+from torch import nn
 
 def t_replace(x, mask, replacement):
     '''
@@ -25,6 +26,9 @@ def t_replace(x, mask, replacement):
     Returns:
        (torch.Tensor): a 3D tensor where the columns labeled by the mask have been replaced by the replacement column.
     '''
+    
+    # replace this with x.index_copy_(3, mask3D, replacement3D) or somethign similar: nope, index cannot be 3D
+    # maybe with something like x[:,:][mask] = replacement_vector: nope ;-()
 
     assert(x.size(1)==replacement.size(1))
     assert(x.size(2)==mask.size(1))
@@ -34,7 +38,8 @@ def t_replace(x, mask, replacement):
     L = x.size(2)
 
     replacement_3D = replacement.repeat(N, 1, L) # the replacement colum is replicated through all L columns and N examples
-    
+
+
     mask_inv = 1 - mask # 0s become 1s and 1s become 0s
     mask_3D = mask.unsqueeze(1).repeat(1, nf, 1) # the mask is replicated through each nf rows
     mask_inv_3D = mask_inv.unsqueeze(1).repeat(1, nf, 1) # the mask is replicated through each nf rows
@@ -45,8 +50,4 @@ def t_replace(x, mask, replacement):
     x_replaced = x_inactivate + masked_replacement
 
     return x_replaced
-
-
-
-
 

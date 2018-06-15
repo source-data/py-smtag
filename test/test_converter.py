@@ -34,13 +34,35 @@ class TStringTest(SmtagTestCase):
     def test_lossless_decode_encode(self):
         text = "hallo"
         s1 = TString(text)
-        tensor = s1.t
+        tensor = s1.toTensor()
         s2 = TString(tensor)
-        self.assertEqual(text, s2.s)
-        self.assertTensorEqual(tensor, s2.t)
-        self.assertEqual(tensor.size(), s1.size())
-        self.assertEqual(len(text), len(s1))
-        self.assertEqual(s1[1], s1.s[1])
+        self.assertTensorEqual(s1.toTensor(), s2.toTensor())
+        self.assertEqual(s1.size(), s2.size())
+        self.assertEqual(len(s1), len(s1))
+        self.assertNotEqual(len(s2), 0)
+        self.assertEqual(text, str(s1))
+
+    def test_concat(self):
+        hello = TString("hello ")
+        world = TString("world")
+        hello_world = TString("hello world")
+        concatenated = hello + world
+        self.assertTensorEqual(hello_world.toTensor(), concatenated.toTensor())
+    
+    def test_len(self):
+        
+        x = TString("1234567890")
+        l1 = len(x)
+        l2 = len("1234567890")
+        self.assertEqual(l1, l2)
+
+    def test_repeat(self):
+        c = "a"
+        c10 = c * 10
+        s = TString(c)
+        s10 = s.repeat(10)
+        t10 = s.toTensor().repeat(1,1,10)
+        self.assertTensorEqual(t10, s10.toTensor())
 
 
 if __name__ == '__main__':

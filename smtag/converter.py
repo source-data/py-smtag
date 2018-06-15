@@ -4,6 +4,7 @@
 import numpy as np
 import argparse
 import torch
+from smtag.config import NBITS
 
 class Converter():
     """
@@ -52,37 +53,49 @@ class Converter():
             str += chr(code) #python 2: unichr()
         return str
 
-class TString(object): # (str) or (torch.Tensor)?
+class TString(str): # (str) or (torch.Tensor)?
     '''
-    Composition between torch tensor and string such that both representation coexist. A string is converted into a 3D 1 x 32 x L Tensor and vice versa.
+    String encoded into a 3D 1 example x 32 bits x L characters Tensor.
 
     Args:
-        x: either a string, in in which case it is converted into the corresonding Tensor, or a Tensor, in which case it is converted into a string.
+        x: either a string, in in which case it is converted into the corresonding Tensor, or a Tensor, in which case it does not need conversion but needs to be 3 dim with size(1)==NBITS (32).
 
     Methods:
-        all methods from torch.Tensor
         __str__(): allows to print the TString
-        __len__(): provide length with len(TString)
+        __len__(): length with len(TString)
+        __add__(TString): concatenates TString
+        repeat(int): repeat the TString
+        all the methods from torch.Tensor
     '''
-    def __init__(self, x):
+    def __init__(self, x=''):
+        super(TString, self).__init__()
+        self.t = torch.Tensor()
         if isinstance(x, str):
-            self.s = x
             self.t = Converter.t_encode(x)
         elif isinstance(x, torch.Tensor):
-            self.s = Converter.t_decode(x)
+            assert(x.dim() == 3 and x.size(1) == NBITS)
             self.t = x
 
     def __str__(self):
-        return self.s
+        return Converter.t_decode(self.t)
 
     def __len__(self):
-        return len(self.s)
+        return int(self.t.size(2))
 
-    def __getitem__(self, key):
-        return self.s[key]
+    def __add__(self, x): # overwrites tensor adding into tensor concatenation like strings
+        
+        return TString(torch.cat((self.toTensor(), x.toTensor()), 2))
+    
+    def repeat(self, N):
+        return TString(self.t.repeat(1, 1, N))
 
-    def __getattr__(self, attr):
+    def toTensor(self):
+        return self.t
+
+    def __getattr__(self, attr): # class composition with tensor.Torch
         return getattr(self.t, attr)
+
+
 
 
 if __name__ == "__main__":
