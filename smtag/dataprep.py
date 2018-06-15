@@ -230,7 +230,7 @@ class DataPreparator(object):
              
             text_filename = os.path.join(DATA_DIR, filenamebase+"_"+k+".txt")
             with open(text_filename, 'w') as f:
-               for line in self.dataset4th[k]['text4th']: f.write(f"{line}\n")
+               for line in self.dataset4th[k]['text4th']: f.write("{}\n".format(line))
             f.close()
              
             provenance_filename = os.path.join(DATA_DIR,filenamebase+"_"+k+".prov")

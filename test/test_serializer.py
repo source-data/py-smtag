@@ -7,6 +7,7 @@ from smtag.utils import tokenize
 from smtag.binarize import Binarized
 from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
 
+
 class SerializerTest(unittest.TestCase):
 
     def test_element_serializer(self):

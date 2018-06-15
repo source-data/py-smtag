@@ -1,5 +1,7 @@
 import unittest
 
+#maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
+
 class SmtagTestCase(unittest.TestCase):
 
     def __init__(self, methodName):

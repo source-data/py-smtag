@@ -57,7 +57,7 @@ if __name__ == '__main__':
     opt['pool_table'] = [2, 2, 2]
     opt['kernel_table'] = [6, 6, 6]
     opt['dropout'] = 0.1
-    print("; ".join([f"opt[{o}]={opt[o]}" for o in opt]))
+    print("; ".join(["opt[{}]={}".format(o,opt[o]) for o in opt]))
 
     #LOAD DATA
     ldr = Loader(opt['selected_features'])
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     validation_minibatches = Minibatches(datasets['valid'], opt['minibatch_size'])
     opt['nf_input'] = datasets['train'].nf_input
     opt['nf_output'] =  datasets['train'].nf_output
-    logger.info(f"input, output sizes: {training_minibatches[0].output.size()}, {training_minibatches[0].output.size()}")
+    logger.info("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
     #TRAIN MODEL
     model = build(opt)
     t = Trainer(training_minibatches, validation_minibatches, model)

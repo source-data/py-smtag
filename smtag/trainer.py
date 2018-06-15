@@ -18,7 +18,7 @@ class Trainer:
             self.model = nn.DataParallel(self.model)
         self.model.to(device)
         self.writer = SummaryWriter() # to visualize training with tensorboardX
-        model_descriptor = "\n".join([f"{k}={self.model.opt[k]}" for k in self.model.opt])
+        model_descriptor = "\n".join(["{}={}".format(k, self.model.opt[k]) for k in self.model.opt])
         print(model_descriptor)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
@@ -58,19 +58,19 @@ class Trainer:
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
-                print(f"\n\n\nepoch {e}\tminibatch #{counter}\tloss={loss}")
+                print("\n\n\nepoch {}\tminibatch #{}\tloss={}".format(e, counter, loss))
                 Show.example(self.validation_minibatches, self.model)
                 counter += 1
 
             # Logging
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
             avg_validation_loss = self.validate() # the average loss over the validation minibatches
-            print(f"\nepoch {e}\tavg_train_loss={avg_train_loss}\tavg_validation_loss={avg_validation_loss}")
+            print("\nepoch {}\tavg_train_loss={}\tavg_validation_loss={}".format(e, avg_train_loss, avg_validation_loss))
             self.writer.add_scalars('data/loss', {'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
             #Log values and gradients of the parameters (histogram summary)
-            for name, param in self.model.named_parameters():
-                name = name.replace('.', '/')
-                self.writer.add_histogram(name, param.clone().cpu().data.numpy(), e)
-                self.writer.add_histogram(name+'/grad', param.grad.clone().cpu().data.numpy(), e)
+            #for name, param in self.model.named_parameters():
+            #    name = name.replace('.', '/')
+            #    self.writer.add_histogram(name, param.clone().cpu().data.numpy(), e)
+            #    self.writer.add_histogram(name+'/grad', param.grad.clone().cpu().data.numpy(), e)
 
         self.writer.close()

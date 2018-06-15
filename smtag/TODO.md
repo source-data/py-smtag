@@ -1,13 +1,21 @@
-- move Converter.t_encode(example) from loader to dataprep to save datatasets as 4 file bundles
-- pre-tokenize when generating datasets
-- save datasets as zip archive to save disk space? (depends how long it takes to decompress)
+- test py-smtag on GPU
+- implement assertEqualTensor properly: DONE
+- enable tensorboardX on Amazon GPU machine (serve which URL? how to set security?)
 - restructure smtag package in subpackages: datagen/, train/, predict/, common/ ?
 - add pydoc comments on all classes and check commenting style
+- change Binarize Predictor to TString: DONE
+- check dtype = uint8 for binarized tensors ByteTensor
+- update README.md
+- move Converter.t_encode(example) from loader to dataprep to save datatasets as 4 file bundles
+- create TString class to give string behavior to encoded string: DONE
+- make 1 test suite with all the tests
+- pre-tokenize when generating datasets
+- save datasets as zip archive to save disk space? (depends how long it takes to decompress)
 - finish options for meta (collapse, overlap, OR tables)
-- revise anonymization and use OR gate instead of lable character
+- revise anonymization and use OR gate instead of lable character: DONE
 - classes to combine entity, pure context, context-text, boundary models
 - train all models
 - connect Flask server
 - accuracy and benchmarking classes
-- implement GPU computing
+- implement GPU computing: DONE
 - implement Hinton's capsules

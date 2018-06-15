@@ -22,26 +22,26 @@ class Dataset:
             self.line = line
             self.max_length = max_length
         def __str__(self):
-            return f"FATAL: Example line is too long: {len(self.line)} > {self.max_length}"
+            return "FATAL: Example line is too long: {} > {}".format(len(self.line), self.max_length)
 
     def from_files(self, basename):
-        features_filename = f"data/{basename}.npy"
+        features_filename = "data/{}.npy".format(basename)
         text_filename = f'data/{basename}.txt'
-        #textcoded_filename = f"data/{basename}_textcoded.npy"
+        #textcoded_filename = "data/{}_textcoded.npy".format(basename)
         provenance_filename = f'data/{basename}.prov'
         
-        logger.info(f"Loading {features_filename} as features for the dataset.")
+        logger.info("Loading {} as features for the dataset.".format(features_filename))
         np_features = np.load(features_filename) #saved file is 3D; need to change this?
         self.N = np_features.shape[0] #number of examples
         self.nf_output = np_features.shape[1] #number of features
         self.L = np_features.shape[2] #length of text snippet 
         self.output = torch.from_numpy(np_features) #saved files are from numpy, need conversion to torch
         
-        #logger.info(f"Loading {textcoded_filename} as encoded text for the dataset.")
+        #logger.info("Loading {} as encoded text for the dataset.".format(textcoded_filename))
         #text_coded = np.load(textcoded_filename)
         #self.text_coded = torch.from_numpy(text_coded)
         
-        logger.info(f"Loading {text_filename} for the original texts of the dataset.")
+        logger.info("Loading {} for the original texts of the dataset.".format(text_filename))
         with open(text_filename, 'r') as f:
             for line in f:
                 line = line.rstrip('\n')
@@ -49,15 +49,15 @@ class Dataset:
                     raise LineTooLong(line, self.L)
                 self.text.append(line)
         
-        logger.info(f"Loading {provenance_filename} as provenance info for the examples in the dataset.")
+        logger.info("Loading {} as provenance info for the examples in the dataset.".format(provenance_filename))
         with open(provenance_filename, 'r') as f:
             for line in f:
                 self.provenance.append(line)
         
         logger.info(f"Dataset dimensions:")
-        logger.info(f"{self.N} text examples of size {self.L}")
-        logger.info(f"{self.nf_input} input features (in-channels).")
-        logger.info(f"{self.nf_output} output features (out-channels).")
+        logger.info("{} text examples of size {}".format(self.N, self.L))
+        logger.info("{} input features (in-channels).".format(self.nf_input))
+        logger.info("{} output features (out-channels).".format(self.nf_output))
 
         
     def __init__(self, N=0, nf_input=0, nf_output=0, L=0):
@@ -120,7 +120,7 @@ class Loader:
         #THIS HAS TO GO! BELONGS TO DATAPREP!!! Probably in Featurizer
         raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , mapper.label2index['gene'],  : ] + raw_dataset.output[ : ,  mapper.label2index['protein'], : ]
         
-        logger.info(f"Creating dataset with selected features {self.selected_features}, and shuffling {N} examples.")
+        logger.info("Creating dataset with selected features {}, and shuffling {} examples.".format(self.selected_features, N))
         shuffled_indices = torch.randperm(N) #shuffled_indices = range(N); shuffle(shuffled_indices)
         datasets = {}
         if self.validation_fraction == 0:
@@ -150,11 +150,11 @@ class Loader:
             N_examples = last_example - first_example + 1
             dataset = Dataset(N_examples, self.nf_input, self.nf_output, L)
             
-            logger.info(f"Generating {k} set with {N_examples} examples ({first_example}, {last_example})")
-            logger.info(f"input dataset['{k}'] tensor created")
-            logger.info(f"output dataset['{k}'] tensor created")
+            logger.info("Generating {} set with {} examples ({}, {})".format(k, N_examples, first_example, last_example))
+            logger.info("input dataset['{}'] tensor created".format(k))
+            logger.info("output dataset['{}'] tensor created".format(k))
             for example_i in range(first_example, last_example):
-                progress(example_i - first_example, N_examples, status=f"loading {N_examples} examples ({first_example} to {last_example}) into dataset['{k}']")
+                progress(example_i - first_example, N_examples, status="loading {} examples ({} to {}) into dataset['{}']".format(N_examples, first_example, last_example, k))
                 i = shuffled_indices[example_i]
                 index = example_i - first_example + 1
                 #TEXT SAMPLES AND INPUT TEXT ENCODING

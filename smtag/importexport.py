@@ -22,11 +22,11 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
         #suffixes.append(_".join([f for f in opt['collapsed_features']]))
         suffixes.append(datetime.now().isoformat("-",timespec='minutes').replace(":", "-"))
         suffix = "_".join(suffixes)
-        name = f"{opt['namebase']}_{suffix}"
-    model_path = f"{name}.sddl" #os.path.join(name, f"{name}.sddl")
+        name = "{}_{}".format(opt['namebase'], suffix)
+    model_path = "{}.sddl".format(name) #os.path.join(name, "{}.sddl".format(name))
     #torch.save(model, model_filename) # does not work
-    archive_path = f"{name}.zip" #os.path.join(model_dir, f"{name}.zip")
-    option_path = f"{name}.json" # os.path.join(model_dir, f"{name}_{suffix}.json")
+    archive_path = "{}.zip".format(name) #os.path.join(model_dir, "{}.zip".format(name))
+    option_path = "{}.json".format(name) # os.path.join(model_dir, "{}_{suffix}.json".format(name))
     with cd(MODEL_DIR):
         with ZipFile(archive_path, 'w') as myzip:
             torch.save(model.state_dict(), model_path)
@@ -37,7 +37,7 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
             myzip.write(option_path)
             os.remove(option_path)
         for info in myzip.infolist():
-            print(f"saved {info.filename} (size: {info.file_size})")
+            print("saved {} (size: {})".format(info.filename, info.file_size))
         return myzip
 
 def load_model(archive_filename, model_dir=MODEL_DIR):
@@ -52,10 +52,10 @@ def load_model(archive_filename, model_dir=MODEL_DIR):
                 #_, filename = os.path.split(filename)
                 if ext == '.sddl':
                     model_path = filename
-                    print(f"extracted {model_path}")
+                    print("extracted {}".format(model_path))
                 elif ext == '.json':
                     option_path = filename
-                    print(f"extracted {option_path}")
+                    print("extracted {}".format(option_path))
 
         with open(option_path, 'r') as optionfile:
             opt = json.load(optionfile)
@@ -63,8 +63,8 @@ def load_model(archive_filename, model_dir=MODEL_DIR):
         print(opt)
         model =  build(opt)
         model.load_state_dict(torch.load(model_path))
-        print(f"removing {model_path}")
+        print("removing {}".format(model_path))
         os.remove(model_path)
-        print(f"removing {option_path}")
+        print("removing {}".format(option_path))
         os.remove(option_path)
     return model

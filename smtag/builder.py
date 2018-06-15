@@ -37,7 +37,7 @@ class Concat(nn.Module):
         super(Concat, self).__init__()
         self.dim = dim
 
-    def forward(self, tensor_sequence): #**kwargs?
+    def forward(self, tensor_sequence):
         return torch.cat(tensor_sequence, self.dim)
 
 class Unet2(nn.Module):
