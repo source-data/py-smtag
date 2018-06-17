@@ -53,7 +53,7 @@ class OperationsTest(SmtagTestCase):
                          ]) # 2 x 3 x 4
         self.assertTensorEqual(expected, replaced)
 
-    
+
     def test_anonymize(self):
         text = "hallo"
         x = Converter.t_encode(text)
@@ -64,8 +64,6 @@ class OperationsTest(SmtagTestCase):
         expected = "ha&&o"
         results = Converter.t_decode(anonymized)
         self.assertEqual(expected, results)
-
-
 
 
 if __name__ == '__main__':

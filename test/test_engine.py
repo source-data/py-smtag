@@ -16,7 +16,7 @@ from smtag.config import MARKING_CHAR
 
 
 class EngineTest(SmtagTestCase):
-
+    
     @classmethod
     def setUpClass(self): # run only once
         self.text_example = "AAAAAAA XXX AAA"
@@ -40,6 +40,7 @@ class EngineTest(SmtagTestCase):
             self.assertTensorEqual(self.y, y_1)
 
     def test_engine_entity(self):
+        # need to change this to intantiate SmtagEngine with test cartridge
         e = SmtagEngine()
         ml = e.entities('stained by anti‐SEPA‐1 antibodies')
         print(ml)
@@ -51,6 +52,13 @@ class EngineTest(SmtagTestCase):
         ml = e.entity_and_context('stained on SEPA‐1 deficient mice')
         print(ml)
         expected = 'stained on <sd-tag type="geneprod" role="intervention">SEPA‐1</sd-tag> deficient mice'
+        self.assertEqual(expected, ml)
+    
+    def test_engine_entity_reporter_context(self):
+        e = SmtagEngine()
+        ml = e.entity_reporter_context('Cells expressing GFP-Atg5 in mice')
+        print(ml)
+        expected = 'Cells expressing GFP-<sd-tag type="geneprod">Atg5</sd-tag> in mice'
         self.assertEqual(expected, ml)
 
 

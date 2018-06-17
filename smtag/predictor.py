@@ -46,18 +46,24 @@ class Predictor: #(nn.Module?)
         
         #PREDICTION
         self.model.eval()
-        prediction = self.model(input.toTensor())
+        prediction = self.model(input.toTensor()) #.float()
         self.model.train()
     
         #remove safety padding
         prediction = prediction[ : , : , padding_length : L-padding_length]
         return prediction
 
-    def serialize(self, input_string, prediction):
-        bin_pred = Binarized([input_string], prediction, self.model.output_semantics) # this is where the transfer of the output semantics from the model to the binarized prediction happen; will be used for serializing
+    def pred_bin(self, input_string, prediction, output_semantics):
+        bin_pred = Binarized([input_string], prediction, output_semantics) # this is where the transfer of the output semantics from the model to the binarized prediction happen; will be used for serializing
         token_list = tokenize(input_string)
         bin_pred.binarize_with_token([token_list])
         bin_pred.fuse_adjascent(regex=" ")
+        return bin_pred
+
+
+    def serialize(self, input_string, prediction):
+        output_semantics = self.model.output_semantics
+        bin_pred = self.pred_bin(input_string, prediction, output_semantics)
         tagger = Serializer(self.tag, self.format)
         tagged_ml_string = tagger.serialize(bin_pred)
         return tagged_ml_string
@@ -68,10 +74,12 @@ class EntityPredictor(Predictor):
     def __init__(self, model, tag='sd-tag', format='xml'):
         super(EntityPredictor, self).__init__(model) # the model should carry the semantics with him, transmit it to pred and be used by Tagger.element()
 
+    def pred_binarized(self, input_string, output_semantics):
+        prediction = self.forward(TString(input_string))
+        return super(EntityPredictor, self).pred_bin(input_string, prediction, output_semantics)
 
     def markup(self, input_string):
-        input = TString(input_string)
-        prediction= self.forward(input)
+        prediction= self.forward(TString(input_string))
         return super(EntityPredictor, self).serialize(input_string, prediction)
 
 class SemanticsFromContextPredictor(Predictor):
@@ -82,7 +90,6 @@ class SemanticsFromContextPredictor(Predictor):
         self.format = format
 
     def anonymize(self, input, marks, replacement = MARKING_ENCODED):
-        
         return TString(t_replace(input.toTensor().clone(), marks, replacement.toTensor()))
 
     def forward(self, input, marks): 
@@ -93,7 +100,10 @@ class SemanticsFromContextPredictor(Predictor):
         prediction = torch.cat(predictions, 1)
         return prediction
     
+    def pred_binarized(self, input_string, marks, output_semantics):
+        prediction = self.forward(TString(input_string), marks)
+        return super(SemanticsFromContextPredictor, self).pred_bin(input_string, prediction, output_semantics)
+
     def markup(self, input_string, binarized_entities):
-        input = TString(input_string)
-        prediction = self.forward(input, binarized_entities)
+        prediction = self.forward(TString(input_string), binarized_entities)
         return super(SemanticsFromContextPredictor, self).serialize(input_string, prediction)

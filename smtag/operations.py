@@ -33,9 +33,7 @@ def t_replace(x, mask, replacement):
     assert(x.size(1)==replacement.size(1))
     assert(x.size(2)==mask.size(1))
 
-    N = x.size(0)
-    nf = x.size(1)
-    L = x.size(2)
+    N, nf, L = x.size()
 
     replacement_3D = replacement.repeat(N, 1, L) # the replacement colum is replicated through all L columns and N examples
 

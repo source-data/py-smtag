@@ -12,20 +12,20 @@ Options:
   -g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: xml]
 """	
 
-import time
 from torch import nn
 import torch
 from docopt import docopt
 from smtag.importexport import load_model
-from smtag.utils import tokenize
+from smtag.utils import tokenize, timer
 from smtag.builder import Concat
 from smtag.converter import TString
 from smtag.binarize import Binarized
 from smtag.predictor import EntityPredictor, SemanticsFromContextPredictor
 from smtag.serializer import Serializer
 from smtag.config import PROD_DIR
+from smtag.viz import Show
 
-#did not work 
+# maybe should be in builer.py
 class Combine(nn.Module):#SmtagModel?
 
     def __init__(self, model_list):
@@ -34,7 +34,7 @@ class Combine(nn.Module):#SmtagModel?
         self.output_semantics = []
         self.anonymize_with = []
         for model, anonymize_with in model_list:
-            name = 'U__'+'_'.join(model.output_semantics)
+            name = 'unet2__'+'_'.join(model.output_semantics)
             self.add_module(name, model)
             self.output_semantics += model.output_semantics # some of them can have > 1 output feature hence += instead of .append
             self.anonymize_with.append(anonymize_with)
@@ -43,26 +43,10 @@ class Combine(nn.Module):#SmtagModel?
     def forward(self, x):
         y_list = []
         for n, m in self.named_children():
-            if n[0:3]=='U__':
+            if n[0:7] == 'unet2__': # the child module is one of the unet models
                 y_list.append(m(x))
         y = self.concat(y_list)
         return y
-
-class Combine2(nn.Module):
-
-    def __init__(self, module_dict):
-        super(Combine2, self).__init__()
-        #self.small_molecule = module_dict['small_molecule']
-        self.output_semantics = []
-        self.geneprod = module_dict['geneprod']
-        self.output_semantics += self.geneprod.output_semantics
-        self.concat = Concat(1)
-
-    def forward(self, x):
-        y_list = []
-        #y_list.append(self.small_molecular(x))
-        y_list.append(self.geneprod(x))
-        return (self.concat(y_list))
 
 class Connector(nn.Module):
     def __init__(self, output_semantics, input_semantics):
@@ -70,34 +54,44 @@ class Connector(nn.Module):
         self.output_semantics = output_semantics
         self.input_semantics = input_semantics
         #get indices of output channels (of the source module) in the order require by input semantics (of the receiving module).
-        self.indices = []
-        for input in input_semantics:
-            self.indices.append(input_semantics.index(input)) # finds the position of the required input concept in the list of output concepts
+        self.indices = [input_semantics.index(input) for input in input_semantics] # finds the position of the required input concept in the list of output concepts
 
-    def forward (self, x):
+    def forward(self, x):
         #returns the tensor where second dimension (channels) are reordered appropriately
         return x[ : , self.indices, : ]
 
 
-def timer(f):
-    
-    def t(*args):
-        start_time = time.time()
-        output = f(*args)
-        end_time = time.time()
-        delta_t = end_time - start_time
-        print("Exec time for method '{}': {:.3f}s".format(f.__name__, delta_t))
-        return output
-    return t
-
 class SmtagEngine:
 
-    def __init__(self, dir=PROD_DIR):
-        
+    def __init__(self, cartridge={}, dir=PROD_DIR):
+        #change this to accept a 'cartridge' that descibes which models to load and that can be save to disk
+        if cartridge:
+            self.cartridge = cartridge
+        else:
+           self.cartridge = {
+               'entities': [
+                   {'model': 'geneprod.zip', 'anonymize_with': ''},
+                   {'model': 'small_molecule.zip', 'anonymize_with': ''}
+               ],
+               'only_once': [
+                   {'model': 'reporter_geneprod.zip', 'anonymize_with': ''}
+               ],
+               'context': [
+                   {'model': 'causality_entities.zip', 'anonymize_with': 'geneprod'},
+                   {'model': 'causality_small_mol.zip', 'anonymize_with': 'small_mol'}
+               ]
+           }
+
         entity_model_list = [
             (load_model('geneprod.zip', dir), [])
         ]
         self.entity_model = Combine(entity_model_list)
+
+        reporter_model_list = [
+            (load_model('reporter_geneprod.zip', dir), [])
+        ]
+        self.reporter_model = Combine(reporter_model_list)
+
         context_model_list = [
             (load_model('causality_geneprod.zip', PROD_DIR), 'geneprod') # the model_list contains the model and the expected concept that will be tagged and need anonymization
         ]
@@ -108,27 +102,47 @@ class SmtagEngine:
         p = EntityPredictor(self.entity_model)
         ml = p.markup(input_string)
         return ml[0]
-    
+
     @timer
     def entity_and_context(self, input_string):
-        input = TString(input_string)
+        
         entity_p = EntityPredictor(self.entity_model)
-        prediction_entity = entity_p.forward(input)
-        entity_binarized = Binarized([input_string], prediction_entity, self.entity_model.output_semantics)
-        tokenized = tokenize(input_string)
-        entity_binarized.binarize_with_token([tokenized])
+        binarized = entity_p.pred_binarized(input_string, self.entity_model.output_semantics)
+
         # select and order the predicted marks to be fed to the second context_p semantics from context model.
         rewire = Connector(self.entity_model.output_semantics, self.context_model.anonymize_with)
-        marks = rewire.forward(entity_binarized.marks)
+        marks = rewire.forward(binarized.marks)
+
         context_p = SemanticsFromContextPredictor(self.context_model)
-        prediction_roles = context_p.forward(input, marks) #context_p takes care of anonymization per feature
-        #concatenate entity and output_semantics before calling Binarized()
-        combined_pred = torch.cat([prediction_entity, prediction_roles], 1)
-        combined_output_semantics = self.entity_model.output_semantics + self.context_model.output_semantics
-        context_binarized = Binarized([input_string], combined_pred, combined_output_semantics)
-        context_binarized.binarize_with_token([tokenized])
-        ml = Serializer().serialize(context_binarized)
-        return ml
+        context_binarized = context_p.pred_binarized(input_string, marks, self.context_model.output_semantics)
+        
+        #concatenate entity and output_semantics before calling Serializer()
+        binarized.cat_(context_binarized)
+        ml = Serializer().serialize(binarized)
+        return ml[0]
+
+    def entity_reporter_context(self, input_string):
+        
+        entity_p = EntityPredictor(self.entity_model)
+        binarized = entity_p.pred_binarized(input_string, self.entity_model.output_semantics)
+
+        reporter_p = EntityPredictor(self.reporter_model)
+        binarized_reporter = reporter_p.pred_binarized(input_string, self.reporter_model.output_semantics)
+        binarized.cat_(binarized_reporter) # add reporter prediction to output features
+        #once reporters have been predicted, their marks are erased to avoid being predicted again (only_once method?)
+        binarized.filter_(binarized_reporter)
+        # select and order the predicted marks to be fed to the second context_p semantics from context model.
+        rewire = Connector(self.entity_model.output_semantics, self.context_model.anonymize_with)
+        marks = rewire.forward(binarized.marks)
+
+        # oops forgot: add binarized_reporter.marks as feature_as_input to context model
+        context_p = SemanticsFromContextPredictor(self.context_model)
+        context_binarized = context_p.pred_binarized(input_string, marks, self.context_model.output_semantics)
+        
+        #concatenate entity and output_semantics before calling Serializer()
+        binarized.cat_(context_binarized)
+        ml = Serializer().serialize(binarized)
+        return ml[0]
     
     def add_roles(self, input_xml):
         pass
@@ -139,9 +153,9 @@ class SmtagEngine:
     def smtag(self, input_string):
         pass
 
+if __name__ == "__main__":
+    # PARSE ARGUMENTS
+    arguments = docopt(__doc__, version='0.1')
+    input_string = arguments['--text']
 
-# PARSE ARGUMENTS
-arguments = docopt(__doc__, version='0.1')
-input_string = arguments['--text']
-
-print(SmtagEngine().entities(input_string))
+    print(SmtagEngine().entities(input_string))

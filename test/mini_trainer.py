@@ -9,6 +9,8 @@ def toy_model(x, y, selected_feature = ['geneprod'], threshold = 1E-02):
         opt['epochs'] = 100
         opt['minibatch_size'] = 1
         opt['selected_features'] = selected_feature
+        opt['collapsed_features'] = []
+        opt['overlap_features'] = []
         opt['nf_table'] =  [8,8]
         opt['pool_table'] = [2,2]
         opt['kernel_table'] = [2,2]

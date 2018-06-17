@@ -11,7 +11,11 @@ class SmtagModel(nn.Module):
     def __init__(self, module, opt): # change this to only opt
         super(SmtagModel, self).__init__()
         self.module = module
-        self.output_semantics = opt['selected_features']
+        self.output_semantics = opt['selected_features'] 
+        if 'collapsed_features' in opt:
+            self.output_semantics += opt['collapsed_features'] 
+        if 'overlap_features' in opt:
+            self.output_semantics += opt['overlap_features']
         self.opt = opt
     
     def forward(self, x):
