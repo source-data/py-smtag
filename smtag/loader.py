@@ -177,10 +177,11 @@ class Loader:
                 dataset.input[index, 0:32 , : ] = Converter.t_encode(raw_dataset.text[i])
                 #dataset.input[index, 0:32 , : ] = raw_dataset.textcoded[i, : , : ]
 
+                j = 0
                 for f in self.features_as_input:
-                    #argh we need j as the index
-                    j = self.features_as_input.index(f) # for example: j=0, nf_input = 32 => 32 + 0 = 32
-                    dataset.input[index, self.nf_input + j, : ] = raw_dataset.output[i, mapper.label2index[f], : ]
+                    # for example: j=0, => 32 + 0 = 32
+                    dataset.input[index, 32 + j, : ] = raw_dataset.output[i, mapper.label2index[f], : ]
+                    j += 1
 
                 #OUTPUT SELECTION AND COMBINATION OF FEATURES
 
