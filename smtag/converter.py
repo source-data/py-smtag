@@ -10,7 +10,7 @@ class Converter():
     """
     Conversion operations between unicode strings and tensors.
     """
-    
+
     @staticmethod
     def t_encode(input_string):
         """
@@ -29,7 +29,10 @@ class Converter():
             # the bits are read from left to right to fill the tensor
             # the tensor is then inverted using [::-1]
             # in this way the bits from right to left populate the final Tensor (column) from left (top) to right (bottom)
-            bits = torch.Tensor([int(b) for b in "{0:032b}".format(code)][::-1])
+            # bits = torch.Tensor([int(b) for b in "{0:032b}".format(code)][::-1]) # slower!! 2.425s for 1E5 conversions; thank you: https://stackoverflow.com/questions/10321978/integer-to-bitfield-as-a-list
+            # bits = torch.Tensor([1 if b=='1' else 0 for b in "{0:032b}".format(code)][::-1]) # faster: 1.721s
+            # bits = torch.Tensor([1 if b=='1' else 0 for b in f"{code:032b}"][::-1]) # elegant but 1.7s and only python 3.6
+            bits = torch.Tensor([1 if b=='1' else 0 for b in "%32s" % bin(code)[2:]][::-1]) # even faster 1.653s with % formatting
             t[0, : , i] = bits
         return t
 
