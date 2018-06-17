@@ -6,6 +6,8 @@ import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
 from smtag.converter import Converter, TString
+from smtag.utils import timer
+from timeit import timeit
 
 class ConverterTest(SmtagTestCase):
     def setUp(self):
@@ -28,6 +30,11 @@ class ConverterTest(SmtagTestCase):
 
     def test_lossless_decode_encode(self):
         self.assertTensorEqual(self.tensor, Converter.t_encode(Converter.t_decode(self.tensor)))
+
+    @timer
+    def test_timing(self):
+        for _ in range(100000):
+            Converter.t_encode("🐌")
 
 class TStringTest(SmtagTestCase):
 
