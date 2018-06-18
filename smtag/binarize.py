@@ -3,6 +3,7 @@
 
 import torch
 import re
+from copy import deepcopy
 from smtag.utils import xml_escape
 from smtag.mapper import THRESHOLDS
 
@@ -106,20 +107,33 @@ class Binarized:
         # self.L untouched
         self.start = torch.cat((self.start, other.start), 1)
         self.stop = torch.cat((self.stop, other.stop), 1)
-        self.marks = torch.cat((self.stop, other.stop), 1)
-        self.score = torch.cat((self.stop, other.stop), 1)
+        self.marks = torch.cat((self.marks, other.marks), 1)
+        self.score = torch.cat((self.score, other.score), 1)
+        assert(self.nf==self.marks.size(1), f"{self.nf}<>{self.marks.size(1)}")
         # self.tokenized untouched
 
-    def filter_(self, other):
+    def erase_(self, other):
         # self.text_examples stays untouched, assumed to be the same, could be tested
         # self.prediction untouched ? or zeros at marks that need to be removed?
         # self.output_semantics untouched
         # self.N = stays the same
         #self.nf untouched
         # self.L untouched
-        filter = (1 - other.marks).float() # 0 where marks are, 1 where no mark; used as element-wise filter to erase the marked entites
-        self.start = self.start * filter
-        self.stop =  self.stop * filter
-        self.marks = self.marks * filter
-        self.score = self.score * filter
+        erasor = (1 - other.marks).float() # 0 where marks are, 1 where no mark; used as element-wise filter to erase the marked entites
+        self.start *= erasor
+        self.stop *= erasor
+        self.marks *= erasor
+        self.score *= erasor
         # self.tokenized untouched
+
+    def clone(self):
+        other = Binarized(deepcopy(self.text_examples), self.prediction.clone(), deepcopy(self.output_semantics))
+        other.N = self.N
+        other.nf = self.nf
+        other.L = self.L
+        other.start = self.start.clone()
+        other.stop = self.stop.clone()
+        other.marks = self.marks.clone()
+        other.score = self.score.clone()
+        other.tokenized = deepcopy(self.tokenized)
+        return other

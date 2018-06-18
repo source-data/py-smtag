@@ -36,6 +36,7 @@ number_of_features = len(index2label)
 serializing_map = {
     'assayed': ('role', 'assayed'),
     'intervention': ('role', 'intervention'),
+    'reporter': ('role', 'reporter'),
     'small_molecule': ('type', 'molecule'),
     'geneprod': ('type', 'geneprod'),
     'gene': ('type', 'gene'),

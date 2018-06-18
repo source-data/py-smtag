@@ -13,9 +13,13 @@ class SmtagModel(nn.Module):
         self.module = module
         self.output_semantics = opt['selected_features'] 
         if 'collapsed_features' in opt:
-            self.output_semantics += opt['collapsed_features'] 
+            print(opt['collapsed_features'])
+            if opt['collapsed_features']:
+                self.output_semantics.append(opt['collapsed_features'][-1])  # keep only the last one by convention, not too great...
         if 'overlap_features' in opt:
-            self.output_semantics += opt['overlap_features']
+             print(opt['overlap_features'])
+             if opt['overlap_features']:
+                 self.output_semantics.append(opt['overlap_features'][-1]) # keep only the last one by convention, not too great...
         self.opt = opt
     
     def forward(self, x):
@@ -108,9 +112,8 @@ class Unet2(nn.Module):
         y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_1_indices, y_size_1)
         y = self.conv_up_A(y)
         
-        #y = x + y # residual block way simpler, less params
-        #merge via concatanation of output layers followed by reducing from 2*nf_output to nf_output
-        y = self.concat((x, y))
+        #y = x + y # this is the residual block way; simpler, less params
+        y = self.concat((x, y)) # merge via concatanation of output layers followed by reducing from 2*nf_output to nf_output
         y = self.reduce(y) 
             
         return y

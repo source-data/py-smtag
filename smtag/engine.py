@@ -36,6 +36,7 @@ class Combine(nn.Module):#SmtagModel?
         for model, anonymize_with in model_list:
             name = 'unet2__'+'_'.join(model.output_semantics)
             self.add_module(name, model)
+            print("model.output_semantics", model.output_semantics)
             self.output_semantics += model.output_semantics # some of them can have > 1 output feature hence += instead of .append
             self.anonymize_with.append(anonymize_with)
         self.concat = Concat(1)
@@ -123,25 +124,50 @@ class SmtagEngine:
 
     def entity_reporter_context(self, input_string):
         
+        # PREDICT ENTITIES
         entity_p = EntityPredictor(self.entity_model)
-        binarized = entity_p.pred_binarized(input_string, self.entity_model.output_semantics)
+        binarized_entities = entity_p.pred_binarized(input_string, self.entity_model.output_semantics)
+        print("0: binarized.marks after entity"); Show.print_pretty(binarized_entities.marks)
+        print("output semantics: ", "; ".join(binarized_entities.output_semantics))
 
+        cumulated_output = binarized_entities.clone()
+        print("1: cumulated_output.marks after entity"); Show.print_pretty(cumulated_output.marks)
+        print("output semantics: ", "; ".join(cumulated_output.output_semantics))
+
+        # PREDICT REPORTERS
         reporter_p = EntityPredictor(self.reporter_model)
         binarized_reporter = reporter_p.pred_binarized(input_string, self.reporter_model.output_semantics)
-        binarized.cat_(binarized_reporter) # add reporter prediction to output features
-        #once reporters have been predicted, their marks are erased to avoid being predicted again (only_once method?)
-        binarized.filter_(binarized_reporter)
-        # select and order the predicted marks to be fed to the second context_p semantics from context model.
-        rewire = Connector(self.entity_model.output_semantics, self.context_model.anonymize_with)
-        marks = rewire.forward(binarized.marks)
+        print("2: binarized_reporter.marks");Show.print_pretty(binarized_reporter.marks)
+        print("output semantics: ", "; ".join(binarized_reporter.output_semantics))
 
-        # oops forgot: add binarized_reporter.marks as feature_as_input to context model
+        # DANGER: NEED A MECHANISM TO MAP TAG-ONCE CHANNELS TO CHANNELS TO ERASE... ie a geneprod reporter should erase geneprod marks and not small mol
+        # looks like output semantics is too simple: need separation of entity type and role and category... :-(
+        # simple solution: as many reporter model should be loaded as entities are predicted.
+        binarized_entities.erase_(binarized_reporter) # will it erase itself? need to assume output is 1 channel only
+        # select and order the predicted entity marks to be fed to the second context_p semantics from context model.
+        print("3: binarized_entities.marks after erase_(reporter)"); Show.print_pretty(binarized_entities.marks)
+        print("output semantics: ", "; ".join(binarized_entities.output_semantics))
+
+        cumulated_output.cat_(binarized_reporter) # add reporter prediction to output features
+        # reporters are marked as such but need to be erased as entity to avoid being anonymized or included in subsequent predictions (only_once method?)
+        print("4: cumulated_output.marks after cat_(reporter)"); Show.print_pretty(cumulated_output.marks)
+        print("output semantics: ", "; ".join(cumulated_output.output_semantics))
+
+        rewire = Connector(self.entity_model.output_semantics, self.context_model.anonymize_with)
+        marks = rewire.forward(binarized_entities.marks) # should not include reporter marks; need to test
+        print("5: marks"); Show.print_pretty(marks)
+
+        # PREDICT ROLES ON NON REPORTER ENTITIES
         context_p = SemanticsFromContextPredictor(self.context_model)
         context_binarized = context_p.pred_binarized(input_string, marks, self.context_model.output_semantics)
-        
+        print("6: context_binarized"); Show.print_pretty(context_binarized.marks)
+
         #concatenate entity and output_semantics before calling Serializer()
-        binarized.cat_(context_binarized)
-        ml = Serializer().serialize(binarized)
+        cumulated_output.cat_(context_binarized)
+        print("7: final cumulated_output.marks");Show.print_pretty(cumulated_output.marks)
+        print("output semantics: ", "; ".join(cumulated_output.output_semantics))
+        
+        ml = Serializer().serialize(cumulated_output)
         return ml[0]
     
     def add_roles(self, input_xml):
