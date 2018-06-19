@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import unittest
 import torch
 from smtag.utils import tokenize
 from smtag.binarize import Binarized
 from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+
 
 class SerializerTest(unittest.TestCase):
 

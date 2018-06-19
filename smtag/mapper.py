@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 #maybe should be called channel_to_concept and concept_to_channel
 #should these rather be named tuples of named tuples?
 
@@ -27,6 +30,18 @@ xml_map = {
            }
 
 number_of_features = len(index2label)
+
+# mapping each concept to a attribute-value pair that can be used in XML serialization
+# should go into mapper.py
+serializing_map = {
+    'assayed': ('role', 'assayed'),
+    'intervention': ('role', 'intervention'),
+    'reporter': ('role', 'reporter'),
+    'small_molecule': ('type', 'molecule'),
+    'geneprod': ('type', 'geneprod'),
+    'gene': ('type', 'gene'),
+    'protein': ('type', 'protein')
+}
 
 THRESHOLDS = {
         'small_molecule': 0.5,

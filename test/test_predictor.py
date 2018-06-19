@@ -1,103 +1,111 @@
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import unittest
 import torch
 from torch import nn, optim
-from smtag.utils import tokenize, assertTensorEqual
-from smtag.converter import Converter
+from smtag.utils import tokenize
+from test.smtagunittest import SmtagTestCase
+from test.mini_trainer import toy_model
+from smtag.converter import Converter, TString
 from smtag.binarize import Binarized
 from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from smtag.builder import SmtagModel
-from smtag.predictor import EntityPredictor
+from smtag.builder import SmtagModel, build
+from smtag.predictor import EntityPredictor, SemanticsFromContextPredictor
 from smtag.viz import Show
 from smtag.importexport import load_model
-from smtag.config import PROD_DIR
+from smtag.config import PROD_DIR, MARKING_CHAR
 
-#maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
 
-class FakeModel(nn.Module):
-    def __init__(self):
-        super(FakeModel, self).__init__()
-        self.conv = nn.Conv1d(32,1,1,1)
-        self.relu = nn.ReLU(True)
-        self.sigmoid = nn.Sigmoid()
+class PredictorTest(SmtagTestCase):
 
-    def forward(self,x):
-        y = self.conv(x)
-        y = self.sigmoid(y)
-        return y
-
-class PredictorTest(unittest.TestCase):
-    
-    @staticmethod
-    def assertTensorEqual(x, y):
-        return assertTensorEqual(x, y)
-
-    def setUp(self):
-        self.text_example = "AAA XXX AAA"
-        self.x = Converter.t_encode(self.text_example) #torch.ones(1, 32, len(self.text_example)) #
-        self.y = torch.Tensor(#"A A A   X X X   A A A"
-                              # 0 0 0 0 1 1 1 0 0 0 0
-                             [[[0,0,0,0,1,1,1,0,0,0,0]]])
+    @classmethod
+    def setUpClass(self): # run only once
+        self.text_example = "AAAAAAA XXX AAA"
+        self.x = TString(self.text_example)
+        self.y = torch.Tensor(# A A A A A A A   X X X   A A A 
+                             [[[0,0,0,0,0,0,0,0,1,1,1,0,0,0,0]]])
         self.selected_features = ["geneprod"]
-        self.model = SmtagModel(FakeModel(), {'selected_features':self.selected_features})
-        loss_fn = nn.SmoothL1Loss() # nn.BCELoss() # 
-        optimizer = optim.Adam(self.model.parameters(), lr = 0.01)
-        optimizer.zero_grad()
-        loss = 1
-        i = 0 
-        while loss > 1E-02 and i < 10000:
-            y_hat = self.model(self.x)
-            loss = loss_fn(y_hat, self.y)
-            loss.backward()
-            optimizer.step()
-            i += 1
-        #print(i)
-        #print(loss)
-        #print(y_hat)
-        self.model.eval()
+        self.entity_model = toy_model(self.x.toTensor(), self.y)
 
+        self.anonymized_text_example = self.text_example.replace("X", MARKING_CHAR)
+        self.z = TString(self.anonymized_text_example)
+        self.context_model = toy_model(self.z.toTensor(), self.y, selected_feature=['intervention'])
+
+    def test_model_stability(self): 
+        '''
+        Testing that test model returns the same result
+        '''
+        iterations = 10
+        for i in range(iterations):
+            y_1 = self.entity_model(self.x.toTensor())
+            self.assertTensorEqual(self.y, y_1)
+            
     def test_predictor_padding(self):
-        p = EntityPredictor(self.model)
+        p = EntityPredictor(self.entity_model)
         test_string_200 = "a"*200
-        padded_string_200 = p.padding(test_string_200)
-        expected_padded_string_200 = " "*10 + test_string_200 + " "*10
-        self.assertEqual(expected_padded_string_200, padded_string_200)
+        test_string_200_encoded = TString(test_string_200)
+        padded_string_200_encoded = p.padding(test_string_200_encoded)
+        expected_padded_string_200_encoded = TString(" "*10 + test_string_200 + " "*10)
+        self.assertTensorEqual(expected_padded_string_200_encoded.t, padded_string_200_encoded.t)
+        
         test_string_20 = "a"*20
-        padded_string_20 = p.padding(test_string_20)
-        expected_padded_string_20 = " "*60 + test_string_20 + " "*60
-        self.assertEqual(expected_padded_string_20, padded_string_20)
+        test_string_20_encoded = TString(test_string_20)
+        padded_string_20_encoded = p.padding(test_string_20_encoded)
+        expected_padded_string_20_encoded = TString(" "*60 + test_string_20 + " "*60)
+        self.assertTensorEqual(expected_padded_string_20_encoded.t, padded_string_20_encoded.t)
    
     def test_entity_predictor_1(self):
-        p = EntityPredictor(self.model)
-        output = p.forward(self.text_example)
+        p = EntityPredictor(self.entity_model)
+        output = p.forward(TString(self.text_example))
         self.assertEqual(list(self.y.size()), list(output.size()))
 
     def test_entity_predictor_2(self):
-        p = EntityPredictor(self.model)
-        ml = p.markup(self.text_example)
+        p = EntityPredictor(self.entity_model)
+        ml = p.markup(TString(self.text_example))
         #print(ml)
-        expected_ml = 'AAA <sd-tag type="geneprod">XXX</sd-tag> AAA'
+        expected_ml = 'AAAAAAA <sd-tag type="geneprod">XXX</sd-tag> AAA'
         self.assertEqual(expected_ml, ml[0])
-
-    def test_model_stability(self):
-        iterations = 10
-        for i in range(iterations):
-            y_1 = self.model(self.x)
-            self.assertTensorEqual(self.y, y_1)
 
     def test_entity_predictor_3(self):
         real_model = load_model('geneprod.zip', PROD_DIR)
-        real_example = "fluorescent images of 200‐cell‐stage embryos from the indicated strains stained by both anti‐SEPA‐1 and anti‐LGG‐1 antibody"
-        #real_example = "This is Atg5 speaking."
+        #real_example = "fluorescent images of 200‐cell‐stage embryos from the indicated strains stained by both anti‐SEPA‐1 and anti‐LGG‐1 antibody"
+        real_example = "stained by anti‐SEPA‐1"
         p = EntityPredictor(real_model)
-        ml = p.markup(real_example)[0]
+        ml = p.markup(TString(real_example))[0]
         print(ml)
         input = Converter.t_encode(real_example)
+        # compare visually with the direct ouput of the model
         real_model.eval()
         prediction = real_model(input)
         Show.print_pretty_color(prediction, real_example)
         Show.print_pretty(prediction)
 
+    def test_context_predictor_anonymization(self):
+        input_string = "the cat with a hat"
+        input_string_encoded = TString(input_string)
+        marks = torch.Tensor(
+            # t h e   c a t   w i t h   a   h a t
+            [[0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0]]
+        )
+        p = SemanticsFromContextPredictor(self.context_model)
+        anonymized_encoded = p.anonymize(input_string_encoded, marks, replacement = TString("$"))
+        anonymized = str(anonymized_encoded)
+        expected = "the $$$ with a hat"
+        self.assertEqual(expected, anonymized)
+
+    def test_context_predictor(self):
+        entity_p = EntityPredictor(self.entity_model)
+        prediction_1 = entity_p.forward(TString(self.text_example))
+        bin_pred = Binarized([self.text_example], prediction_1, ['geneprod'])
+        tokenized = tokenize(self.text_example)
+        bin_pred.binarize_with_token([tokenized])
+        
+        context_p = SemanticsFromContextPredictor(self.context_model)
+        prediction_2 = context_p.forward(TString(self.text_example), bin_pred.marks)
+        Show.print_pretty_color(prediction_1, self.text_example)
+        Show.print_pretty_color(prediction_2, self.anonymized_text_example)
+        Show.print_pretty(torch.cat((prediction_1, prediction_2),1))
+
 if __name__ == '__main__':
     unittest.main()
-

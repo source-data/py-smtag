@@ -1,24 +1,17 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import re
 from xml.etree.ElementTree import fromstring, Element, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node
 from random import random
 import difflib
+from smtag.config import MARKING_CHAR, MARKING_CHAR_ORD, SD_PANEL_OPEN, SD_PANEL_CLOSE
 #from copy import deepcopy
 
 #DB = GraphDatabase("http://localhost:7474/db/data/",username="neo4j",password="sourcedata")
 #DB = GraphDatabase("http://sdtag.net:7474/db/data/",username="neo4j",password="sourcedata")
 #amazon elastic IP is 34.202.28.116 and domain is sdtag.net
-SD_PANEL_OPEN =  "<sd-panel>"
-SD_PANEL_CLOSE = "</sd-panel>"
-
-MARKING_CHAR = u'\uE000'
-MARKING_CHAR_ORD = ord(MARKING_CHAR)
-
-
-#ENTITY_LIST = {}
-#with open("entity_list.txt",'r') as f:
-#    for l in f: ENTITY_LIST.append(l)
-#close(f)
 
 
 def anonymize_sdtags(panel_xml, tags_neo):

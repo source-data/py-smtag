@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
+
 import unittest
 import torch
-from smtag.utils import tokenize, assertTensorEqual
+from smtag.utils import tokenize
+from test.smtagunittest import SmtagTestCase
 from smtag.binarize import Binarized
 
-class BinarizeTest(unittest.TestCase):
-    
-    @staticmethod
-    def assertTensorEqual(x, y):
-        return assertTensorEqual(x,y)
+class BinarizeTest(SmtagTestCase):
 
     def test_binarize(self):
         '''
@@ -98,7 +98,6 @@ class BinarizeTest(unittest.TestCase):
         self.assertTensorEqual(expected_start, b.start)
         self.assertTensorEqual(expected_stop, b.stop)
         self.assertTensorEqual(expected_marks, b.marks)
-
 
 
 if __name__ == '__main__':

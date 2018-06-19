@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import re
 from xml.sax.saxutils import escape
 from collections import namedtuple

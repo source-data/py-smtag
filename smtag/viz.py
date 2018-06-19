@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import math
 from random import random
 from smtag.converter import Converter
@@ -32,8 +35,8 @@ class Show():
         input = minibatches[rand_i].input[[rand_j], : , : ] # rand_j index as list to keep the tensor 4D
         target = minibatches[rand_i].output[[rand_j], : , : ]
         
-        original_text =  minibatches[rand_i].text[rand_j]
-        provenance = minibatches[rand_i].provenance[rand_j]
+        # original_text =  minibatches[rand_i].text[rand_j]
+        # provenance = minibatches[rand_i].provenance[rand_j]
         nf_input = input.size(1)
         if model is not None: 
             model.eval()
@@ -54,8 +57,6 @@ class Show():
         
             print("\nFeatures:")
             Show.print_pretty(prediction)
-        
-        #print(f"From: {provenance}")
     
     symbols = ['_','.',':','^','|'] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1 
         
@@ -67,7 +68,7 @@ class Show():
             for j in range(features.size(2)):
                 k = min(N-1, math.floor(N*features[0, i, j]))
                 track += Show.symbols[k]
-            print(f"Tagging track {i}")
+            print("Tagging track {}".format(i))
             print(track)
 
     @staticmethod
@@ -84,8 +85,8 @@ class Show():
                      max = score
                      max_f = f
             if text:
-                colored_track += f"{COLORS[max_f + 1]}{c}{CLOSE_COLOR}"
+                colored_track += "{}{}{}".format(COLORS[max_f + 1], c, CLOSE_COLOR)
             else:
-                colored_track += f"{COLORS[max_f + 1]}{Show.symbols[max+1]}{CLOSE_COLOR}"
+                colored_track += "{}{}{}".format(COLORS[max_f + 1], Show.symbols[max+1], CLOSE_COLOR)
             pos = pos + 1
         print(colored_track)

@@ -19,14 +19,14 @@
 # FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
 # OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-import sys
+import sys, math
 
 
 def progress(count, total, status=''):
     bar_len = 60
-    filled_len = int(round(bar_len * count / float(total)))
+    filled_len = int(round(bar_len * (count+1) / float(total)))
 
-    percents = round(100.0 * count / float(total), 1)
+    percents = round(100.0 * (count+1) / float(total))
     bar = '#' * filled_len + '-' * (bar_len - filled_len)
 
     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))

@@ -1,19 +1,10 @@
-#from mapper import xml_serializing_map
+# -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 #from abc import ABC
 import xml.etree.ElementTree as ET
 from smtag.utils import xml_escape
-
-
-# mapping each concept to a attribute-value pair that can be used in XML serialization
-# should go into mapper.py
-serializing_map = {
-    'assayed': ('role', 'assayed'),
-    'intervention': ('role', 'intervention'),
-    'small_molecule': ('type', 'molecule'),
-    'geneprod': ('type', 'geneprod'),
-    'gene': ('type', 'gene'),
-    'protein': ('type', 'protein')
-}
+from smtag.mapper import serializing_map
 
 
 class AbstractElementSerializer(object): # (ABC)
@@ -36,11 +27,11 @@ class XMLElementSerializer(AbstractElementSerializer):
                 attribute, value = XMLElementSerializer.map(concept)
                 # sometimes prediction is ambiguous and several values are found for a type or a role
                 if attribute in attribute_list:
-                    attribute_list[attribute] = f"{attribute_list[attribute]}_{value}" # not sure this is so great
+                    attribute_list[attribute] = "{}_{}".format(attribute_list[attribute], value) # not sure this is so great
                 else:
                     attribute_list[attribute] = value
-        xml_attributes = [f'{a}="{attribute_list[a]}"' for a in attribute_list]
-        xml_string = f"<{tag} {' '.join(xml_attributes)}>{inner_text}</{tag}>"
+        xml_attributes = ['{}="{}"'.format(a, attribute_list[a]) for a in attribute_list]
+        xml_string = "<{} {}>{}</{}>".format(tag, ' '.join(xml_attributes), inner_text, tag)
         return xml_string # because both HTML and XML handled, working with strings is easier than return ET.tostring(xml_string)
 
     @staticmethod
@@ -52,13 +43,13 @@ class HTMLElementSerializer(AbstractElementSerializer):
     @staticmethod
     def make_element(tag, on_features, inner_text):
         html_classes = [HTMLElementSerializer.map(concept) for concept in on_features if concept is not None]
-        html_string = f"<span class=\"{tag} {' '.join(html_classes)}\">{inner_text}</span>"
+        html_string = "<span class=\"{} {}\">{}</span>".format(tag, ' '.join(html_classes), inner_text)
         return html_string
 
     @staticmethod
     def map(concept):
         attribute, value = serializing_map[concept]
-        return f"{attribute}_{value}"
+        return "{}_{}".format(attribute, value)
 
 
 class AbstractSerializer(object): #(ABC)
@@ -180,7 +171,7 @@ class XMLTagger(AbstractTagger):
     def serialize_element(self, on_features, inner_text):
         return XMLElementSerializer.make_element(self.tag, on_features, inner_text)
 
-    def serialize(self, binarized_pred, ):
+    def serialize(self, binarized_pred):
          return super(XMLTagger, self).serialize(binarized_pred)
 
 class HTMLTagger(AbstractTagger):
@@ -208,7 +199,7 @@ class BratSerializer(AbstractSerializer):
 
 class Serializer():
 
-    def __init__(self, tag, format = 'xml'):
+    def __init__(self, tag='sd-tag', format = 'xml'):
         self.tag = tag
         self.format = format.lower()
 
