@@ -22,7 +22,7 @@ class Trainer:
         print(model_descriptor)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
-        self.loss_fn = nn.SmoothL1Loss() # nn.BCELoss() #
+        self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() # 
 
     def validate(self):
         self.model.eval()
