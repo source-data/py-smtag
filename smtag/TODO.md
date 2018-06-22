@@ -1,21 +1,31 @@
-- test py-smtag on GPU
+- implement GPU computing: DONE
 - implement assertEqualTensor properly: DONE
+- change Binarize Predictor to TString: DONE
+- create TString class to give string behavior to encoded string: DONE
+- finish options for meta (collapse, overlap, OR tables): DONE
+- revise anonymization and use OR gate instead of label character: DONE
+- test other anonymization replacement characters/patters: 0000 and FFFF: DONE could be that 0000 is the best
+
+----
+
+- make venv work on GPU
+- SmtagEngine classes to combine entity, pure context, context-text, boundary models
+- test py-smtag on GPU
+- test datapret with brat format
+- implement/test model on boundaries (instead of longitudinal marks)
+- train all models (all entities, panel_start, context_geneprod, context_small_mol, disease, exp_assay)
+- connect Flask server
+- add 'cartridges' to load set of models
+- implement -af option in sdgraph2th to concatenate all figures for a single paper
 - enable tensorboardX on Amazon GPU machine (serve which URL? how to set security?)
 - restructure smtag package in subpackages: datagen/, train/, predict/, common/ ?
 - add pydoc comments on all classes and check commenting style
-- change Binarize Predictor to TString: DONE
-- check dtype = uint8 for binarized tensors ByteTensor
+- use logging with different verbosity levels
+- check usage of dtype = uint8 (ByteTensor) for binarized tensors when generating/saving/loading datasets and in Binarized
 - update README.md
 - move Converter.t_encode(example) from loader to dataprep to save datatasets as 4 file bundles
-- create TString class to give string behavior to encoded string: DONE
-- make 1 test suite with all the tests
 - pre-tokenize when generating datasets
-- save datasets as zip archive to save disk space? (depends how long it takes to decompress)
-- finish options for meta (collapse, overlap, OR tables)
-- revise anonymization and use OR gate instead of lable character: DONE
-- classes to combine entity, pure context, context-text, boundary models
-- train all models
-- connect Flask server
+- change sdgraph2neo to save xml files and XMLFeaturizer to read file from dir with direct application to learn JATS
 - accuracy and benchmarking classes
-- implement GPU computing: DONE
 - implement Hinton's capsules
+

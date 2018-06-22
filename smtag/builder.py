@@ -81,7 +81,7 @@ class Unet2(nn.Module):
             self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, self.dropout_rate)
         else:
             self.unet2 = None
-        self.concat = Concat(1) # lambda x, y: torch.cat((x, y), 1) # 
+        self.concat = Concat(1)
         self.reduce = nn.Conv1d(2*self.nf_input, self.nf_input, 1, 1)
 
     def forward(self, x):

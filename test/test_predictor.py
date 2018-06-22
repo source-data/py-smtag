@@ -10,7 +10,6 @@ from test.mini_trainer import toy_model
 from smtag.converter import Converter, TString
 from smtag.binarize import Binarized
 from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from smtag.builder import SmtagModel, build
 from smtag.predictor import EntityPredictor, SemanticsFromContextPredictor
 from smtag.viz import Show
 from smtag.importexport import load_model

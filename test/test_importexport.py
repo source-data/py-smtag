@@ -11,7 +11,6 @@ from smtag.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
 from smtag.converter import Converter, TString
-from smtag.builder import build
 from smtag.predictor import EntityPredictor
 from smtag.importexport import load_model
 from smtag.config import MODEL_DIR

@@ -1,5 +1,5 @@
 from torch import nn, optim
-from smtag.builder import build
+from smtag.builder import SmtagModel
 from smtag.progress import progress
 
 def toy_model(x, y, selected_feature = ['geneprod'], threshold = 1E-02):
@@ -17,8 +17,7 @@ def toy_model(x, y, selected_feature = ['geneprod'], threshold = 1E-02):
         opt['dropout'] = 0.1
         opt['nf_input'] = x.size(1)
         opt['nf_output'] =  y.size(1)
-        opt = opt
-        model = build(opt)
+        model = SmtagModel(opt)
 
         # we do the training loop here instead of using smtag.trainer to avoid the need to prepare minibatches
         loss_fn = nn.SmoothL1Loss() # nn.BCELoss() # 
