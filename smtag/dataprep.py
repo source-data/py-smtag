@@ -89,8 +89,8 @@ class DataPreparator(object):
         text4th = []
         provenance4th = []
         # number_of_features includes the virtual geneprod feature
-        tensor4th = np.zeros((N * iterations, number_of_features, length+min_padding)) #would it be better to have the 4D convention already here?
-        #textcoded4th = np.zeros((N * iterations, 32, length+min_padding))
+        tensor4th = np.zeros((N * iterations, number_of_features, length+min_padding)) # dtype = np.bool_
+        #textcoded4th = np.zeros((N * iterations, 32, length+min_padding)) # dtype = np.bool_
         
         length_statistics = []
         print("generating {}*{} x {} x {} tensor.".format(N, self.options['iterations'], number_of_features, length+min_padding))
@@ -152,7 +152,7 @@ class DataPreparator(object):
                             for pos in range(length+min_padding): 
                                 code = f[pos]
                                 if code is not None:
-                                    tensor4th[index][code][pos] = 1
+                                    tensor4th[index][code][pos] = 1 # True
                 index += 1
 
         text_avg = float(sum(length_statistics) / N)
@@ -268,7 +268,7 @@ class DataPreparator(object):
         for i in range(N):
             print
             print("Text:")
-            print(text4th[i].encode('utf-8'))
+            print(text4th[i])
             for j in range(featsize):
                 feature = index2label[j]
                 track = [int(tensor4th[i, j, k]) for k in range(L)]

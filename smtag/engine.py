@@ -94,7 +94,7 @@ class SmtagEngine:
         self.reporter_model = Combine(reporter_model_list)
 
         context_model_list = [
-            (load_model('causality_geneprod.zip', PROD_DIR), 'geneprod') # the model_list contains the model and the expected concept that will be tagged and need anonymization
+            (load_model('context_no_reporter_geneprod.zip', PROD_DIR), 'geneprod') # the model_list contains the model and the expected concept that will be tagged and need anonymization
         ]
         self.context_model = Combine(context_model_list)
 

@@ -6,7 +6,7 @@ import torch
 from smtag.utils import tokenize
 from smtag.binarize import Binarized
 from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-
+from smtag.utils import timer
 
 class SerializerTest(unittest.TestCase):
 
@@ -71,6 +71,7 @@ class SerializerTest(unittest.TestCase):
         #print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
 
+    @timer
     def test_serializer_3(self):
         '''
         Testing tagging with staggered features and xml escaping.
@@ -88,8 +89,9 @@ class SerializerTest(unittest.TestCase):
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent()
-        serializer = Serializer(tag="sd-tag", format="xml")
-        predicted_xml_string = serializer.serialize(b)[0]
+        for _ in range(10000):
+            serializer = Serializer(tag="sd-tag", format="xml")
+            predicted_xml_string = serializer.serialize(b)[0]
         expected_xml_string = 'A <sd-tag type="geneprod">gene </sd-tag><sd-tag type="geneprod" role="assayed">or</sd-tag> <sd-tag role="intervention" type="protein">oth&gt;rs</sd-tag>'
         print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)

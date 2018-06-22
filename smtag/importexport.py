@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 import torch
 from smtag.config import MODEL_DIR
-from smtag.builder import build
+from smtag.builder import SmtagModel
 from smtag.utils import cd
 
 def export_model(model, custom_name = '', model_dir = MODEL_DIR):
@@ -61,7 +61,7 @@ def load_model(archive_filename, model_dir=MODEL_DIR):
             opt = json.load(optionfile)
         print("trying to build model with options:")
         print(opt)
-        model =  build(opt)
+        model =  SmtagModel(opt)
         model.load_state_dict(torch.load(model_path))
         print("removing {}".format(model_path))
         os.remove(model_path)

@@ -32,7 +32,6 @@ xml_map = {
 number_of_features = len(index2label)
 
 # mapping each concept to a attribute-value pair that can be used in XML serialization
-# should go into mapper.py
 serializing_map = {
     'assayed': ('role', 'assayed'),
     'intervention': ('role', 'intervention'),

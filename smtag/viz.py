@@ -4,6 +4,8 @@
 import math
 from random import random
 from smtag.converter import Converter
+from smtag.config import MARKING_CHAR
+from tensorboardX import SummaryWriter
 
 #for code in {1..256}; do printf "\e[38;5;${code}m'$code'\e[0m";echo; done
 #for i = 1, 32 do COLORS[i] = "\27[38;5;"..(8*i-7).."m" end
@@ -34,7 +36,7 @@ class Show():
         rand_j = math.floor(N *  random())
         input = minibatches[rand_i].input[[rand_j], : , : ] # rand_j index as list to keep the tensor 4D
         target = minibatches[rand_i].output[[rand_j], : , : ]
-        
+
         # original_text =  minibatches[rand_i].text[rand_j]
         # provenance = minibatches[rand_i].provenance[rand_j]
         nf_input = input.size(1)
@@ -47,19 +49,18 @@ class Show():
         if nf_input > 32:
             print("\nAdditional input features:")
             Show.print_pretty(input[[0], 32:nf_input, : ])
-    
+
         print("\nExpected:")
-        Show.print_pretty_color(target, text)
+        Show.print_pretty_color(target, text) # visualize anonymized characters with a symbol
+        Show.print_pretty(target)
         
         if model is not None:
             print("\nPredicted:")
             Show.print_pretty_color(prediction, text)
-        
-            print("\nFeatures:")
             Show.print_pretty(prediction)
-    
+
     symbols = ['_','.',':','^','|'] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1 
-        
+
     @staticmethod
     def print_pretty(features):
         N = len(Show.symbols) # = 5
@@ -73,6 +74,7 @@ class Show():
 
     @staticmethod
     def print_pretty_color(features, text):
+        text = text.replace(MARKING_CHAR, "◇")
         nf = features.size(1)
         colored_track = ""
         pos = 0
@@ -90,3 +92,15 @@ class Show():
                 colored_track += "{}{}{}".format(COLORS[max_f + 1], Show.symbols[max+1], CLOSE_COLOR)
             pos = pos + 1
         print(colored_track)
+
+class Plotter(SummaryWriter):
+
+    def __init__(self):
+        super(Plotter, self).__init__()
+    
+    def add_losses(self, losses, epoch):
+        print("\nepoch {}\tavg_train_loss={}\tavg_validation_loss={}".format(epoch, losses['train'], losses['valid']))
+        main_tag = "data/losses"
+        tag_scalar_dict = {'train':losses['train'], 'valid': losses['valid']}
+        global_step = epoch
+        super(Plotter, self).add_scalars(main_tag, tag_scalar_dict, global_step)

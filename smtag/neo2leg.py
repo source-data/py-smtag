@@ -128,6 +128,7 @@ def neo2xml(source, options):
     
     results_articles = DB.query(q_articles)
     
+    counter = 0
     for a in results_articles:
         a_id = a[0]
         doi = a[1]
@@ -189,6 +190,7 @@ def neo2xml(source, options):
                                 panel_id = results_labeled[p]['panel_id']
                                 fig_label = results_labeled[p]['fig_label']
                                 tag_level_errors.append([doi, fig_label, p, panel_id, panel_caption, tag_errors])
+                            counter += 1
                         except Exception as e:
                             panel_id = results_labeled[p]['panel_id']
                             fig_label = results_labeled[p]['fig_label']
@@ -212,6 +214,14 @@ def neo2xml(source, options):
                     #print(original_inner_text)
                 
             print("number of figures in ", a_id, doi, len(figure_captions_xml[doi]))
+            #if append_fig:
+            #    all_figure_captions = Element('all-figure-captions')
+            #    for f in figure_captions_xml[doi]:
+            #        all_figure_captions.append(f)
+            #    figure_captions_xml[doi] = []
+            #    figure_captions_xml[doi].append(all_figure_captions)
+            
+            print("counted {} panels.".format(counter))
     return figure_captions_xml, {'paper_level':paper_errors, 'caption_level': caption_errors, 'tag_level': tag_level_errors} #figure_captions_text
     
  

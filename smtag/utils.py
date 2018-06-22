@@ -6,6 +6,8 @@ from xml.sax.saxutils import escape
 from collections import namedtuple
 from contextlib import contextmanager
 import os
+import time
+
 
 def xml_escape(s):
     return escape(s)
@@ -130,3 +132,19 @@ def cd(newdir):
 
 def assertTensorEqual(a, b, tolerance=1e-4):
     return a.sub(b).abs().max() < tolerance
+
+def timer(f):
+    '''
+    A decorator to print the execution time of a method.
+    Usage:
+        @timer
+        def some_function_to_profile(x, y, z):
+    '''
+    def t(*args):
+        start_time = time.time()
+        output = f(*args)
+        end_time = time.time()
+        delta_t = end_time - start_time
+        print("Exec time for '{}': {:.3f}s".format(f.__name__, delta_t))
+        return output
+    return t

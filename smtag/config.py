@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-NBITS = 32
+NBITS = 32 # not very useful since making converter flexible slows it down
 DATA_DIR = "data"
 MODEL_DIR = "models"
 PROD_DIR = "rack"
 RUNS_LOG_DIR = "runs"
-MARKING_CHAR = u'\uE000'
+MARKING_CHAR = u'\u0000' # u'\uE000' # u'\uFFFF' # try  or 
 MARKING_CHAR_ORD = ord(MARKING_CHAR)
 SD_PANEL_OPEN =  "<sd-panel>"
 SD_PANEL_CLOSE = "</sd-panel>"

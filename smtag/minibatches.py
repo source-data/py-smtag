@@ -30,7 +30,7 @@ class Minibatches: #Minibatches(Dataset)?
         self.nf_output = dataset.nf_output
         self.minibatch_size = minibatch_size
         self.minibatch_number = floor(dataset.N / self.minibatch_size) #the rest of the examples will be ignored
-        self.minibatches = [] #should we make this private?
+        self.minibatches = []
 
         for i in range(self.minibatch_number):
             this_minibatch = Dataset(self.minibatch_size, self.nf_input, self.nf_output, self.L)
@@ -62,17 +62,3 @@ class Minibatches: #Minibatches(Dataset)?
         
     def __setitem__(self, i, val):
         self.minibatches[i] = val
-    
-def tester():
-    logger.debug("> testing")
-    d = Dataset(4, 32, 10)
-    d.text = ["1234567890", "0987654321", "1234567890", "0987654321"]
-    d.provenance = ["a", "b", "c", "d"]
-    minibatches = Minibatches(d, 2)
-    for m in minibatches:
-        print(m.text, m.provenance, m.input.size(), m.output.size())
-    logger.debug("> All OK")
-
-if __name__ == '__main__':           # Only when run
-    tester()                         # Not when imported
-

@@ -5,8 +5,7 @@ import torch
 from torch import nn, optim
 from random import shuffle
 import logging
-from tensorboardX import SummaryWriter #to see dashboard, launch tensorboard server with: tensorboard --logdir runs
-from viz import Show
+from viz import Show, Plotter
 
 class Trainer:
 
@@ -17,12 +16,12 @@ class Trainer:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
         self.model.to(device)
-        self.writer = SummaryWriter() # to visualize training with tensorboardX
+        self.plot = Plotter() # to visualize training with tensorboardX
         model_descriptor = "\n".join(["{}={}".format(k, self.model.opt[k]) for k in self.model.opt])
         print(model_descriptor)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
-        self.loss_fn = nn.SmoothL1Loss() # nn.BCELoss() #
+        self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() # 
 
     def validate(self):
         self.model.eval()
@@ -65,8 +64,7 @@ class Trainer:
             # Logging
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
             avg_validation_loss = self.validate() # the average loss over the validation minibatches
-            print("\nepoch {}\tavg_train_loss={}\tavg_validation_loss={}".format(e, avg_train_loss, avg_validation_loss))
-            self.writer.add_scalars('data/loss', {'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
+            self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
             #Log values and gradients of the parameters (histogram summary)
             #for name, param in self.model.named_parameters():
             #    name = name.replace('.', '/')
