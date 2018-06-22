@@ -4,7 +4,7 @@
 from smtag.config import NBITS
 import numpy as np
 import torch
-import logging
+# import logging
 import math
 from smtag.converter import Converter
 import smtag.mapper as mapper
@@ -13,7 +13,7 @@ from smtag.viz import Show
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class Dataset:
@@ -43,18 +43,18 @@ class Dataset:
         #textcoded_filename = "data/{}_textcoded.npy".format(basename)
         provenance_filename = f'data/{basename}.prov'
 
-        logger.info("Loading {} as features for the dataset.".format(features_filename))
+        print("Loading {} as features for the dataset.".format(features_filename))
         np_features = np.load(features_filename) #saved file is 3D; need to change this?
         self.N = np_features.shape[0] #number of examples
         self.nf_output = np_features.shape[1] #number of features
         self.L = np_features.shape[2] #length of text snippet 
         self.output = torch.from_numpy(np_features).float() #saved files are from numpy, need conversion to torch and make sure it is a FloatTensor othwerise problems with default dtype 
 
-        #logger.info("Loading {} as encoded text for the dataset.".format(textcoded_filename))
+        #print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
         #text_coded = np.load(textcoded_filename)
         #self.text_coded = torch.from_numpy(text_coded)
 
-        logger.info("Loading {} for the original texts of the dataset.".format(text_filename))
+        print("Loading {} for the original texts of the dataset.".format(text_filename))
         with open(text_filename, 'r') as f:
             for line in f:
                 line = line.rstrip('\n')
@@ -62,15 +62,15 @@ class Dataset:
                     raise LineTooLong(line, self.L)
                 self.text.append(line)
 
-        logger.info("Loading {} as provenance info for the examples in the dataset.".format(provenance_filename))
+        print("Loading {} as provenance info for the examples in the dataset.".format(provenance_filename))
         with open(provenance_filename, 'r') as f:
             for line in f:
                 self.provenance.append(line)
 
-        logger.info(f"Dataset dimensions:")
-        logger.info("{} text examples of size {}".format(self.N, self.L))
-        logger.info("{} input features (in-channels).".format(self.nf_input))
-        logger.info("{} output features (out-channels).".format(self.nf_output))
+        print(f"Dataset dimensions:")
+        print("{} text examples of size {}".format(self.N, self.L))
+        print("{} input features (in-channels).".format(self.nf_input))
+        print("{} output features (out-channels).".format(self.nf_output))
 
 
 class Loader:
@@ -130,16 +130,16 @@ class Loader:
         #THIS HAS TO GO! BELONGS TO DATAPREP!!! Probably in Featurizer
         raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , mapper.label2index['gene'],  : ] + raw_dataset.output[ : ,  mapper.label2index['protein'], : ]
 
-        logger.info("Creating dataset with selected features {}, and shuffling {} examples.".format(self.selected_features, N))
+        print("Creating dataset with selected features {}, and shuffling {} examples.".format(self.selected_features, N))
         shuffled_indices = torch.randperm(N) #shuffled_indices = range(N); shuffle(shuffled_indices)
         datasets = {}
         if self.validation_fraction == 0:
-            logger.info("testset mode; for benchmarking")
+            print("testset mode; for benchmarking")
             datasets["test"]= {} #--testset mode; for benchmarking
             datasets["test"]["first_example"] = 0
             #datasets["test"]["last_example"] = math.ceil(N*self.fraction)
         else:
-            logger.info("normal trainset and validation set mode")
+            print("normal trainset and validation set mode")
             datasets["train"] = {} #--normal trainset and validation set mode
             datasets["valid"] = {}
             datasets["train"]["first_example"] = 0
@@ -160,9 +160,9 @@ class Loader:
             N_examples = last_example - first_example + 1
             dataset = Dataset(N_examples, self.nf_input, self.nf_output, L)
             
-            logger.info("Generating {} set with {} examples ({}, {})".format(k, N_examples, first_example, last_example))
-            logger.info("input dataset['{}'] tensor created".format(k))
-            logger.info("output dataset['{}'] tensor created".format(k))
+            print("Generating {} set with {} examples ({}, {})".format(k, N_examples, first_example, last_example))
+            print("input dataset['{}'] tensor created".format(k))
+            print("output dataset['{}'] tensor created".format(k))
             for example_i in range(first_example, last_example):
                 progress(example_i - first_example, N_examples, status="loading {} examples ({} to {}) into dataset['{}']".format(N_examples, first_example, last_example, k))
                 i = shuffled_indices[example_i]
