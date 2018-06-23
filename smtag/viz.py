@@ -104,3 +104,6 @@ class Plotter(SummaryWriter):
         tag_scalar_dict = {'train':losses['train'], 'valid': losses['valid']}
         global_step = epoch
         super(Plotter, self).add_scalars(main_tag, tag_scalar_dict, global_step)
+    
+    def close(self):
+        super(Plotter, self).close()

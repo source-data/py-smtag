@@ -1,3 +1,4 @@
+#! .venv/bin/python
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
@@ -23,7 +24,6 @@ Options:
   --version     Show version.
 """
 #from docopt import docopt
-
 import os
 #import yaml
 #import logging
@@ -35,7 +35,7 @@ import os
 #        logging.config.dictConfig(config)
 #    else:
 #        logging.basicConfig(level=default_level)
-
+import sys; print("sys.path=",sys.path) # for debugging
 import argparse
 import torch
 from smtag.loader import Loader
@@ -51,6 +51,8 @@ if __name__ == '__main__':
     # logging.basicConfig(level=logging.INFO)
     #setup_logging()
     #logger = logging.getLogger(__name__)
+
+    # READ COMMAND LINE ARGUMENTS
     #arguments = docopt(__doc__, version='0.1')
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--file', default='test_train', help='Namebase of dataset to import')
@@ -100,6 +102,7 @@ if __name__ == '__main__':
     opt['nf_input'] = datasets['train'].nf_input
     opt['nf_output'] =  datasets['train'].nf_output
     print("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
+
     #TRAIN MODEL
     model = SmtagModel(opt)
     t = Trainer(training_minibatches, validation_minibatches, model)
