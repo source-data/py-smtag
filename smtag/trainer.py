@@ -5,18 +5,19 @@ import torch
 from torch import nn, optim
 from random import shuffle
 import logging
-from viz import Show, Plotter
+from smtag.viz import Show, Plotter
 
 class Trainer:
 
     def __init__(self, training_minibatches, validation_minibatches, model):
         self.model = model
+        # checking if we are on a GPU machine and put the model onto the available GPU devices
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.device_count() > 1:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
         self.model.to(device)
-        self.plot = Plotter() # to visualize training with tensorboardX
+        self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         model_descriptor = "\n".join(["{}={}".format(k, self.model.opt[k]) for k in self.model.opt])
         print(model_descriptor)
         self.minibatches = training_minibatches
@@ -61,7 +62,7 @@ class Trainer:
                 Show.example(self.validation_minibatches, self.model)
                 counter += 1
 
-            # Logging
+            # Logging/plotting
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
             avg_validation_loss = self.validate() # the average loss over the validation minibatches
             self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
@@ -70,5 +71,4 @@ class Trainer:
             #    name = name.replace('.', '/')
             #    self.writer.add_histogram(name, param.clone().cpu().data.numpy(), e)
             #    self.writer.add_histogram(name+'/grad', param.grad.clone().cpu().data.numpy(), e)
-
-        self.writer.close()
+        self.plot.close()

@@ -49,7 +49,7 @@ class EngineTest(SmtagTestCase):
 
     def test_engine_combo(self):
         e = SmtagEngine()
-        ml = e.entity_and_context('stained on SEPA‐1 deficient mice')
+        ml = e.entity_and_context('stained on SEPA‐1-/- mice')
         print(ml)
         expected = 'stained on <sd-tag type="geneprod" role="intervention">SEPA‐1</sd-tag>-/- mice'
         self.assertEqual(expected, ml)
@@ -58,7 +58,7 @@ class EngineTest(SmtagTestCase):
         e = SmtagEngine()
         ml = e.entity_reporter_context('Cells expressing GFP-Atg8 in Atg5-/- mice')
         print(ml)
-        expected = 'Cells expressing <sd-tag type="geneprod" role="reporter">GFP</sd-tag>-<sd-tag type="geneprod" role="assayed">Atg8</sd-tag> in <sd-tag type="geneprod" role="intervention">Atg5</sd-tag>-/- mice'
+        expected = 'Cells expressing <sd-tag type="geneprod" role="reporter">GFP</sd-tag>-<sd-tag type="geneprod">Atg8</sd-tag> in <sd-tag type="geneprod" role="intervention">Atg5</sd-tag>-/- mice'
         self.assertEqual(expected, ml)
 
 
