@@ -23,7 +23,7 @@ class XMLElementSerializer(AbstractElementSerializer):
         attribute_list= {}
 
         for concept in on_features:
-            if concept is not None:
+            if concept:
                 attribute, value = XMLElementSerializer.map(concept)
                 # sometimes prediction is ambiguous and several values are found for a type or a role
                 if attribute in attribute_list:
@@ -42,7 +42,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
 
     @staticmethod
     def make_element(tag, on_features, inner_text):
-        html_classes = [HTMLElementSerializer.map(concept) for concept in on_features if concept is not None]
+        html_classes = [HTMLElementSerializer.map(concept) for concept in on_features if concept]
         html_string = "<span class=\"{} {}\">{}</span>".format(tag, ' '.join(html_classes), inner_text)
         return html_string
 
@@ -58,7 +58,7 @@ class AbstractSerializer(object): #(ABC)
         self.tag = tag
         self.serialized_examples = []
 
-    def serialize(self, binarized_pred):
+    def serialize(self, binarized_pred): # need to distinguish between longitunidally marked features and features marked with boundaries?
         self.N = binarized_pred.N
         self.L = binarized_pred.L
         self.nf = binarized_pred.nf
@@ -81,7 +81,7 @@ class AbstractTagger(AbstractSerializer):
             token_list = binarized_pred.tokenized[i]
             ml_string = ""
             inner_text = ""
-            current_concepts = [None] * self.nf # will be used like this [map(concept) for concept in on_features if concept is not None]
+            current_concepts = [False] * self.nf # will be used like this [map(concept) for concept in on_features if concept is not None]
             need_to_open = [False] * self.nf
             need_to_close = [False] * self.nf
             need_to_open_any = False
@@ -89,29 +89,25 @@ class AbstractTagger(AbstractSerializer):
             active_features = 0
             current_scores = [0] * self.nf
 
-            #if binarized_pred.tokenized:
-            #    pos_iter = PositionIter(token=binarized_pred.tokenized[i], mode='stop') #faster, but not working, missing spaces; how to put token back together again?
-            #else:
-
             for t in token_list:
                 start = t.start
-                stop = t.stop-1 # last token has stop outside bound of binarized_pred.stop
-                left_spacer = t.left_spacer
+                stop = t.stop-1
+                left_spacer = t.left_spacer # left_spacer is the spacing characters that precede this token
                 text = xml_escape(t.text)
-                #get set of new features that need to be opened
-                
+
                 if active_features > 0:
                     inner_text +=  left_spacer
                 else:
                     ml_string += left_spacer
-                
+
+                # scan features that need to be opened
                 for f in range(self.nf):
                     if binarized_pred.start[i][f][start] != 0:  
                         need_to_open[f] = True
                         need_to_open_any = True
                         active_features += 1
 
-                #as soon as something new needs  to be opened all the rest needs to be closed first with the accumulated inner text
+                # as soon as something new needs to be opened all the rest needs to be closed first with the accumulated inner text
                 if need_to_open_any:
                     if inner_text: 
                         tagged_string = self.serialize_element(current_concepts, inner_text)
@@ -127,19 +123,18 @@ class AbstractTagger(AbstractSerializer):
                             current_scores[f] = binarized_pred.score[i][f][start]
                     need_to_open_any = False
 
-                
                 if active_features > 0:
                     inner_text +=  text
                 else:
                     ml_string += text
 
-                #scan features and set attributes that need to be closed
+                #scan features that need to be closed
                 for f in range(self.nf):
                     if binarized_pred.stop[i][f][stop] != 0:
                         need_to_close[f] = True
                         need_to_close_any = True
                         active_features -= 1
-                
+
                 if need_to_close_any:
                     if inner_text:
                         tagged_string = self.serialize_element(current_concepts, inner_text)
@@ -150,14 +145,9 @@ class AbstractTagger(AbstractSerializer):
                     for f in range(self.nf):
                         if need_to_close[f]:
                             need_to_close[f] = False
-                            current_concepts[f] = None
+                            current_concepts[f] = False
                             current_scores[f] = 0
                     need_to_close_any = False
-
-            #close anything that is still left open
-            #if active_features > 0:
-            #    tagged_string = self.serialize_element(inner_text, current_concepts, self.output_semantics)
-            #    ml_string += tagged_string
 
             #phew!
             self.serialized_examples.append(ml_string)

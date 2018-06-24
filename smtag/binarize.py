@@ -23,7 +23,7 @@ class Binarized:
         marks: a N x nf x L tensor with 1 at the positions of each character of a marked term.
         score: the average score integrated over the length of the marked term.
         tokenized: a list of lists of token for each text example.
-    
+
     Methods:
         binarize_with_token(tokenized_examples): takes tokenized example, thresholds the prediction tensor and computes start, stop, marks and scores members.
         fuse_adjascent(regex=" "): when to adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
@@ -63,10 +63,10 @@ class Binarized:
                     concept = self.output_semantics[k]
                     if avg_score >= THRESHOLDS[concept]: 
                         self.start[i, k, start] = 1
-                        self.stop[i, k, stop-1] = 1 # should stop mark be stop-1 to be the last character and not the next? otherwise need to test if stop < length: 
+                        self.stop[i, k, stop-1] = 1 # stop mark has to be stop-1 to be the last character and not the next; otherwise we would always need later to test if stop < length of string because of last token 
                         self.score[i, k, start] = round(100*avg_score)
                         self.marks[i, k, start:stop].fill_(1)
-    
+
     def fuse_adjascent(self, regex=" "):
         '''
         When to adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
