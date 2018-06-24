@@ -55,7 +55,7 @@ if __name__ == '__main__':
     # READ COMMAND LINE ARGUMENTS
     #arguments = docopt(__doc__, version='0.1')
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-f', '--file', default='test_train', help='Namebase of dataset to import')
+    parser.add_argument('-f', '--file', default='test_entities_train', help='Namebase of dataset to import')
     parser.add_argument('-E' , '--epochs',  default=120, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=128, help='Minibatch size.')
     parser.add_argument('-R ', '--learning_rate', default=0.001, help='Learning rate.')
