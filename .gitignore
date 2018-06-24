@@ -1,5 +1,6 @@
 #####################################################################################
 ## SmartTag
+!data/test*
 data/
 models/ # production models are in rack/
 log/*.log*
