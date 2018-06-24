@@ -1,7 +1,6 @@
 #####################################################################################
 ## SmartTag
-data/
-!data/default/**
+data/[01234567890]*
 models/ # production models are in rack/
 log/*.log*
 ##
