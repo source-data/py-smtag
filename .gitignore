@@ -1,4 +1,3 @@
 /*
 !/.gitignore
-!/data/test*
-!smtag/
+!/smtag/**
