@@ -47,7 +47,7 @@ class XMLElementSerializer(AbstractElementSerializer):
     @staticmethod
     def map(concept):
         #return entity_serializing_map[concept]
-        return concept.for_serializing()
+        return concept.for_serialization
 
 
 class HTMLElementSerializer(AbstractElementSerializer):
@@ -100,11 +100,11 @@ class AbstractTagger(AbstractSerializer):
     def serialize(self, binarized): # binarized contains N examples
         super(AbstractTagger, self).serialize(binarized)
 
-        # find where the panel boundaries are. Not very general but simpler than multiple hierarchical boundary types
         boundaries = []
-        panel_feature = binarized.output_semantics.index(PANEL_START)
-        if panel_feature:
-            binarized.start[ : , panel_feature , :].nonzero() 
+        # find where the panel boundaries are. Not very general but simpler than multiple hierarchical boundary types
+        if PANEL_START in binarized.output_semantics:
+            panel_feature = binarized.output_semantics.index(PANEL_START)
+            boundaries = binarized.start[ : , panel_feature , :].nonzero()
 
         for i in range(self.N):
             #example_text = binarized.example_text[i]
@@ -118,20 +118,22 @@ class AbstractTagger(AbstractSerializer):
             active_features = 0
             current_scores = [0] * self.nf
 
-            token_start_positions = binarized.tokenized[i].start_index.keys().sort() #or use ordereddict from collections
+            token_start_positions = binarized.tokenized[i]['start_index']
             # segment example based on boundaries
             beginning = token_start_positions[0]
             segments = []
-            for b in boundaries[i]: # what if multiple boundaries? this would be too complicated for the moment!!
-                if b in token_start_positions: 
-                    # add token from previous start to here into segment
-                    segment = token_start_positions[beginning:b]
-                    # add segment to segment list
-                    segments.append(segment)
-                    # reinitiliaze segment
-                    segments = []
-                    beginning = b
-                # what to do if boundary predicted in space or in middle of token? need to find closest token... or ignore
+            if boundaries: # segmentation according to boundaries
+                for b in boundaries[i]: # what if zero boundaries? what if multiple boundaries? this would be too complicated for the moment!!
+                    if b in token_start_positions: 
+                        #find index of corresponding token
+                        next_token_index = token_start_positions.index(b)
+                        # add token from previous start to token before next
+                        segment = binarized.tokenized[i]['token_list'][beginning:next_token_index-1]
+                        segments.append(segment)
+                        beginning = b
+                    # what to do if boundary predicted in space or in middle of token? need to find closest token... or ignore
+            else:
+                segments = [binarized.tokenized[i]['token_list']] # no segmentation
 
             for token_list in segments:
             # change this to binarized.start.sum(1).nonzero etc then identify which feature is on; same for stop 

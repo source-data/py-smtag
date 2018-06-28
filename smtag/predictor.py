@@ -92,4 +92,4 @@ class ContextualPredictor(Predictor):
     
     def pred_binarized(self, input_t_string, marks, output_semantics):
         prediction = self.forward(input_t_string, marks)
-        return super(ContextualPredictor, self).pred_bin(input_string, prediction, output_semantics)
+        return super(ContextualPredictor, self).pred_bin(input_t_string, prediction, output_semantics)

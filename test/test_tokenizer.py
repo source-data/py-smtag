@@ -17,14 +17,14 @@ class TokenizerTest(unittest.TestCase):
 
     def test_tokenize(self):
         for example in self.examples:
-            token_list, _, _ = tokenize(example[0])
+            token_list = tokenize(example[0])['token_list']
             token_terms = [t.text for t in token_list]
             #print([f"[{t.start}]{t.text}[{t.stop}]" for t in token_list])
             self.assertEqual(example[1], token_terms)
 
     def test_detokenize(self):
         for example in self.examples:
-            token_list, _, _ = tokenize(example[0])
+            token_list = tokenize(example[0])['token_list']
             humpty_dumpty = ''.join(["{}{}".format(t.left_spacer, t.text) for t in token_list])
             #print(humpty_dumpty)
             self.assertEqual(example[0], humpty_dumpty)

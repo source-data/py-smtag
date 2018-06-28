@@ -5,7 +5,6 @@ import torch
 import re
 from copy import deepcopy
 from smtag.utils import xml_escape
-from smtag.mapper import Feature
 
 
 class Binarized:
@@ -50,9 +49,11 @@ class Binarized:
         Args:
             tokenized_examples (list of lists): list of lists of token for each example.
         '''
+        
+        #PROBLEM: set token index
         self.tokenized = tokenized_examples
         for i in range(self.N):
-            token = tokenized_examples[i]
+            token = tokenized_examples[i]['token_list'] # tokenized_examples[i] has also fields 'start_index' and 'stop_index'
             for t in token:
                 start = t.start
                 stop = t.stop
@@ -81,7 +82,7 @@ class Binarized:
             #else:
             #    pos_iter = PositionIter(input_string)
             #for pos, _ in pos_iter:
-            for t in self.tokenized[i]:
+            for t in self.tokenized[i]['token_list']:
                 stop_mark = t.stop-1
                 #s = "this is the black cat"
                 #                 ||||| |||
@@ -108,7 +109,7 @@ class Binarized:
         self.stop = torch.cat((self.stop, other.stop), 1)
         self.marks = torch.cat((self.marks, other.marks), 1)
         self.score = torch.cat((self.score, other.score), 1)
-        assert(self.nf==self.marks.size(1), f"{self.nf}<>{self.marks.size(1)}")
+        assert(self.nf==self.marks.size(1)) # f"{self.nf}<>{self.marks.size(1)}")
         # self.tokenized untouched
 
     def erase_(self, other):
