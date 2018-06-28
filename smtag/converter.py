@@ -75,22 +75,29 @@ class TString(str): # (str) or (torch.Tensor)?
         self.t = torch.Tensor()
         if isinstance(x, str):
             self.t = Converter.t_encode(x)
+            self.s = x
         elif isinstance(x, torch.Tensor):
             assert(x.dim() == 3 and x.size(1) == 32)
             self.t = x
+            self.s = Converter.t_decode(x)
 
     def __str__(self):
-        return Converter.t_decode(self.t)
+        return self.s
 
     def __len__(self):
         return int(self.t.size(2))
 
     def __add__(self, x): # overwrites tensor adding into tensor concatenation like strings
-        
-        return TString(torch.cat((self.toTensor(), x.toTensor()), 2))
+        concatenated = TString()
+        concatenated.t = torch.cat((self.toTensor(), x.toTensor()), 2)
+        concatenated.s = str(self) + str(x)
+        return concatenated
     
     def repeat(self, N):
-        return TString(self.t.repeat(1, 1, N))
+        repeated = TString()
+        repeated.t = self.t.repeat(1, 1, N)
+        repeated.s = self.s * N
+        return repeated
 
     def toTensor(self):
         return self.t

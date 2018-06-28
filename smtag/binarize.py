@@ -5,7 +5,7 @@ import torch
 import re
 from copy import deepcopy
 from smtag.utils import xml_escape
-from smtag.mapper import THRESHOLDS
+from smtag.mapper import Feature
 
 
 class Binarized:
@@ -15,7 +15,7 @@ class Binarized:
     Args:
         text_examples (list): a list of text that were used as input for the prediction.
         prediction (torch.Tensor): a N x nf x L Tensor with the predicted output of the model
-        output_semantics (list): a list of the concepts (str) that correspond to the meaning of each output feature.
+        output_semantics (list): a list of the concepts (Feature) that correspond to the meaning of each output feature.
 
     Members:
         start: a N x nf x L tensor with 1 at the position of the first character of a marked term.
@@ -32,6 +32,7 @@ class Binarized:
         self.text_examples = text_examples
         self.prediction = prediction
         self.output_semantics = output_semantics
+
         self.N = prediction.size(0)
         self.nf = prediction.size(1)
         self.L = prediction.size(2)
@@ -55,13 +56,11 @@ class Binarized:
             for t in token:
                 start = t.start
                 stop = t.stop
-                token_length = stop - start
+                token_length = t.length
                 for k in range(self.nf):
                     avg_score = float(self.prediction[i, k, start:stop].sum()) / token_length
-                    #feature_name = attrmap[k][1]
-                    #local threshold = CONFIG.THRESHOLDS[feature_name].word_score
                     concept = self.output_semantics[k]
-                    if avg_score >= THRESHOLDS[concept]: 
+                    if avg_score >= concept.threshold: 
                         self.start[i, k, start] = 1
                         self.stop[i, k, stop-1] = 1 # stop mark has to be stop-1 to be the last character and not the next; otherwise we would always need later to test if stop < length of string because of last token 
                         self.score[i, k, start] = round(100*avg_score)

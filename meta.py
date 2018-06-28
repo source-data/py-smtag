@@ -105,8 +105,7 @@ if __name__ == '__main__':
 
     #TRAIN MODEL
     model = SmtagModel(opt)
-    t = Trainer(training_minibatches, validation_minibatches, model)
-    t.train()
+    Trainer(training_minibatches, validation_minibatches, model).train()
 
     #SAVE MODEL
     export_model(model)

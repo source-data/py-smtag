@@ -6,6 +6,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from copy import deepcopy
+from mapper import Factory
 
 class SmtagModel(nn.Module):
 
@@ -21,15 +22,15 @@ class SmtagModel(nn.Module):
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1)
         self.BN = nn.BatchNorm1d(nf_output)
-        self.output_semantics = opt['selected_features'] 
+        self.output_semantics = Factory.from_list(opt['selected_features']) 
         if 'collapsed_features' in opt:
             print(opt['collapsed_features'])
             if opt['collapsed_features']:
-                self.output_semantics.append(opt['collapsed_features'][-1])  # keep only the last one by convention, not too great...
+                self.output_semantics.append(Factory.make(opt['collapsed_features'][-1]))  # keep only the last one by convention, not too great...
         if 'overlap_features' in opt:
              print(opt['overlap_features'])
              if opt['overlap_features']:
-                 self.output_semantics.append(opt['overlap_features'][-1]) # keep only the last one by convention, not too great...
+                 self.output_semantics.append(Factory.make(opt['overlap_features'][-1])) # keep only the last one by convention, not too great...
         self.opt = opt
 
     def forward(self, x):

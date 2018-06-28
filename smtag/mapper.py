@@ -1,18 +1,76 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-#maybe should be called channel_to_concept and concept_to_channel
-#should these rather be named tuples of named tuples?
+TYPES = ['molecule', 'gene', 'protein', 'geneprod', 'subcellular', 'cell', 'tissue', 'organism', 'undefined']
+ROLES = ['intervention', 'assayed', 'reporter']
+CATEGORIES = ['entities', 'exp_assay', 'physical', 'time', 'disease']
+BOUNDARIES = ['panel_start', 'panel_stop']
 
-index2label = {0: 'small_molecule', 1: 'gene', 2: 'protein', 3: 'subcellular', 4: 'cell', 5: 'tissue', 6: 'organism', 7: 'undefined',
-               8: 'intervention', 9: 'assayed', 10: 'normalizing', 11: 'reporter', 12: 'experiment', 13: 'component',
-               14: 'assay', 15: 'entity', 16: 'time', 17: 'physical', 18: 'disease',
-               19: 'panel_start', 20: 'panel_stop', 21: 'geneprod'}
-               
-label2index = {index2label[k]:k for k in index2label}
+class Concept:
+    def __init__(self, label, recipe, detection_threshold = 0.5):
+        self.label = label
+        self.for_serialization = recipe
+        self.threshold = detection_threshold
+    
+    def __str__(self):
+        return self.label
+
+class Element(Concept):
+    def __init__(self, label, recipe, detection_threshold = 0.5):
+        super(Element, self).__init__(detection_threshold, recipe)
+
+class Entity(Element):
+
+    def __init__(self, label, recipe, detection_threshold = 0.5):
+        super(Entity, self).__init__(detection_threshold, recipe)
+
+class Boundary(Concept):
+    def __init__(self, label, recipe, detection_threshold = 0.5):
+        super(Boundary, self).__init__(detection_threshold, recipe)
+
+SMALL_MOLECULE = Entity('small_molecule', 0.5, ('type', 'small_molecule'))
+GENE = Entity('gene', 0.5, ('type', 'gene'))
+PROTEIN = Entity('protein', 0.5, ('type', 'protein'))
+SUBCELLULAR = Entity('subcellular', 0.5, ('type', 'subcellular'))
+CELL = Entity('cell', 0.5, ('type', 'cell'))
+TISSUE = Entity('tissue', 0.5 ('type', 'tissue'))
+ORGANISM = Entity('organism', 0.5, ('type', 'organism'))
+UNDEFINED = Entity('undefined', 0.5, ('type', 'undefined'))
+INTERVENTION = Entity('intervention', 0.5, ('role', 'intervention'))
+MEASUREMENT = Entity('assayed', 0.5, ('role', 'assayed'))
+NORMALIZING = Entity('normalizing', 0.5, ('role', 'normalizing'))
+REPORTER = Entity('reporter', 0.5, ('role', 'reporter'))
+EXP_VAR = Entity('experiment', 0.5, ('role', 'experiment'))
+GENERIC_ENTITY = Entity('component', 0.5, ('role', 'component'))
+EXP_ASSAY = Element('assay', 0.5, ('category', 'assay'))
+TIME = Element('time', 0.5, ('category', 'assay'))
+PHYSICAL_VAR = Element('physical', 0.5, ('category', 'physical'))
+DISEASE = Element('disease', 0.5, ('category', 'disease'))
+PANEL_START = Boundary('panel_start', 0.5, 'sd-panel')
+PANEL_STOP = Boundary('panel_stop', 0.5, 'sd-panel') # not ideal!
+GENEPROD = Entity('geneprod', 0.5, ('type', 'geneprod'))
+
+catalogue = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,
+             INTERVENTION, MEASUREMENT, NORMALIZING, REPORTER, EXP_VAR, GENERIC_ENTITY,
+             EXP_ASSAY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD]
+
+label2concept = {e.label:e for e in catalogue}
+concept2index = {catalogue[i]:i for i in range(len(catalogue))}
+index2concept = {i:catalogue[i] for i in range(len(catalogue))}
+
+class Factory():
+
+    @staticmethod
+    def from_list(labels):
+        return [Factory.make(label) for label in labels]
+    
+    @staticmethod
+    def make(label):
+            return label2concept(label)
 
 brat_map = {'': None, 'DISO': 18, 'PRGE': 21, 'GENE': 1, 'LIVB': 6, 'CHED':0} # check if PRGE should go to channel 21
 
+# this should be the 'master' description of the model and the rest should be generated automatically from this description
 xml_map = {
             'marks':{
                     'sd-tag':{
@@ -28,34 +86,3 @@ xml_map = {
                                     }
                          }
            }
-
-number_of_features = len(index2label)
-
-# mapping each concept to a attribute-value pair that can be used in XML serialization
-serializing_map = {
-    'assayed': ('role', 'assayed'),
-    'intervention': ('role', 'intervention'),
-    'reporter': ('role', 'reporter'),
-    'small_molecule': ('type', 'molecule'),
-    'geneprod': ('type', 'geneprod'),
-    'gene': ('type', 'gene'),
-    'protein': ('type', 'protein')
-}
-
-THRESHOLDS = {
-        'small_molecule': 0.5,
-        'gene': 0.5,
-        'geneprod': 0.5,
-        'protein': 0.5,
-        'subcellular': 0.5,
-        'cell': 0.5,
-        'tissue': 0.5,
-        'organism': 0.5,
-        'exp_assay': 0.5,
-        'intervention': 0.5,
-        'assayed': 0.5,
-        'reporter': 0.5,
-        'time': 0.5,
-        'physical': 0.5,
-        'disease': 0.5
-}
