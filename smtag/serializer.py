@@ -69,7 +69,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
     @staticmethod
     def map(concept):
         #attribute, value = entity_serializing_map[concept] 
-        attribute, value = concept.for_serializing()
+        attribute, value = concept.for_serialization
         return "{}_{}".format(attribute, value)
 
 

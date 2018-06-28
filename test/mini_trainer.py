@@ -2,13 +2,13 @@ from torch import nn, optim
 from smtag.builder import SmtagModel
 from smtag.progress import progress
 
-def toy_model(x, y, selected_feature = ['geneprod'], threshold = 1E-02):
+def toy_model(x, y, selected_features = ['geneprod'], threshold = 1E-02, epochs = 100):
         opt = {}
         opt['namebase'] = 'test_importexport'
         opt['learning_rate'] = 0.01
-        opt['epochs'] = 100
+        opt['epochs'] = epochs
         opt['minibatch_size'] = 1
-        opt['selected_features'] = selected_feature
+        opt['selected_features'] = selected_features
         opt['collapsed_features'] = []
         opt['overlap_features'] = []
         opt['nf_table'] =  [8,8]
