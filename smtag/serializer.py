@@ -2,9 +2,10 @@
 #T. Lemberger, 2018
 
 #from abc import ABC
+import torch
 import xml.etree.ElementTree as ET
 from smtag.utils import xml_escape
-from smtag.mapper import PANEL_START
+from smtag.mapper import PANEL_START, Boundary
 
 
 class AbstractElementSerializer(object): # (ABC)
@@ -99,13 +100,11 @@ class AbstractTagger(AbstractSerializer):
 
     def serialize(self, binarized): # binarized contains N examples
         super(AbstractTagger, self).serialize(binarized)
-
-        boundaries = []
-        # find where the panel boundaries are. Not very general but simpler than multiple hierarchical boundary types
         if PANEL_START in binarized.output_semantics:
             panel_feature = binarized.output_semantics.index(PANEL_START)
-            boundaries = binarized.start[ : , panel_feature , :].nonzero()
-
+        else:
+            panel_feature = None
+        
         for i in range(self.N):
             #example_text = binarized.example_text[i]
             ml_string = ""
@@ -117,28 +116,39 @@ class AbstractTagger(AbstractSerializer):
             need_to_close_any = False
             active_features = 0
             current_scores = [0] * self.nf
+            if panel_feature is not None:
+                boundaries = torch.Tensor()
+                # find where the panel boundaries are. Not very general but simpler than multiple hierarchical boundary types
+                boundaries = binarized.start[ i , panel_feature , :].nonzero() # carefule: nonzero() return a list of coordinates of non zero element in the Tensor.
 
             token_start_positions = binarized.tokenized[i]['start_index']
+            print("token_start_positions", token_start_positions)
+            print("token list", " ".join([t.text for t in binarized.tokenized[i]['token_list']]))
             # segment example based on boundaries
-            beginning = token_start_positions[0]
+
+            start = token_start_positions[0]
             segments = []
-            if boundaries: # segmentation according to boundaries
-                for b in boundaries[i]: # what if zero boundaries? what if multiple boundaries? this would be too complicated for the moment!!
+            if len(boundaries.nonzero()) != 0: # if example i has a position where boundaries[i] is 1, we need to segment
+
+                for b in boundaries: # what if multiple kind of boundaries? this would be too complicated for the moment!!
                     if b in token_start_positions: 
                         #find index of corresponding token
                         next_token_index = token_start_positions.index(b)
                         # add token from previous start to token before next
-                        segment = binarized.tokenized[i]['token_list'][beginning:next_token_index-1]
+                        segment = binarized.tokenized[i]['token_list'][start:next_token_index]
                         segments.append(segment)
-                        beginning = b
-                    # what to do if boundary predicted in space or in middle of token? need to find closest token... or ignore
-            else:
-                segments = [binarized.tokenized[i]['token_list']] # no segmentation
+                        start = next_token_index
+                        # SO VERY WRONG... NEED THE LAST SEGMENT TOO STUPID...
+                        print("segment: ", b, next_token_index, token_start_positions.index(b), " ".join([t.text for t in segment]))
+            last_segment = binarized.tokenized[i]['token_list'][start:]
+            print("last segment: ", " ".join([t.text for t in last_segment]))
+            segments.append(last_segment)
 
             for token_list in segments:
             # change this to binarized.start.sum(1).nonzero etc then identify which feature is on; same for stop 
             # change this to to start in benarized.tokenized.start_index to get immediately only the position where tag needs to be genearated: much faster!
-                ml_string = self.serialize_boundary('open') # problem: left spacer should be put before that
+                print("serialize segment", " ".join([t.text for t in token_list]))
+                ml_string += "<sd-panel>" # self.serialize_boundary('open') # problem: left spacer should be put before that
                 for t in token_list:
                     start = t.start
                     stop = t.stop-1
@@ -150,9 +160,10 @@ class AbstractTagger(AbstractSerializer):
                     else:
                         ml_string += left_spacer
 
+                    # PROBLEM: it will add boundaries as well!!
                     # scan features that need to be opened
                     for f in range(self.nf):
-                        if binarized.start[i][f][start] != 0:  
+                        if not isinstance(self.output_semantics[f], Boundary) and binarized.start[i][f][start] != 0:  
                             need_to_open[f] = True
                             need_to_open_any = True
                             active_features += 1
@@ -166,7 +177,7 @@ class AbstractTagger(AbstractSerializer):
                         inner_text = ''
                         ml_string += tagged_string
                         for f in range(self.nf):
-                            if need_to_open[f]:
+                            if  not isinstance(self.output_semantics[f], Boundary) and need_to_open[f]:
                                 need_to_open[f] = False
                                 concept = self.output_semantics[f]
                                 current_concepts[f] = concept
@@ -180,7 +191,7 @@ class AbstractTagger(AbstractSerializer):
 
                     #scan features that need to be closed
                     for f in range(self.nf):
-                        if binarized.stop[i][f][stop] != 0:
+                        if  not isinstance(self.output_semantics[f], Boundary) and binarized.stop[i][f][stop] != 0:
                             need_to_close[f] = True
                             need_to_close_any = True
                             active_features -= 1
@@ -193,15 +204,14 @@ class AbstractTagger(AbstractSerializer):
                         inner_text = ''
                         ml_string += tagged_string
                         for f in range(self.nf):
-                            if need_to_close[f]:
+                            if  not isinstance(self.output_semantics[f], Boundary) and need_to_close[f]:
                                 need_to_close[f] = False
                                 current_concepts[f] = False
                                 current_scores[f] = 0
                         need_to_close_any = False
-                ml_string += self.serialize_boundary('close')
-
-                #phew!
-                self.serialized_examples.append(ml_string)
+                ml_string += "</sd-panel>" #self.serialize_boundary('close')
+            #phew!
+            self.serialized_examples.append(ml_string)
         return self.serialized_examples
 
 class XMLTagger(AbstractTagger):
