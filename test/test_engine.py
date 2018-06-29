@@ -67,7 +67,7 @@ class EngineTest(SmtagTestCase):
 
     @timer
     def test_engine_all(self):
-        ml = SmtagEngine(self.cartridge).all(self.text_example)
+        ml = SmtagEngine(self.cartridge).smtag(self.text_example)
         print(ml)
         expected = '''<sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag></sd-panel><sd-panel>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag></sd-panel><sd-panel>, AA</sd-panel>'''
         self.assertEqual(expected, ml)

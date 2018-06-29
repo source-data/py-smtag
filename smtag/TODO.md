@@ -5,6 +5,7 @@
 - finish options for meta (collapse, overlap, OR tables): DONE
 - revise anonymization and use OR gate instead of label character: DONE
 - test other anonymization replacement characters/patters: 0000 and FFFF: DONE could be that 0000 is the best
+- add 'cartridges' to load set of models: DONE
 
 ----
 
@@ -15,7 +16,7 @@
 - implement/test model on boundaries (instead of longitudinal marks)
 - train all models (all entities, panel_start, context_geneprod, context_small_mol, disease, exp_assay)
 - connect Flask server
-- add 'cartridges' to load set of models
+
 - implement -af option in sdgraph2th to concatenate all figures for a single paper
 - enable tensorboardX on Amazon GPU machine (serve which URL? how to set security?)
 - restructure smtag package in subpackages: datagen/, train/, predict/, common/ ?

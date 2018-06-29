@@ -88,18 +88,20 @@ class SmtagEngine:
             }
         self.models = {}
         for model_family in self.cartridge:
-            self.models[model_family] = Combine([pair for pair in cartridge[model_family]])
+            self.models[model_family] = Combine([(model, anonymize_with) for model, anonymize_with in cartridge[model_family]])
 
     @timer
-    def entities(self, input_string):
-
+    def __entities(self, input_string):
         input_t_string = TString(input_string)
         p = SimplePredictor(self.models['entity'])
         binarized = p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
         return binarized
 
+    def entity(self, input_string):
+        return self.serialize(self.__entities(input_string))
+
     @timer
-    def entity_and_context(self, input_string):
+    def __entity_and_context(self, input_string):
 
         input_t_string = TString(input_string)
         
@@ -117,7 +119,10 @@ class SmtagEngine:
         binarized.cat_(context_binarized)
         return binarized
 
-    def all(self, input_string):
+    def tag(self, input_string):
+        return self.serialize(self.__entity_and_context(input_string))
+
+    def __all(self, input_string):
         
         input_t_string = TString(input_string)
 
@@ -128,7 +133,7 @@ class SmtagEngine:
         # PREDICT ENTITIES
         entity_p = SimplePredictor(self.models['entity'])
         binarized_entities = entity_p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
-        print("0: binarized.marks after entity"); Show.print_pretty(binarized_entities.marks)
+        print("binarized.marks after entity"); Show.print_pretty(binarized_entities.marks)
         print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output = binarized_entities.clone()
@@ -166,7 +171,10 @@ class SmtagEngine:
         print("7: final cumulated_output.marks");Show.print_pretty(cumulated_output.marks)
         print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
         
-        return self.serialize(cumulated_output)
+        return cumulated_output
+
+    def smtag(self, input_string):
+        return self.serialize(self.__all(input_string))
     
     def serialize(self, output):
         ml = Serializer().serialize(output)
@@ -175,11 +183,14 @@ class SmtagEngine:
     def add_roles(self, input_xml):
         pass
 
-    def panels(self, input_string):
-        pass
-    
-    def smtag(self, input_string):
-        pass
+    def __panels(self, input_string):
+        input_t_string = TString(input_string)
+        p = SimplePredictor(self.models['panelizer'])
+        binarized = p.pred_binarized(input_t_string, self.models['panelizer'].output_semantics)
+        return binarized
+
+    def panelizer(self, input_string):
+        return self.serialize(self.__panels(input_string))
 
 if __name__ == "__main__":
     # PARSE ARGUMENTS
