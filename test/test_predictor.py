@@ -11,7 +11,7 @@ from smtag.converter import Converter, TString
 from smtag.binarize import Binarized
 from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
 from smtag.predictor import SimplePredictor, ContextualPredictor
-from smtag.mapper import Factory
+from smtag.mapper import Catalogue
 from smtag.viz import Show
 from smtag.importexport import load_model
 from smtag.config import PROD_DIR, MARKING_CHAR
@@ -74,7 +74,7 @@ class PredictorTest(SmtagTestCase):
         #real_example = "fluorescent images of 200‐cell‐stage embryos from the indicated strains stained by both anti‐SEPA‐1 and anti‐LGG‐1 antibody"
         real_example = "stained by anti‐SEPA‐1"
         p = SimplePredictor(real_model)
-        binarized = p.pred_binarized(TString(real_example), [Factory.make('geneprod')])
+        binarized = p.pred_binarized(TString(real_example), [Catalogue.GENEPROD])
         ml = Serializer().serialize(binarized)
         print(ml[0])
         input = Converter.t_encode(real_example)
@@ -100,7 +100,7 @@ class PredictorTest(SmtagTestCase):
     def test_context_predictor(self):
         entity_p = SimplePredictor(self.entity_model)
         prediction_1 = entity_p.forward(TString(self.text_example))
-        bin_pred = Binarized([self.text_example], prediction_1, Factory.from_list(['geneprod']))
+        bin_pred = Binarized([self.text_example], prediction_1, [Catalogue.GENEPROD])
         tokenized = tokenize(self.text_example)
         bin_pred.binarize_with_token([tokenized])
         

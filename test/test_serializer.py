@@ -7,14 +7,14 @@ from smtag.utils import tokenize
 from smtag.binarize import Binarized
 from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
 from smtag.utils import timer
-from smtag.mapper import INTERVENTION, PROTEIN, Factory
+from smtag.mapper import Catalogue
 
 class SerializerTest(unittest.TestCase):
 
     def test_element_serializer(self):
         #tag, on_features, inner_text
         tag = 'sd-tag'
-        on_features = [INTERVENTION, None, None, PROTEIN]
+        on_features = [Catalogue.INTERVENTION, None, None, Catalogue.PROTEIN]
         inner_text = 'test text'
         expected_xml_string = '<sd-tag role="intervention" type="protein">test text</sd-tag>'
         expected_html_string = '<span class="sd-tag role_intervention type_protein">test text</span>'
@@ -38,7 +38,7 @@ class SerializerTest(unittest.TestCase):
                                   ]])
         
         #self, text_examples, prediction, output_semantics
-        b = Binarized([input_string], prediction, Factory.from_list(['gene','small_molecule','tissue','protein']))
+        b = Binarized([input_string], prediction, Catalogue.from_list(['gene','small_molecule','tissue','protein']))
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         serializer = Serializer(tag="sd-tag", format="xml")
@@ -62,7 +62,7 @@ class SerializerTest(unittest.TestCase):
                                   ]])
         
         #self, text_examples, prediction, output_semantics
-        b = Binarized([input_string], prediction, Factory.from_list(['geneprod','small_molecule','intervention','protein']))
+        b = Binarized([input_string], prediction, Catalogue.from_list(['geneprod','small_molecule','intervention','protein']))
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent()
@@ -86,7 +86,7 @@ class SerializerTest(unittest.TestCase):
                                   ]])
         
         #self, text_examples, prediction, output_semantics
-        b = Binarized([input_string], prediction, Factory.from_list(['geneprod','assayed','intervention','protein']))
+        b = Binarized([input_string], prediction, Catalogue.from_list(['geneprod','assayed','intervention','protein']))
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent()

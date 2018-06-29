@@ -5,7 +5,7 @@
 import torch
 import xml.etree.ElementTree as ET
 from smtag.utils import xml_escape
-from smtag.mapper import PANEL_START, Boundary
+from smtag.mapper import Catalogue, Boundary
 
 
 class AbstractElementSerializer(object): # (ABC)
@@ -41,9 +41,9 @@ class XMLElementSerializer(AbstractElementSerializer):
     @staticmethod
     def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL 
         if action == 'open':
-            return '<{}>'.format(XMLElementSerializer.map(PANEL_START))
+            return '<{}>'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
         elif action == 'close':
-            return '</{}>'.format(XMLElementSerializer.map(PANEL_START))
+            return '</{}>'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
 
     @staticmethod
     def map(concept):
@@ -62,7 +62,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
     @staticmethod
     def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL 
         if action == 'open':
-            return '<span class="{}">'.format(XMLElementSerializer.map(PANEL_START))
+            return '<span class="{}">'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
         elif action == 'close':
             return '</span>'
 
@@ -100,8 +100,8 @@ class AbstractTagger(AbstractSerializer):
 
     def serialize(self, binarized): # binarized contains N examples
         super(AbstractTagger, self).serialize(binarized)
-        if PANEL_START in binarized.output_semantics:
-            panel_feature = binarized.output_semantics.index(PANEL_START)
+        if Catalogue.PANEL_START in binarized.output_semantics:
+            panel_feature = binarized.output_semantics.index(Catalogue.PANEL_START)
         else:
             panel_feature = None
         
@@ -116,8 +116,8 @@ class AbstractTagger(AbstractSerializer):
             need_to_close_any = False
             active_features = 0
             current_scores = [0] * self.nf
+            boundaries = torch.Tensor()
             if panel_feature is not None:
-                boundaries = torch.Tensor()
                 # find where the panel boundaries are. Not very general but simpler than multiple hierarchical boundary types
                 boundaries = binarized.start[ i , panel_feature , :].nonzero() # carefule: nonzero() return a list of coordinates of non zero element in the Tensor.
 

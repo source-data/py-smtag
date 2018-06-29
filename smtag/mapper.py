@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-class Concept:
+class Concept(object):
     def __init__(self, label, recipe, detection_threshold = 0.5):
         self.label = label
         self.for_serialization = recipe
@@ -23,46 +23,49 @@ class Boundary(Concept):
     def __init__(self, *args):
         super(Boundary, self).__init__(*args)
 
-SMALL_MOLECULE = Entity('small_molecule', ('type', 'small_molecule'), 0.5)
-GENE = Entity('gene', ('type', 'gene'), 0.5)
-PROTEIN = Entity('protein', ('type', 'protein'), 0.5)
-SUBCELLULAR = Entity('subcellular', ('type', 'subcellular'), 0.5)
-CELL = Entity('cell', ('type', 'cell'), 0.5)
-TISSUE = Entity('tissue', ('type', 'tissue'), 0.5)
-ORGANISM = Entity('organism', ('type', 'organism'), 0.5)
-UNDEFINED = Entity('undefined', ('type', 'undefined'), 0.5)
-INTERVENTION = Entity('intervention', ('role', 'intervention'), 0.5)
-MEASUREMENT = Entity('assayed', ('role', 'assayed'), 0.5)
-NORMALIZING = Entity('normalizing', ('role', 'normalizing'), 0.5)
-REPORTER = Entity('reporter', ('role', 'reporter'), 0.5)
-EXP_VAR = Entity('experiment', ('role', 'experiment'), 0.5)
-GENERIC_ENTITY = Entity('component', ('role', 'component'), 0.5)
-EXP_ASSAY = Element('assay', ('category', 'assay'), 0.5)
-TIME = Element('time', ('category', 'assay'), 0.5)
-PHYSICAL_VAR = Element('physical', ('category', 'physical'), 0.5)
-DISEASE = Element('disease', ('category', 'disease'), 0.5)
-PANEL_START = Boundary('panel_start','sd-panel',  0.5)
-PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
-GENEPROD = Entity('geneprod', ('type', 'geneprod'), 0.5)
+class Catalogue():
 
-# the order of the Concepts in the cataglogue matters and determine the order in which these concepts are expected in datasets used for training
-catalogue = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,
-             INTERVENTION, MEASUREMENT, NORMALIZING, REPORTER, EXP_VAR, GENERIC_ENTITY,
-             EXP_ASSAY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD]
+    SMALL_MOLECULE = Entity('small_molecule', ('type', 'small_molecule'), 0.5)
+    GENE = Entity('gene', ('type', 'gene'), 0.5)
+    PROTEIN = Entity('protein', ('type', 'protein'), 0.5)
+    SUBCELLULAR = Entity('subcellular', ('type', 'subcellular'), 0.5)
+    CELL = Entity('cell', ('type', 'cell'), 0.5)
+    TISSUE = Entity('tissue', ('type', 'tissue'), 0.5)
+    ORGANISM = Entity('organism', ('type', 'organism'), 0.5)
+    UNDEFINED = Entity('undefined', ('type', 'undefined'), 0.5)
+    INTERVENTION = Entity('intervention', ('role', 'intervention'), 0.5)
+    MEASUREMENT = Entity('assayed', ('role', 'assayed'), 0.5)
+    NORMALIZING = Entity('normalizing', ('role', 'normalizing'), 0.5)
+    REPORTER = Entity('reporter', ('role', 'reporter'), 0.5)
+    EXP_VAR = Entity('experiment', ('role', 'experiment'), 0.5)
+    GENERIC_ENTITY = Entity('component', ('role', 'component'), 0.5)
+    EXP_ASSAY = Element('assay', ('category', 'assay'), 0.5)
+    TIME = Element('time', ('category', 'assay'), 0.5)
+    PHYSICAL_VAR = Element('physical', ('category', 'physical'), 0.5)
+    DISEASE = Element('disease', ('category', 'disease'), 0.5)
+    PANEL_START = Boundary('panel_start','sd-panel',  0.5)
+    PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
+    GENEPROD = Entity('geneprod', ('type', 'geneprod'), 0.5)
+    
+    # the order of the Concepts in the cataglogue matters and determine the order in which these concepts are expected in datasets used for training
+    standard_channels = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,
+            INTERVENTION, MEASUREMENT, NORMALIZING, REPORTER, EXP_VAR, GENERIC_ENTITY,
+            EXP_ASSAY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD]
 
-label2concept = {e.label:e for e in catalogue}
-concept2index = {catalogue[i]:i for i in range(len(catalogue))}
-index2concept = {i:catalogue[i] for i in range(len(catalogue))}
-
-class Factory():
 
     @staticmethod
     def from_list(labels):
-        return [Factory.make(label) for label in labels]
+        return [Catalogue.from_label(label) for label in labels]
     
     @staticmethod
-    def make(label):
+    def from_label(label):
             return label2concept[label]
+
+
+label2concept = {e.label:e for e in Catalogue.standard_channels}
+concept2index = {Catalogue.standard_channels[i]:i for i in range(len(Catalogue.standard_channels))}
+index2concept = {i:Catalogue.standard_channels[i] for i in range(len(Catalogue.standard_channels))}
+
 
 brat_map = {'': None, 'DISO': 18, 'PRGE': 21, 'GENE': 1, 'LIVB': 6, 'CHED':0} # check if PRGE should go to channel 21
 

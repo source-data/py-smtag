@@ -7,7 +7,7 @@ import torch
 # import logging
 import math
 from smtag.converter import Converter
-from smtag.mapper import Factory, GENE, PROTEIN, concept2index
+from smtag.mapper import Catalogue, concept2index
 from smtag.progress import progress
 from smtag.viz import Show 
 
@@ -76,10 +76,10 @@ class Dataset:
 class Loader:
 
     def __init__(self, opt):
-        self.selected_features = Factory.from_list(opt['selected_features'])
-        self.collapsed_features = Factory.from_list(opt['collapsed_features'])
-        self.overlap_features = Factory.from_list(opt['overlap_features'])
-        self.features_as_input = Factory.from_list(opt['features_as_input'])
+        self.selected_features = Catalogue.from_list(opt['selected_features'])
+        self.collapsed_features = Catalogue.from_list(opt['collapsed_features'])
+        self.overlap_features = Catalogue.from_list(opt['overlap_features'])
+        self.features_as_input = Catalogue.from_list(opt['features_as_input'])
         self.validation_fraction = opt['validation_fraction']  # fraction of the whole dataset to be used for validation during training
         self.nf_input = NBITS
 
@@ -128,7 +128,7 @@ class Loader:
 
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
         #THIS HAS TO GO! BELONGS TO DATAPREP!!! Probably in Featurizer
-        raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , concept2index[GENE],  : ] + raw_dataset.output[ : ,  concept2index[PROTEIN], : ]
+        raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , concept2index[Catalogue.GENE],  : ] + raw_dataset.output[ : ,  concept2index[Catalogue.PROTEIN], : ]
 
         print("Creating dataset with selected features {}, and shuffling {} examples.".format(self.selected_features, N))
         shuffled_indices = torch.randperm(N) #shuffled_indices = range(N); shuffle(shuffled_indices)

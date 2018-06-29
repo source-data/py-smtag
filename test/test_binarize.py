@@ -7,7 +7,7 @@ import torch
 from smtag.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from smtag.binarize import Binarized
-from smtag.mapper import Factory
+from smtag.mapper import Catalogue
 
 class BinarizeTest(SmtagTestCase):
 
@@ -29,7 +29,7 @@ class BinarizeTest(SmtagTestCase):
                                     [ 0. ,0.  ,1.   ,1.  ,0.  ,1.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
         
-        b = Binarized([input_string], prediction, Factory.from_list(['geneprod']))
+        b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         print(b.start)
@@ -57,7 +57,7 @@ class BinarizeTest(SmtagTestCase):
                                     [0.   ,0.  ,1.   ,1.  ,1.  ,1.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
 
-        b = Binarized([input_string], prediction, Factory.from_list(['geneprod']))
+        b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent(regex="\t")
@@ -88,7 +88,7 @@ class BinarizeTest(SmtagTestCase):
                                     [0.  ,0.  ,1.   ,1.  ,1.  ,1.  ,1.  ]
                                      ]])
 
-        b = Binarized([input_string], prediction, Factory.from_list(['geneprod']))
+        b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent()
