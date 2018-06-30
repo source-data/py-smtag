@@ -4,8 +4,8 @@
 import unittest
 import torch
 from torch import nn, optim
-from smtag.utils import tokenize
-from smtag.converter import Converter
+from smtag.utils import tokenize, timer
+from smtag.converter import TString
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
 from smtag.engine import SmtagEngine, Combine, Connector
@@ -19,16 +19,42 @@ class EngineTest(SmtagTestCase):
     
     @classmethod
     def setUpClass(self): # run only once
-        self.text_example = "AAAAAAA XXX AAA"
-        self.x = Converter.t_encode(self.text_example)
-        self.y = torch.Tensor(# A A A A A A A   X X X   A A A 
-                             [[[0,0,0,0,0,0,0,0,1,1,1,0,0,0,0]]])
-        self.selected_features = ["geneprod"]
-        self.entity_model = toy_model(self.x, self.y)
+        self.models = {}
+        self.text_example = "AAA YY, XXX, AA"
+
+        self.x = TString(self.text_example).toTensor()
+        self.y1 = torch.Tensor(# A A A   Y Y ,   X X X ,   A A 
+                              [[[0,0,0,0,1,1,0,0,1,1,1,0,0,0,0]]])
+        self.models['entity'] = toy_model(self.x, self.y1, selected_features = ["geneprod"], threshold = 1E-04, epochs=1000)
+
+        self.y2 = torch.Tensor(# A A A   Y Y ,   X X X ,   A A 
+                              [[[0,0,0,0,1,1,0,0,0,0,0,0,0,0,0]]])
+        self.models['only_once'] = toy_model(self.x, self.y2, selected_features = ["reporter"], threshold = 1E-04, epochs=1000)
 
         self.anonymized_text_example = self.text_example.replace("X", MARKING_CHAR)
-        self.z = Converter.t_encode(self.anonymized_text_example)
-        self.context_model = toy_model(self.z, self.y, selected_feature=['intervention'])
+        self.z = TString(self.anonymized_text_example).toTensor()
+        self.y3 = torch.Tensor(# A A A   Y Y ,   X X X ,   A A 
+                              [[[0,0,0,0,0,0,0,0,1,1,1,0,0,0,0]]])
+        self.models['context'] = toy_model(self.z, self.y3, selected_features=['intervention'], threshold = 1E-04, epochs=1000)
+
+        self.y4 = torch.Tensor(# A A A   Y Y ,   X X X ,   A A 
+                              [[[0,0,0,0,0,0,1,0,0,0,0,1,0,0,0]]])
+        self.models['panelizer'] = toy_model(self.x, self.y4, selected_features = ["panel_start"], threshold = 1E-05, epochs=1000)
+
+        self.cartridge = {
+                'entity': [
+                    (self.models['entity'], '')
+                ],
+                'only_once': [
+                    (self.models['only_once'], '')
+                ],
+                'context': [
+                    (self.models['context'], 'geneprod')
+                ], 
+                'panelizer': [
+                    (self.models['panelizer'], '')
+                ]
+            }
 
     def test_model_stability(self): 
         '''
@@ -36,29 +62,14 @@ class EngineTest(SmtagTestCase):
         '''
         iterations = 100
         for i in range(iterations):
-            y_1 = self.entity_model(self.x)
-            self.assertTensorEqual(self.y, y_1)
+            y_1 = self.models['entity'](self.x)
+            self.assertTensorEqual(self.y1, y_1)
 
-    def test_engine_entity(self):
-        # need to change this to intantiate SmtagEngine with test cartridge
-        e = SmtagEngine()
-        ml = e.entities('stained by anti‐SEPA‐1 antibodies')
+    @timer
+    def test_engine_all(self):
+        ml = SmtagEngine(self.cartridge).smtag(self.text_example)
         print(ml)
-        expected = 'stained by anti‐<sd-tag type="geneprod">SEPA‐1</sd-tag> antibodies'
-        self.assertEqual(expected, ml)
-
-    def test_engine_combo(self):
-        e = SmtagEngine()
-        ml = e.entity_and_context('stained on SEPA‐1-/- mice')
-        print(ml)
-        expected = 'stained on <sd-tag type="geneprod" role="intervention">SEPA‐1</sd-tag>-/- mice'
-        self.assertEqual(expected, ml)
-    
-    def test_engine_entity_reporter_context(self):
-        e = SmtagEngine()
-        ml = e.entity_reporter_context('Cells expressing GFP-Atg8 in Atg5-/- mice')
-        print(ml)
-        expected = 'Cells expressing <sd-tag type="geneprod" role="reporter">GFP</sd-tag>-<sd-tag type="geneprod">Atg8</sd-tag> in <sd-tag type="geneprod" role="intervention">Atg5</sd-tag>-/- mice'
+        expected = '''<sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag></sd-panel><sd-panel>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag></sd-panel><sd-panel>, AA</sd-panel>'''
         self.assertEqual(expected, ml)
 
 

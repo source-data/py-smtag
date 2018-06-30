@@ -31,6 +31,14 @@ class ConverterTest(SmtagTestCase):
     def test_lossless_decode_encode(self):
         self.assertTensorEqual(self.tensor, Converter.t_encode(Converter.t_decode(self.tensor)))
 
+    def test_concat(self):
+        a = "the "
+        b = "cat"
+        ab = a + b
+        t_ab = TString(a) + TString(b)
+        self.assertEqual(ab, str(t_ab))
+        self.assertTensorEqual(TString(ab).toTensor(), t_ab.toTensor())
+    
     @timer
     def test_timing(self):
         for _ in range(100000):

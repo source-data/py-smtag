@@ -5,7 +5,6 @@ import torch
 import re
 from copy import deepcopy
 from smtag.utils import xml_escape
-from smtag.mapper import THRESHOLDS
 
 
 class Binarized:
@@ -15,7 +14,7 @@ class Binarized:
     Args:
         text_examples (list): a list of text that were used as input for the prediction.
         prediction (torch.Tensor): a N x nf x L Tensor with the predicted output of the model
-        output_semantics (list): a list of the concepts (str) that correspond to the meaning of each output feature.
+        output_semantics (list): a list of the concepts (Feature) that correspond to the meaning of each output feature.
 
     Members:
         start: a N x nf x L tensor with 1 at the position of the first character of a marked term.
@@ -23,7 +22,7 @@ class Binarized:
         marks: a N x nf x L tensor with 1 at the positions of each character of a marked term.
         score: the average score integrated over the length of the marked term.
         tokenized: a list of lists of token for each text example.
-    
+
     Methods:
         binarize_with_token(tokenized_examples): takes tokenized example, thresholds the prediction tensor and computes start, stop, marks and scores members.
         fuse_adjascent(regex=" "): when to adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
@@ -32,6 +31,7 @@ class Binarized:
         self.text_examples = text_examples
         self.prediction = prediction
         self.output_semantics = output_semantics
+
         self.N = prediction.size(0)
         self.nf = prediction.size(1)
         self.L = prediction.size(2)
@@ -49,24 +49,24 @@ class Binarized:
         Args:
             tokenized_examples (list of lists): list of lists of token for each example.
         '''
+        
+        #PROBLEM: set token index
         self.tokenized = tokenized_examples
         for i in range(self.N):
-            token = tokenized_examples[i]
+            token = tokenized_examples[i]['token_list'] # tokenized_examples[i] has also fields 'start_index' and 'stop_index'
             for t in token:
                 start = t.start
                 stop = t.stop
-                token_length = stop - start
+                token_length = t.length
                 for k in range(self.nf):
                     avg_score = float(self.prediction[i, k, start:stop].sum()) / token_length
-                    #feature_name = attrmap[k][1]
-                    #local threshold = CONFIG.THRESHOLDS[feature_name].word_score
                     concept = self.output_semantics[k]
-                    if avg_score >= THRESHOLDS[concept]: 
+                    if avg_score >= concept.threshold: 
                         self.start[i, k, start] = 1
-                        self.stop[i, k, stop-1] = 1 # should stop mark be stop-1 to be the last character and not the next? otherwise need to test if stop < length: 
+                        self.stop[i, k, stop-1] = 1 # stop mark has to be stop-1 to be the last character and not the next; otherwise we would always need later to test if stop < length of string because of last token 
                         self.score[i, k, start] = round(100*avg_score)
                         self.marks[i, k, start:stop].fill_(1)
-    
+
     def fuse_adjascent(self, regex=" "):
         '''
         When to adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
@@ -82,7 +82,7 @@ class Binarized:
             #else:
             #    pos_iter = PositionIter(input_string)
             #for pos, _ in pos_iter:
-            for t in self.tokenized[i]:
+            for t in self.tokenized[i]['token_list']:
                 stop_mark = t.stop-1
                 #s = "this is the black cat"
                 #                 ||||| |||
@@ -109,7 +109,7 @@ class Binarized:
         self.stop = torch.cat((self.stop, other.stop), 1)
         self.marks = torch.cat((self.marks, other.marks), 1)
         self.score = torch.cat((self.score, other.score), 1)
-        assert(self.nf==self.marks.size(1), f"{self.nf}<>{self.marks.size(1)}")
+        assert(self.nf==self.marks.size(1)) # f"{self.nf}<>{self.marks.size(1)}")
         # self.tokenized untouched
 
     def erase_(self, other):

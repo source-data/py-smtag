@@ -2,14 +2,18 @@
 #T. Lemberger, 2018
 
 #from abc import ABC
+import torch
 import xml.etree.ElementTree as ET
 from smtag.utils import xml_escape
-from smtag.mapper import serializing_map
+from smtag.mapper import Catalogue, Boundary
 
 
 class AbstractElementSerializer(object): # (ABC)
 
     def make_element(self, inner_text):
+        pass
+
+    def mark_boundary(self, action):
         pass
 
     def map(self, tag, on_features, concept):
@@ -23,7 +27,7 @@ class XMLElementSerializer(AbstractElementSerializer):
         attribute_list= {}
 
         for concept in on_features:
-            if concept is not None:
+            if concept:
                 attribute, value = XMLElementSerializer.map(concept)
                 # sometimes prediction is ambiguous and several values are found for a type or a role
                 if attribute in attribute_list:
@@ -35,20 +39,38 @@ class XMLElementSerializer(AbstractElementSerializer):
         return xml_string # because both HTML and XML handled, working with strings is easier than return ET.tostring(xml_string)
 
     @staticmethod
+    def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL 
+        if action == 'open':
+            return '<{}>'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
+        elif action == 'close':
+            return '</{}>'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
+
+    @staticmethod
     def map(concept):
-        return serializing_map[concept]
+        #return entity_serializing_map[concept]
+        return concept.for_serialization
+
 
 class HTMLElementSerializer(AbstractElementSerializer):
 
     @staticmethod
     def make_element(tag, on_features, inner_text):
-        html_classes = [HTMLElementSerializer.map(concept) for concept in on_features if concept is not None]
+        html_classes = [HTMLElementSerializer.map(concept) for concept in on_features if concept]
         html_string = "<span class=\"{} {}\">{}</span>".format(tag, ' '.join(html_classes), inner_text)
         return html_string
 
     @staticmethod
+    def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL 
+        if action == 'open':
+            return '<span class="{}">'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
+        elif action == 'close':
+            return '</span>'
+
+
+    @staticmethod
     def map(concept):
-        attribute, value = serializing_map[concept]
+        #attribute, value = entity_serializing_map[concept] 
+        attribute, value = concept.for_serialization
         return "{}_{}".format(attribute, value)
 
 
@@ -58,12 +80,12 @@ class AbstractSerializer(object): #(ABC)
         self.tag = tag
         self.serialized_examples = []
 
-    def serialize(self, binarized_pred):
-        self.N = binarized_pred.N
-        self.L = binarized_pred.L
-        self.nf = binarized_pred.nf
+    def serialize(self, binarized):
+        self.N = binarized.N
+        self.L = binarized.L
+        self.nf = binarized.nf
         self.results = []
-        self.output_semantics = binarized_pred.output_semantics # an ordered sequence of strings representing the concepts encoded by the output; needed to serialize it in XMl/HTML/Brag etc..
+        self.output_semantics = binarized.output_semantics # an ordered sequence of Concept representing the concepts encoded by the output; needed to serialize it in XMl/HTML/Brag etc..
 
 class AbstractTagger(AbstractSerializer):
 
@@ -73,92 +95,121 @@ class AbstractTagger(AbstractSerializer):
     def serialize_element(self, inner_text, on_features):
         pass
 
-    def serialize(self, binarized_pred): # binarized_pred contains N examples
-        super(AbstractTagger, self).serialize(binarized_pred)
+    def serialize_boundary(self, action):
+        pass
 
+    def serialize(self, binarized): # binarized contains N examples
+        super(AbstractTagger, self).serialize(binarized)
+        if Catalogue.PANEL_START in binarized.output_semantics:
+            panel_feature = binarized.output_semantics.index(Catalogue.PANEL_START)
+        else:
+            panel_feature = None
+        
         for i in range(self.N):
-            #example_text = binarized_pred.example_text[i]
-            token_list = binarized_pred.tokenized[i]
+            #example_text = binarized.example_text[i]
             ml_string = ""
             inner_text = ""
-            current_concepts = [None] * self.nf # will be used like this [map(concept) for concept in on_features if concept is not None]
+            current_concepts = [False] * self.nf # usage: [map(concept) for concept in on_features if concept]
             need_to_open = [False] * self.nf
             need_to_close = [False] * self.nf
             need_to_open_any = False
             need_to_close_any = False
             active_features = 0
             current_scores = [0] * self.nf
+            boundaries = torch.Tensor()
+            if panel_feature is not None:
+                # find where the panel boundaries are. Not very general but simpler than multiple hierarchical boundary types
+                boundaries = binarized.start[ i , panel_feature , :].nonzero() # carefule: nonzero() return a list of coordinates of non zero element in the Tensor.
 
-            #if binarized_pred.tokenized:
-            #    pos_iter = PositionIter(token=binarized_pred.tokenized[i], mode='stop') #faster, but not working, missing spaces; how to put token back together again?
-            #else:
+            token_start_positions = binarized.tokenized[i]['start_index']
+            print("token_start_positions", token_start_positions)
+            print("token list", " ".join([t.text for t in binarized.tokenized[i]['token_list']]))
+            # segment example based on boundaries
 
-            for t in token_list:
-                start = t.start
-                stop = t.stop-1 # last token has stop outside bound of binarized_pred.stop
-                left_spacer = t.left_spacer
-                text = xml_escape(t.text)
-                #get set of new features that need to be opened
-                
-                if active_features > 0:
-                    inner_text +=  left_spacer
-                else:
-                    ml_string += left_spacer
-                
-                for f in range(self.nf):
-                    if binarized_pred.start[i][f][start] != 0:  
-                        need_to_open[f] = True
-                        need_to_open_any = True
-                        active_features += 1
+            start = token_start_positions[0]
+            segments = []
+            if len(boundaries.nonzero()) != 0: # if example i has a position where boundaries[i] is 1, we need to segment
 
-                #as soon as something new needs  to be opened all the rest needs to be closed first with the accumulated inner text
-                if need_to_open_any:
-                    if inner_text: 
-                        tagged_string = self.serialize_element(current_concepts, inner_text)
+                for b in boundaries: # what if multiple kind of boundaries? this would be too complicated for the moment!!
+                    if b in token_start_positions: 
+                        #find index of corresponding token
+                        next_token_index = token_start_positions.index(b)
+                        # add token from previous start to token before next
+                        segment = binarized.tokenized[i]['token_list'][start:next_token_index]
+                        segments.append(segment)
+                        start = next_token_index
+                        # SO VERY WRONG... NEED THE LAST SEGMENT TOO STUPID...
+                        print("segment: ", b, next_token_index, token_start_positions.index(b), " ".join([t.text for t in segment]))
+            last_segment = binarized.tokenized[i]['token_list'][start:]
+            print("last segment: ", " ".join([t.text for t in last_segment]))
+            segments.append(last_segment)
+
+            for token_list in segments:
+            # change this to binarized.start.sum(1).nonzero etc then identify which feature is on; same for stop 
+            # change this to to start in benarized.tokenized.start_index to get immediately only the position where tag needs to be genearated: much faster!
+                print("serialize segment", " ".join([t.text for t in token_list]))
+                ml_string += "<sd-panel>" # self.serialize_boundary('open') # problem: left spacer should be put before that
+                for t in token_list:
+                    start = t.start
+                    stop = t.stop-1
+                    left_spacer = t.left_spacer # left_spacer is the spacing characters that precede this token
+                    text = xml_escape(t.text)
+
+                    if active_features > 0:
+                        inner_text +=  left_spacer
                     else:
-                        tagged_string =''
-                    inner_text = ''
-                    ml_string += tagged_string
+                        ml_string += left_spacer
+
+                    # PROBLEM: it will add boundaries as well!!
+                    # scan features that need to be opened
                     for f in range(self.nf):
-                        if need_to_open[f]:
-                            need_to_open[f] = False
-                            concept = self.output_semantics[f]
-                            current_concepts[f] = concept
-                            current_scores[f] = binarized_pred.score[i][f][start]
-                    need_to_open_any = False
+                        if not isinstance(self.output_semantics[f], Boundary) and binarized.start[i][f][start] != 0:  
+                            need_to_open[f] = True
+                            need_to_open_any = True
+                            active_features += 1
 
-                
-                if active_features > 0:
-                    inner_text +=  text
-                else:
-                    ml_string += text
+                    # as soon as something new needs to be opened all the rest needs to be closed first with the accumulated inner text
+                    if need_to_open_any:
+                        if inner_text: 
+                            tagged_string = self.serialize_element(current_concepts, inner_text)
+                        else:
+                            tagged_string =''
+                        inner_text = ''
+                        ml_string += tagged_string
+                        for f in range(self.nf):
+                            if  not isinstance(self.output_semantics[f], Boundary) and need_to_open[f]:
+                                need_to_open[f] = False
+                                concept = self.output_semantics[f]
+                                current_concepts[f] = concept
+                                current_scores[f] = binarized.score[i][f][start]
+                        need_to_open_any = False
 
-                #scan features and set attributes that need to be closed
-                for f in range(self.nf):
-                    if binarized_pred.stop[i][f][stop] != 0:
-                        need_to_close[f] = True
-                        need_to_close_any = True
-                        active_features -= 1
-                
-                if need_to_close_any:
-                    if inner_text:
-                        tagged_string = self.serialize_element(current_concepts, inner_text)
+                    if active_features > 0:
+                        inner_text +=  text
                     else:
-                        tagged_string = ''
-                    inner_text = ''
-                    ml_string += tagged_string
+                        ml_string += text
+
+                    #scan features that need to be closed
                     for f in range(self.nf):
-                        if need_to_close[f]:
-                            need_to_close[f] = False
-                            current_concepts[f] = None
-                            current_scores[f] = 0
-                    need_to_close_any = False
+                        if  not isinstance(self.output_semantics[f], Boundary) and binarized.stop[i][f][stop] != 0:
+                            need_to_close[f] = True
+                            need_to_close_any = True
+                            active_features -= 1
 
-            #close anything that is still left open
-            #if active_features > 0:
-            #    tagged_string = self.serialize_element(inner_text, current_concepts, self.output_semantics)
-            #    ml_string += tagged_string
-
+                    if need_to_close_any:
+                        if inner_text:
+                            tagged_string = self.serialize_element(current_concepts, inner_text)
+                        else:
+                            tagged_string = ''
+                        inner_text = ''
+                        ml_string += tagged_string
+                        for f in range(self.nf):
+                            if  not isinstance(self.output_semantics[f], Boundary) and need_to_close[f]:
+                                need_to_close[f] = False
+                                current_concepts[f] = False
+                                current_scores[f] = 0
+                        need_to_close_any = False
+                ml_string += "</sd-panel>" #self.serialize_boundary('close')
             #phew!
             self.serialized_examples.append(ml_string)
         return self.serialized_examples
@@ -167,12 +218,12 @@ class XMLTagger(AbstractTagger):
 
     def __init__(self, tag):
         super(XMLTagger, self).__init__(tag)
-#make_element(tag, on_features, inner_text)
+
     def serialize_element(self, on_features, inner_text):
         return XMLElementSerializer.make_element(self.tag, on_features, inner_text)
 
-    def serialize(self, binarized_pred):
-         return super(XMLTagger, self).serialize(binarized_pred)
+    def serialize_boundary(self, action): # preliminary naive implementation...
+        return XMLElementSerializer.mark_boundary(action)
 
 class HTMLTagger(AbstractTagger):
 
@@ -182,10 +233,6 @@ class HTMLTagger(AbstractTagger):
     def serialize_element(self, on_features, inner_text):
         return HTMLElementSerializer.make_element(self.tag, on_features, inner_text)
 
-    def serialize(self, binarized_pred):
-        return super(HTMLTagger, self).serialize(binarized_pred)
-
-
 class BratSerializer(AbstractSerializer):
 
     def __init__(self, tag):
@@ -194,8 +241,6 @@ class BratSerializer(AbstractSerializer):
     def serialize_element(self, inner_text, on_features, scores): #need the positions; maybe does not need to be abstract method if I cannot change the parameters
         pass
 
-    def serialize(self, binarized_pred):
-        pass
 
 class Serializer():
 

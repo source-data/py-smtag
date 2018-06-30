@@ -11,15 +11,21 @@ class Trainer:
 
     def __init__(self, training_minibatches, validation_minibatches, model):
         self.model = model
-        # checking if we are on a GPU machine and put the model onto the available GPU devices
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # we copy the options opt and output_semantics to the trainer itself
+        # in case we will need them during accuracy monitoring (for example to binarize output with feature-specific thresholds)
+        # on a GPU machine, the model is wrapped into a nn.DataParallel object and the opt and output_semantics attributes would not be directly accessible
+        self.opt = model.opt 
+        self.output_semantics = model.output_semantics # 
+        model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
+        print(model_descriptor)
+        # wrap model into nn.DataParallel if we are on a GPU machine
+        self.cuda_on = False
         if torch.cuda.device_count() > 1:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
-        self.model.to(device)
+            self.model.cuda()
+            self.cuda_on = True
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
-        model_descriptor = "\n".join(["{}={}".format(k, self.model.opt[k]) for k in self.model.opt])
-        print(model_descriptor)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
         self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() # 
@@ -40,9 +46,8 @@ class Trainer:
         return avg_loss
 
     def train(self):
-        opt = self.model.opt
-        self.learning_rate = opt['learning_rate']
-        self.epochs = opt['epochs']
+        self.learning_rate = self.opt['learning_rate']
+        self.epochs = self.opt['epochs']
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
         
         for e in range(self.epochs):
@@ -58,14 +63,15 @@ class Trainer:
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
-                print("\n\n\nepoch {}\tminibatch #{}\tloss={}".format(e, counter, loss))
-                Show.example(self.validation_minibatches, self.model)
                 counter += 1
 
             # Logging/plotting
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
             avg_validation_loss = self.validate() # the average loss over the validation minibatches
-            self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
+            print("\n\n\nepoch {}\ttraining_loss={:5}\tvalidation loss={:5}".format(e, avg_train_loss, avg_validation_loss))
+            if not self.cuda_on:
+                Show.example(self.validation_minibatches, self.model)
+                self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
             #Log values and gradients of the parameters (histogram summary)
             #for name, param in self.model.named_parameters():
             #    name = name.replace('.', '/')

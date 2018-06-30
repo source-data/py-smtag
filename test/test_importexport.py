@@ -11,10 +11,11 @@ from smtag.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
 from smtag.converter import Converter, TString
-from smtag.predictor import EntityPredictor
+from smtag.predictor import SimplePredictor
 from smtag.importexport import load_model
 from smtag.config import MODEL_DIR
 from smtag.progress import progress
+from smtag.mapper import Catalogue
 from smtag.importexport import export_model, load_model
 
 #maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
@@ -51,16 +52,14 @@ class ImportExportTest(SmtagTestCase):
 
 
     def test_export_reload(self):
-        ml_1 = EntityPredictor(self.model).markup(TString(self.text_example))
+        b_1 = SimplePredictor(self.model).pred_binarized(TString(self.text_example), [Catalogue.GENEPROD])
         y_1 = self.model(self.x)
         self.myzip = export_model(self.model, custom_name='test_model_importexport')
         reloaded = load_model('test_model_importexport.zip')
-        ml_2 = EntityPredictor(reloaded).markup(TString(self.text_example))
+        b_2 = SimplePredictor(reloaded).pred_binarized(TString(self.text_example), [Catalogue.GENEPROD])
         y_2 = reloaded(self.x)
         self.assertTensorEqual(y_1, y_2)
-        print(ml_1)
-        print(ml_2)
-        self.assertEqual(ml_1, ml_2)
+        self.assertTensorEqual(b_1.marks, b_2.marks)
     
     def tearDown(self):
         if self.myzip is not None:

@@ -7,7 +7,7 @@ import torch
 # import logging
 import math
 from smtag.converter import Converter
-import smtag.mapper as mapper
+from smtag.mapper import Catalogue, concept2index
 from smtag.progress import progress
 from smtag.viz import Show 
 
@@ -39,9 +39,9 @@ class Dataset:
 
     def from_files(self, basename):
         features_filename = "data/{}.npy".format(basename)
-        text_filename = f'data/{basename}.txt'
+        text_filename = 'data/{}.txt'.format(basename)
         #textcoded_filename = "data/{}_textcoded.npy".format(basename)
-        provenance_filename = f'data/{basename}.prov'
+        provenance_filename = 'data/{}.prov'.format(basename)
 
         print("Loading {} as features for the dataset.".format(features_filename))
         np_features = np.load(features_filename) #saved file is 3D; need to change this?
@@ -67,7 +67,7 @@ class Dataset:
             for line in f:
                 self.provenance.append(line)
 
-        print(f"Dataset dimensions:")
+        print("Dataset dimensions:")
         print("{} text examples of size {}".format(self.N, self.L))
         print("{} input features (in-channels).".format(self.nf_input))
         print("{} output features (out-channels).".format(self.nf_output))
@@ -76,10 +76,10 @@ class Dataset:
 class Loader:
 
     def __init__(self, opt):
-        self.selected_features = opt['selected_features']
-        self.collapsed_features = opt['collapsed_features']
-        self.overlap_features = opt['overlap_features']
-        self.features_as_input = opt['features_as_input']
+        self.selected_features = Catalogue.from_list(opt['selected_features'])
+        self.collapsed_features = Catalogue.from_list(opt['collapsed_features'])
+        self.overlap_features = Catalogue.from_list(opt['overlap_features'])
+        self.features_as_input = Catalogue.from_list(opt['features_as_input'])
         self.validation_fraction = opt['validation_fraction']  # fraction of the whole dataset to be used for validation during training
         self.nf_input = NBITS
 
@@ -99,13 +99,14 @@ class Loader:
         else: 
             self.index_of_overlap_feature = None
 
-
+        # debugging
         print("nf.output=", self.nf_output)
         print("nf.input=", self.nf_input)
         print("index_of_collapsed_feature=", self.index_of_collapsed_feature)
         print("index_of_overlap_feature", self.index_of_overlap_feature)
-        print("mapper.label2index[collapsed_features]", [mapper.label2index[f] for f in self.collapsed_features])
-        print("mapper.label2index[overlap_features]", [mapper.label2index[f] for f in self.overlap_features])
+        print("concept2index self.selected_features", [concept2index[f] for f in self.selected_features])
+        print("concept2index self.collapsed_features", [concept2index[f] for f in self.collapsed_features])
+        print("concept2index self.overlap_features", [concept2index[f] for f in self.overlap_features])
 
 
     def prepare_datasets(self, file_basename):
@@ -128,7 +129,7 @@ class Loader:
 
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
         #THIS HAS TO GO! BELONGS TO DATAPREP!!! Probably in Featurizer
-        raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , mapper.label2index['gene'],  : ] + raw_dataset.output[ : ,  mapper.label2index['protein'], : ]
+        raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , concept2index[Catalogue.GENE],  : ] + raw_dataset.output[ : ,  concept2index[Catalogue.PROTEIN], : ]
 
         print("Creating dataset with selected features {}, and shuffling {} examples.".format(self.selected_features, N))
         shuffled_indices = torch.randperm(N) #shuffled_indices = range(N); shuffle(shuffled_indices)
@@ -174,30 +175,29 @@ class Loader:
                 dataset.provenance[index] = raw_dataset.provenance[i]
 
                 #this is a bit slow! Shift to data prep!
-                dataset.input[index, 0:32 , : ] = Converter.t_encode(raw_dataset.text[i])
+                dataset.input[index, 0:32 , : ] = Converter.t_encode(raw_dataset.text[i]) # perhaps better: TString(raw_dataset.text[i]).toTensor()
                 #dataset.input[index, 0:32 , : ] = raw_dataset.textcoded[i, : , : ]
 
                 j = 0
                 for f in self.features_as_input:
                     # for example: j=0, => 32 + 0 = 32
-                    dataset.input[index, 32 + j, : ] = raw_dataset.output[i, mapper.label2index[f], : ]
+                    dataset.input[index, 32 + j, : ] = raw_dataset.output[i, concept2index[f], : ]
                     j += 1
 
                 #OUTPUT SELECTION AND COMBINATION OF FEATURES
-
                 for f in self.selected_features:
                     j = self.selected_features.index(f)
-                    dataset.output[index, j, : ] = raw_dataset.output[i, mapper.label2index[f], : ]
+                    dataset.output[index, j, : ] = raw_dataset.output[i, concept2index[f], : ]
                     
                 #dataset.output[index, nf_collapsed_feature,:] is already initialized with zeros
                 for f in self.collapsed_features:
-                    dataset.output[index, self.index_of_collapsed_feature,  : ] += raw_dataset.output[i, mapper.label2index[f], : ]  
+                    dataset.output[index, self.index_of_collapsed_feature,  : ] += raw_dataset.output[i, concept2index[f], : ]  
 
                 #for overlap features, need initialization with ones
                 if self.overlap_features:
                     dataset.output[index, self.index_of_overlap_feature, : ].fill_(1)
                 for f in self.overlap_features:
-                    dataset.output[index, self.index_of_overlap_feature, : ] *= raw_dataset.output[i, mapper.label2index[f], : ]
+                    dataset.output[index, self.index_of_overlap_feature, : ] *= raw_dataset.output[i, concept2index[f], : ]
             
             print("\ndone\n")
             datasets[k] = dataset

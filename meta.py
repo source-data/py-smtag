@@ -55,7 +55,7 @@ if __name__ == '__main__':
     # READ COMMAND LINE ARGUMENTS
     #arguments = docopt(__doc__, version='0.1')
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-f', '--file', default='test_train', help='Namebase of dataset to import')
+    parser.add_argument('-f', '--file', default='test_entities_train', help='Namebase of dataset to import')
     parser.add_argument('-E' , '--epochs',  default=120, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=128, help='Minibatch size.')
     parser.add_argument('-R ', '--learning_rate', default=0.001, help='Learning rate.')
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     opt['minibatch_size'] = int(arguments['minibatch_size'])
     output_features = [x.strip() for x in arguments['output_features'].split(',') if x.strip()]
     collapsed_features = [x.strip() for x in arguments['collapsed_features'].split(',') if x.strip()]
-    overlap_features = [x.stip() for x in arguments['overlap_features'].split(',') if x.strip()]
+    overlap_features = [x.strip() for x in arguments['overlap_features'].split(',') if x.strip()]
     features_as_input = [x.strip() for x in arguments['features_as_input'].split(',') if x.strip()]
     nf_table = [x for x in arguments['nf_table']] # .split(',')]
     kernel_table = [x for x in arguments['kernel_table']] # .split(',')]
@@ -105,8 +105,7 @@ if __name__ == '__main__':
 
     #TRAIN MODEL
     model = SmtagModel(opt)
-    t = Trainer(training_minibatches, validation_minibatches, model)
-    t.train()
+    Trainer(training_minibatches, validation_minibatches, model).train()
 
     #SAVE MODEL
     export_model(model)

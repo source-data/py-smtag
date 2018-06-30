@@ -12,7 +12,7 @@ import time
 def xml_escape(s):
     return escape(s)
 
-Token = namedtuple('Token', ['text', 'start', 'stop', 'left_spacer'])
+Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer'])
 
 def tokenize(s):
     #patterns derived from python nltk library http://www.nltk.org/_modules/nltk/tokenize/punkt.html#PunktLanguageVars.word_tokenize
@@ -51,16 +51,21 @@ def tokenize(s):
     token_list = []
     left_spacer = ''
     last_stop = 0
+    start_index = [] # indexing by start position of the token
+    stop_index = [] # indexing by stop position of the token
     for m in matches:
         start = m.start()
         stop = m.end()
+        length = stop - start
         text = m.group(0)
         left_spacer = s[last_stop:start]
-        t = Token(text=text, start=start, stop=stop, left_spacer=left_spacer)
+        t = Token(text=text, start=start, stop=stop, length=length, left_spacer=left_spacer)
         token_list.append(t)
+        start_index.append(start)
+        stop_index.append(stop)
         last_stop = stop
-
-    return token_list
+    
+    return {'token_list':token_list, 'start_index':start_index, 'stop_index':stop_index}
 
 class TokenIter:
     '''

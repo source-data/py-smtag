@@ -13,20 +13,25 @@ from smtag.utils import cd
 
 def export_model(model, custom_name = '', model_dir = MODEL_DIR):
     model.cpu() # model.cpu().double() ?
+    # extract the SmtagModel from the nn.DataParallel table, if necessary
+    if isinstance(model, torch.nn.DataParallel):
+        print("getting SmtagModel")
+        model = [m for m in model.children if isinstance(m, SmtagModel)][0]
     opt = model.opt
     if custom_name:
         name = custom_name
     else:
         suffixes = []
-        suffixes.append("_".join([f for f in model.output_semantics]))
-        #suffixes.append(_".join([f for f in opt['collapsed_features']]))
+        suffixes.append("_".join([str(f) for f in model.output_semantics]))
+        suffixes.append("_v_".join([f for f in opt['collapsed_features']]))
+        suffixes.append("_&_".join([f for f in opt['overlap_features']]))
         suffixes.append(datetime.now().isoformat("-",timespec='minutes').replace(":", "-"))
         suffix = "_".join(suffixes)
         name = "{}_{}".format(opt['namebase'], suffix)
-    model_path = "{}.sddl".format(name) #os.path.join(name, "{}.sddl".format(name))
+    model_path = "{}.sddl".format(name)
     #torch.save(model, model_filename) # does not work
-    archive_path = "{}.zip".format(name) #os.path.join(model_dir, "{}.zip".format(name))
-    option_path = "{}.json".format(name) # os.path.join(model_dir, "{}_{suffix}.json".format(name))
+    archive_path = "{}.zip".format(name)
+    option_path = "{}.json".format(name)
     with cd(MODEL_DIR):
         with ZipFile(archive_path, 'w') as myzip:
             torch.save(model.state_dict(), model_path)
@@ -49,7 +54,6 @@ def load_model(archive_filename, model_dir=MODEL_DIR):
             myzip.extractall()
             for filename in myzip.namelist():
                 _, ext = os.path.splitext(filename)
-                #_, filename = os.path.split(filename)
                 if ext == '.sddl':
                     model_path = filename
                     print("extracted {}".format(model_path))
