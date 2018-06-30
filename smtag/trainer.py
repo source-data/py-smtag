@@ -19,10 +19,12 @@ class Trainer:
         model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
         print(model_descriptor)
         # wrap model into nn.DataParallel if we are on a GPU machine
+        self.cuda_on = False
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.device_count() > 1:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
+            self.cuda_on = True
         self.model.to(device)
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
@@ -62,14 +64,15 @@ class Trainer:
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
-                print("\n\n\nepoch {}\tminibatch #{}\tloss={}".format(e, counter, loss))
-                Show.example(self.validation_minibatches, self.model)
                 counter += 1
 
             # Logging/plotting
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
             avg_validation_loss = self.validate() # the average loss over the validation minibatches
-            self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
+            print("\n\n\nepoch {}\ttraining_loss={:5}\tvalidation loss={:5}".format(e, avg_train_loss, avg_validation_loss))
+            if not self.cuda_on:
+                Show.example(self.validation_minibatches, self.model)
+                self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
             #Log values and gradients of the parameters (histogram summary)
             #for name, param in self.model.named_parameters():
             #    name = name.replace('.', '/')

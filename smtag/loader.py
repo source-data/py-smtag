@@ -104,6 +104,7 @@ class Loader:
         print("nf.input=", self.nf_input)
         print("index_of_collapsed_feature=", self.index_of_collapsed_feature)
         print("index_of_overlap_feature", self.index_of_overlap_feature)
+        print("concept2index self.selected_features", [concept2index[f] for f in self.selected_features])
         print("concept2index self.collapsed_features", [concept2index[f] for f in self.collapsed_features])
         print("concept2index self.overlap_features", [concept2index[f] for f in self.overlap_features])
 
