@@ -16,7 +16,7 @@ class Trainer:
         # on a GPU machine, the model is wrapped into a nn.DataParallel object and the opt and output_semantics attributes would not be directly accessible
         self.opt = model.opt 
         self.output_semantics = model.output_semantics # 
-        model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.model.opt])
+        model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
         print(model_descriptor)
         # wrap model into nn.DataParallel if we are on a GPU machine
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -45,9 +45,8 @@ class Trainer:
         return avg_loss
 
     def train(self):
-        opt = self.model.opt
-        self.learning_rate = opt['learning_rate']
-        self.epochs = opt['epochs']
+        self.learning_rate = self.opt['learning_rate']
+        self.epochs = self.opt['epochs']
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
         
         for e in range(self.epochs):
