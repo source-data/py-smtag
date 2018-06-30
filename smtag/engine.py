@@ -3,7 +3,7 @@
 
 """smtag
 Usage:
-  cli.py [-m <str> -t <str> -f <xml]
+  engine.py [-m <str> -t <str> -f <xml]
 
 Options:
   -m <str>, --method <str>                Method to call [default: smtag)
@@ -65,6 +65,7 @@ class Connector(nn.Module):
 
 class SmtagEngine:
 
+    # @timer
     def __init__(self, cartridge={}):
         #change this to accept a 'cartridge' that descibes which models to load
         if cartridge:
@@ -88,7 +89,7 @@ class SmtagEngine:
         for model_family in self.cartridge:
             self.models[model_family] = Combine([(model, anonymize_with) for model, anonymize_with in self.cartridge[model_family]])
 
-    @timer
+    # @timer
     def __entity(self, input_string):
         input_t_string = TString(input_string)
         p = SimplePredictor(self.models['entity'])
@@ -98,7 +99,7 @@ class SmtagEngine:
     def entity(self, input_string):
         return self.serialize(self.__entity(input_string))
 
-    @timer
+    # @timer
     def __entity_and_context(self, input_string):
 
         input_t_string = TString(input_string)
@@ -120,6 +121,7 @@ class SmtagEngine:
     def tag(self, input_string):
         return self.serialize(self.__entity_and_context(input_string))
 
+    # @timer
     def __all(self, input_string):
         
         input_t_string = TString(input_string)
@@ -194,5 +196,15 @@ if __name__ == "__main__":
     # PARSE ARGUMENTS
     arguments = docopt(__doc__, version='0.1')
     input_string = arguments['--text']
-
-    print(SmtagEngine().smtag(input_string))
+    method = arguments['--method']
+    engine = SmtagEngine()
+    if method == 'smtag':
+        print(engine.smtag(input_string))
+    elif method == 'panelize':
+        print(engine.panelizer(input_string))
+    elif method == 'tag':
+        print(engine.tag(input_string))
+    elif method == 'entity':
+        print(engine.entity(input_string))
+    else:
+        print("unknown method {}".format(method))
