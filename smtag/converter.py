@@ -4,6 +4,7 @@
 import numpy as np
 import argparse
 import torch
+from smtag.utils import timer
 
 class Converter():
     """
@@ -45,6 +46,7 @@ class Converter():
         Returns
             (str): resulting string
         """
+
         #tensor is 3D
         L = t.size(2)
         str = ""
@@ -70,6 +72,7 @@ class TString(str): # (str) or (torch.Tensor)?
         repeat(int): repeat the TString
         all the methods from torch.Tensor
     '''
+
     def __init__(self, x=''):
         super(TString, self).__init__()
         self.t = torch.Tensor()
