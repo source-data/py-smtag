@@ -24,8 +24,9 @@ class Trainer:
         if torch.cuda.device_count() > 1:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
+            self.model.cuda()
             self.cuda_on = True
-        self.model.to(device)
+        #self.model.to(device)
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
