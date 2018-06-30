@@ -16,7 +16,6 @@
 - implement/test model on boundaries (instead of longitudinal marks)
 - train all models (all entities, panel_start, context_geneprod, context_small_mol, disease, exp_assay)
 - connect Flask server
-
 - implement -af option in sdgraph2th to concatenate all figures for a single paper
 - enable tensorboardX on Amazon GPU machine (serve which URL? how to set security?)
 - restructure smtag package in subpackages: datagen/, train/, predict/, common/ ?
