@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 from smtag.loader import Dataset
+import torch
 from math import floor
 import logging
 logger = logging.getLogger(__name__)
