@@ -78,7 +78,7 @@ if __name__ == '__main__':
     opt['minibatch_size'] = int(arguments['minibatch_size'])
     output_features = [x.strip() for x in arguments['output_features'].split(',') if x.strip()]
     collapsed_features = [x.strip() for x in arguments['collapsed_features'].split(',') if x.strip()]
-    overlap_features = [x.stip() for x in arguments['overlap_features'].split(',') if x.strip()]
+    overlap_features = [x.strip() for x in arguments['overlap_features'].split(',') if x.strip()]
     features_as_input = [x.strip() for x in arguments['features_as_input'].split(',') if x.strip()]
     nf_table = [x for x in arguments['nf_table']] # .split(',')]
     kernel_table = [x for x in arguments['kernel_table']] # .split(',')]
