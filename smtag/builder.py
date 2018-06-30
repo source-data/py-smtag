@@ -18,10 +18,12 @@ class SmtagModel(nn.Module):
         kernel_table = deepcopy(opt['kernel_table']) # need to deep copy/clone
         pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
         dropout = opt['dropout']
+        
         self.pre = nn.BatchNorm1d(nf_input)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1)
         self.BN = nn.BatchNorm1d(nf_output)
+        
         self.output_semantics = Catalogue.from_list(opt['selected_features']) 
         if 'collapsed_features' in opt:
             print(opt['collapsed_features'])
@@ -34,7 +36,6 @@ class SmtagModel(nn.Module):
         self.opt = opt
 
     def forward(self, x):
-        print("hellow from withing", x.size())
         x = self.pre(x)
         x = self.unet(x)
         x = self.adapter(x)

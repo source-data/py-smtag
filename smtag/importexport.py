@@ -13,6 +13,9 @@ from smtag.utils import cd
 
 def export_model(model, custom_name = '', model_dir = MODEL_DIR):
     model.cpu() # model.cpu().double() ?
+    # extract the SmtagModel from the nn.DataParallel table, if necessary
+    if isinstance(model, torch.nn.DataParallel):
+        model = [m for m in model.children if isinstance(m, SmtagModel)][0]
     opt = model.opt
     if custom_name:
         name = custom_name
