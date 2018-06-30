@@ -1,3 +1,4 @@
+import torch
 from torch import nn, optim
 from smtag.builder import SmtagModel
 from smtag.progress import progress
@@ -18,7 +19,11 @@ def toy_model(x, y, selected_features = ['geneprod'], threshold = 1E-02, epochs 
         opt['nf_input'] = x.size(1)
         opt['nf_output'] =  y.size(1)
         model = SmtagModel(opt)
-
+        # test if on GPU
+        if torch.cuda.device_count() > 1:
+            print(torch.cuda.device_count(), "GPUs available.")
+            model = nn.DataParallel(self.model)
+            model.cuda()
         # we do the training loop here instead of using smtag.trainer to avoid the need to prepare minibatches
         loss_fn = nn.SmoothL1Loss() # nn.BCELoss() # 
         optimizer = optim.Adam(model.parameters(), lr = opt['learning_rate'])
