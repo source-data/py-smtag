@@ -4,7 +4,7 @@
 #from abc import ABC
 import torch
 import xml.etree.ElementTree as ET
-from smtag.utils import xml_escape
+from smtag.utils import xml_escape, timer
 from smtag.mapper import Catalogue, Boundary
 
 
@@ -222,6 +222,11 @@ class XMLTagger(AbstractTagger):
 
     def serialize_boundary(self, action): # preliminary naive implementation...
         return XMLElementSerializer.mark_boundary(action)
+
+    def serialize(self, binarized_pred):
+        xml_string_list = super(XMLTagger, self).serialize(binarized_pred)
+        # need to provide valid xml
+        return ["<smtag>{}</smtag>".format(xml_string) for xml_string in xml_string_list]
 
 class HTMLTagger(AbstractTagger):
 
