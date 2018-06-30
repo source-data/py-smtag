@@ -36,6 +36,7 @@ class SmtagModel(nn.Module):
         self.opt = opt
 
     def forward(self, x):
+        print("in forward", " x ".join([str(n) for n in list(x.size())]))
         x = self.pre(x)
         x = self.unet(x)
         x = self.adapter(x)
