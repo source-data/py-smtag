@@ -40,6 +40,7 @@ class Catalogue():
     EXP_VAR = Entity('experiment', ('role', 'experiment'), 0.5)
     GENERIC_ENTITY = Entity('component', ('role', 'component'), 0.5)
     EXP_ASSAY = Element('assay', ('category', 'assay'), 0.5)
+    ENTITY = Element('entity', ('category', 'entity'), 0.5)
     TIME = Element('time', ('category', 'assay'), 0.5)
     PHYSICAL_VAR = Element('physical', ('category', 'physical'), 0.5)
     DISEASE = Element('disease', ('category', 'disease'), 0.5)
@@ -50,7 +51,7 @@ class Catalogue():
     # the order of the Concepts in the cataglogue matters and determine the order in which these concepts are expected in datasets used for training
     standard_channels = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,
             INTERVENTION, MEASUREMENT, NORMALIZING, REPORTER, EXP_VAR, GENERIC_ENTITY,
-            EXP_ASSAY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD]
+            EXP_ASSAY, ENTITY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD]
 
 
     @staticmethod
