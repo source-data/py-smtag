@@ -15,13 +15,14 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
     model.cpu() # model.cpu().double() ?
     # extract the SmtagModel from the nn.DataParallel table, if necessary
     if isinstance(model, torch.nn.DataParallel):
+        print("getting SmtagModel")
         model = [m for m in model.children if isinstance(m, SmtagModel)][0]
     opt = model.opt
     if custom_name:
         name = custom_name
     else:
         suffixes = []
-        suffixes.append("_".join([f for f in model.output_semantics]))
+        suffixes.append("_".join([f for f in str(model.output_semantics)]))
         suffixes.append("_v_".join([f for f in opt['collapsed_features']]))
         suffixes.append("_&_".join([f for f in opt['overlap_features']]))
         suffixes.append(datetime.now().isoformat("-",timespec='minutes').replace(":", "-"))

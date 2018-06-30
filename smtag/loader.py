@@ -39,9 +39,9 @@ class Dataset:
 
     def from_files(self, basename):
         features_filename = "data/{}.npy".format(basename)
-        text_filename = f'data/{basename}.txt'
+        text_filename = 'data/{}.txt'.format(basename)
         #textcoded_filename = "data/{}_textcoded.npy".format(basename)
-        provenance_filename = f'data/{basename}.prov'
+        provenance_filename = 'data/{}.prov'.format(basename)
 
         print("Loading {} as features for the dataset.".format(features_filename))
         np_features = np.load(features_filename) #saved file is 3D; need to change this?
@@ -67,7 +67,7 @@ class Dataset:
             for line in f:
                 self.provenance.append(line)
 
-        print(f"Dataset dimensions:")
+        print("Dataset dimensions:")
         print("{} text examples of size {}".format(self.N, self.L))
         print("{} input features (in-channels).".format(self.nf_input))
         print("{} output features (out-channels).".format(self.nf_output))
