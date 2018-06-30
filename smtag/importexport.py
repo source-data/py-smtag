@@ -22,7 +22,7 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
         name = custom_name
     else:
         suffixes = []
-        suffixes.append("_".join([f for f in str(model.output_semantics)]))
+        suffixes.append("_".join([str(f) for f in model.output_semantics]))
         suffixes.append("_v_".join([f for f in opt['collapsed_features']]))
         suffixes.append("_&_".join([f for f in opt['overlap_features']]))
         suffixes.append(datetime.now().isoformat("-",timespec='minutes').replace(":", "-"))
