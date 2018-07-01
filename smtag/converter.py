@@ -88,17 +88,31 @@ class TString(str): # (str) or (torch.Tensor)?
         return self.s
 
     def __len__(self):
-        return int(self.t.size(2))
+        return len(self.s)
 
     def __add__(self, x): # overwrites tensor adding into tensor concatenation like strings
-        concatenated = TString()
-        concatenated.t = torch.cat((self.toTensor(), x.toTensor()), 2)
-        concatenated.s = str(self) + str(x)
-        return concatenated
-    
+        if len(x) == 0:
+            return self
+        elif len(self.s) == 0:
+            return x
+        else:
+            concatenated = TString()
+            concatenated.t = torch.cat((self.toTensor(), x.toTensor()), 2)
+            concatenated.s = str(self) + str(x)
+            return concatenated
+
+    def __getitem__(self, i):
+        if len(self.s) == 0:
+            return TString()
+        else:
+            item = TString()
+            item.s = self.s[i]
+            item.t = self.t[ : , : , i]
+            return item
+
     def repeat(self, N):
         repeated = TString()
-        repeated.t = self.t.repeat(1, 1, N)
+        repeated.t = self.t.repeat(1, 1, N) # WARNING: if N == 0, returned tensor is 2D !!!
         repeated.s = self.s * N
         return repeated
 
