@@ -127,7 +127,7 @@ def cd(newdir):
     '''
     From: https://stackoverflow.com/questions/431684/how-do-i-change-directory-cd-in-python/24176022#24176022
     '''
-    
+
     prevdir = os.getcwd()
     os.chdir(os.path.expanduser(newdir))
     try:

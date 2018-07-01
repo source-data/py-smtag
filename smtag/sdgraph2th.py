@@ -6,7 +6,7 @@ from getpass import getpass
 from xml.etree.ElementTree import tostring
 from smtag.dataprep import DataPreparator
 from smtag.featurizer import XMLFeaturizer
-import neo2leg
+import smtag.neo2leg as neo2leg
 
 
 class SDGraphPreparator(DataPreparator):
@@ -134,7 +134,6 @@ class SDGraphPreparator(DataPreparator):
                     print("skipping an example in paper with id=", id)
                     print("<xml>{}</xml>".format(tostring(figure_xml)))
                     print
-
         return dataset
     
     #implements @abstractmethod
