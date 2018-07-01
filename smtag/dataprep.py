@@ -4,13 +4,19 @@
 #from abc import ABC, abstractmethod
 import argparse
 import numpy as np
+import torch
 from string import ascii_letters
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
 from math import floor
-from mapper import index2label, number_of_features
+from smtag.mapper import index2concept, Catalogue
+from smtag.converter import TString
 import os.path
+from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
+from smtag.utils import cd
 from smtag.config import DATA_DIR
+
+SPACE_ENCODED = TString(" ")
 
 #class DataPreparator(ABC):
 class DataPreparator(object):
@@ -38,7 +44,7 @@ class DataPreparator(object):
         parser.add_argument('-W', '--window', action='store_true', help='switches to the sampling fig legends using a random window instead of parsing full sentences')
         parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
         parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
-        parser.add_argument('-c', '--rand_char_padding', action='store_true', help='padding with random characters instead of white spaces') 
+        #parser.add_argument('-c', '--rand_char_padding', action='store_true', help='padding with random characters instead of white spaces') 
         parser.add_argument('-p', '--padding', default=20, help='minimum padding added to text')
         self.options = {}
         #implementation: self.options = self.set_options(parser.parse_args())
@@ -67,7 +73,7 @@ class DataPreparator(object):
         else:
             options['sampling_mode'] = 'sentence'
         options['random_shifting'] = not args.disable_shifting
-        options['white_space_padding'] = not args.rand_char_padding
+        # options['white_space_padding'] = not args.rand_char_padding
         options['padding'] = args.padding
         
         return options
@@ -78,31 +84,29 @@ class DataPreparator(object):
         Once examples are loaded in the dataset, each example will be sampled multiple (=iterations) times, sliced, shifted and padded.
         """
         mode = self.options['sampling_mode']
-        white_space_padding = self.options['white_space_padding']
+        # white_space_padding = self.options['white_space_padding']
         random_shifting = self.options['random_shifting']
         min_padding = self.options['padding']
         N = len(dataset)
-        print("N=",N)
+        print("N =",N)
         length = self.options['length']
         iterations = self.options['iterations']
         index = 0
         text4th = []
         provenance4th = []
-        # number_of_features includes the virtual geneprod feature
+        number_of_features = len(Catalogue.standard_channels) # includes the virtual geneprod feature
         tensor4th = np.zeros((N * iterations, number_of_features, length+min_padding)) # dtype = np.bool_
-        #textcoded4th = np.zeros((N * iterations, 32, length+min_padding)) # dtype = np.bool_
+        textcoded4th = np.zeros((N * iterations, 32, length+min_padding)) # dtype = np.bool_
         
         length_statistics = []
         print("generating {}*{} x {} x {} tensor.".format(N, self.options['iterations'], number_of_features, length+min_padding))
 
         for i in range(N):
             text_i = dataset[i]['text'] 
-            #add textcoded4th
-            #textcoded4th[i] = Converter.t_encode(text_i)
+            textcoded4th_i= TString(text_i)
             features_i = dataset[i]['features']
             #compute_features_i['marks']['sd-tag']['geneprod'] here or somethign
             provenance_i = dataset[i]['provenance']
-            #Example.text Example.features Example.provenance RawDataset[i] yields Example_i
             L = len(text_i)
             length_statistics.append(L)
             sentence_ranges = PunktSentenceTokenizer().span_tokenize(text_i) if mode == 'sentence' else None
@@ -122,6 +126,10 @@ class DataPreparator(object):
                 start = fragment[0]
                 stop = min(start + length, L)
                 sub_text = text_i[start:stop]
+                # sub_text4th = TString()
+                # sub_text4th.s = sub_text # not so nice, but textcoded4th[start:stop] would need to implement __getitem__(); needs to be tested 
+                #sub_text4th = textcoded4th_i[ : , :, start:stop] # 3D
+                sub_text4th = textcoded4th_i[start:stop]
 
                 padding = length + min_padding - len(sub_text)
                 if random_shifting: 
@@ -129,19 +137,25 @@ class DataPreparator(object):
                 else:
                     random_shift = 0
                 right_padding = padding - random_shift
-                #maybe use random characters as padding?
 
-                if white_space_padding:
-                    text_ij = ' ' * random_shift + sub_text + ' ' * right_padding 
-                else:
-                    left_padding_chars = ''.join([choice(ascii_letters+' ') for i in range(random_shift)])
-                    right_padding_chars = ''.join([choice(ascii_letters+' ') for i in range(right_padding)])
-                    text_ij = left_padding_chars + sub_text + right_padding_chars
+                #if white_space_padding:
+                text_ij = ' ' * random_shift + sub_text + ' ' * right_padding 
+                #else:
+                #    left_padding_chars = ''.join([choice(ascii_letters+' ') for i in range(random_shift)])
+                #    right_padding_chars = ''.join([choice(ascii_letters+' ') for i in range(right_padding)])
+                #    text_ij = left_padding_chars + sub_text + right_padding_chars
 
                 text4th.append(text_ij)
                 #add textcoded4th
-                #pad textcoded4th[i] with suitable encoded spaces matrices
-                
+                #textcoded4th[index] = TString(text_ij).toTensor() # pedestrian but slow way
+
+                #faster ??? but lower level
+                #pad textcoded4th_ij with suitable encoded spaces matrices
+                left_padding_encoded = SPACE_ENCODED.repeat(random_shift) 
+                right_padding_encoded = SPACE_ENCODED.repeat(right_padding)
+                textcoded4th_ij = left_padding_encoded + sub_text4th + right_padding_encoded
+                textcoded4th[index] = textcoded4th_ij.toTensor() # would be nicer to save directly TString and work only with TString ?
+
                 provenance4th.append(provenance_i)
 
                 #fill tensor of features   
@@ -164,8 +178,7 @@ class DataPreparator(object):
         if self.options['verbose']:
             self.display(text4th, tensor4th)
         
-        #add 'textcoded4th':textcoded4th, 
-        return {'text4th':text4th, 'provenance4th':provenance4th, 'tensor4th':tensor4th} 
+        return {'text4th':text4th, 'textcoded4th':textcoded4th, 'provenance4th':provenance4th, 'tensor4th':tensor4th} 
 
 
     def split_trainset_testset(self, raw_examples):  
@@ -221,27 +234,43 @@ class DataPreparator(object):
         """
         Saving datasets prepared for torch to a text file with text example, a npy file for the extracted features and a provenance file that keeps track of origin of each example.
         """
-        for k in self.dataset4th:
-            tensor_filename = os.path.join(DATA_DIR, filenamebase+"_"+k+".npy")
-            np.save(tensor_filename, self.dataset4th[k]['tensor4th']) 
-             
-            #textcoded_filename = os.path.join(DATA_DIR, filenamebase+"_"+k+"_textcoded".npy")
-            #np.save(textcoded_filename, self.dataset4th[k]['textcoded4th']) 
-             
-            text_filename = os.path.join(DATA_DIR, filenamebase+"_"+k+".txt")
-            with open(text_filename, 'w') as f:
-               for line in self.dataset4th[k]['text4th']: f.write("{}\n".format(line))
-            f.close()
-             
-            provenance_filename = os.path.join(DATA_DIR,filenamebase+"_"+k+".prov")
-            with open(provenance_filename, 'w') as f:
-               for line in self.dataset4th[k]['provenance4th']: f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
-            f.close()
+        
+        with cd(DATA_DIR):
+            for k in self.dataset4th: # 'train' | 'valid' | 'test'
+                archive_path = "{}_{}".format(filenamebase, k)
+                with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
+                    # write feature tensor
+                    tensor_filename = "{}.npy".format(archive_path)
+                    np.save(tensor_filename, self.dataset4th[k]['tensor4th'])
+                    myzip.write(tensor_filename)
+                    os.remove(tensor_filename) 
+                    
+                    # write encoded text tensor
+                    textcoded_filename = "{}_textcoded.npy".format(archive_path)
+                    np.save(textcoded_filename, self.dataset4th[k]['textcoded4th'])
+                    myzip.write(textcoded_filename)
+                    os.remove(textcoded_filename) 
 
-            print("Provenance ids saved to {}".format(provenance_filename))
-            print("Text examples saved to {}".format(text_filename))
-            #print("Encoded text examples saved to {}".format(textcoded_filename))
-            print("Tensor saved to {}".format(tensor_filename))
+                    # write text examples into text file
+                    text_filename = "{}.txt".format(archive_path)
+                    with open(text_filename, 'w') as f:
+                        for line in self.dataset4th[k]['text4th']: 
+                            f.write("{}\n".format(line))
+                    myzip.write(text_filename)
+                    os.remove(text_filename) 
+
+                    # write provenenance of each example into text file
+                    provenance_filename = "{}.prov".format(archive_path)
+                    with open(provenance_filename, 'w') as f:
+                        for line in self.dataset4th[k]['provenance4th']: 
+                            f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
+                    myzip.write(provenance_filename)
+                    os.remove(provenance_filename)
+
+                    myzip.close()
+
+                for info in myzip.infolist():
+                    print("saved {} (size: {})".format(info.filename, info.file_size))
 
     def log_errors(self, errors):
         """
@@ -270,7 +299,7 @@ class DataPreparator(object):
             print("Text:")
             print(text4th[i])
             for j in range(featsize):
-                feature = index2label[j]
+                feature = str(index2concept[j])
                 track = [int(tensor4th[i, j, k]) for k in range(L)]
                 print(''.join([['-','+'][x] for x in track]), feature)
 

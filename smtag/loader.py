@@ -40,7 +40,7 @@ class Dataset:
     def from_files(self, basename):
         features_filename = "data/{}.npy".format(basename)
         text_filename = 'data/{}.txt'.format(basename)
-        #textcoded_filename = "data/{}_textcoded.npy".format(basename)
+        textcoded_filename = "data/{}_textcoded.npy".format(basename)
         provenance_filename = 'data/{}.prov'.format(basename)
 
         print("Loading {} as features for the dataset.".format(features_filename))
@@ -50,9 +50,9 @@ class Dataset:
         self.L = np_features.shape[2] #length of text snippet 
         self.output = torch.from_numpy(np_features).float() #saved files are from numpy, need conversion to torch and make sure it is a FloatTensor othwerise problems with default dtype 
 
-        #print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
-        #text_coded = np.load(textcoded_filename)
-        #self.text_coded = torch.from_numpy(text_coded)
+        print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
+        textcoded = np.load(textcoded_filename)
+        self.textcoded = torch.from_numpy(textcoded)
 
         print("Loading {} for the original texts of the dataset.".format(text_filename))
         with open(text_filename, 'r') as f:
@@ -175,8 +175,8 @@ class Loader:
                 dataset.provenance[index] = raw_dataset.provenance[i]
 
                 #this is a bit slow! Shift to data prep!
-                dataset.input[index, 0:32 , : ] = Converter.t_encode(raw_dataset.text[i]) # perhaps better: TString(raw_dataset.text[i]).toTensor()
-                #dataset.input[index, 0:32 , : ] = raw_dataset.textcoded[i, : , : ]
+                #dataset.input[index, 0:32 , : ] = TString(raw_dataset.text[i]).toTensor()
+                dataset.input[index, 0:32 , : ] = raw_dataset.textcoded[i, : , : ]
 
                 j = 0
                 for f in self.features_as_input:

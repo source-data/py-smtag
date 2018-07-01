@@ -3,10 +3,10 @@
 
 """smtag
 Usage:
-  cli.py [-m <str> -t <str> -f <xml]
+  engine.py [-m <str> -t <str> -f <xml]
 
 Options:
-  -m <str>, --method <str>                Method to call [default: entity)
+  -m <str>, --method <str>                Method to call [default: smtag)
   -t <str>, --text <str>                  Text input in unicode [default: "fluorescent images of 200‐cell‐stage embryos from the indicated strains stained by both anti‐SEPA‐1 and anti‐LGG‐1 antibody"].
   -f <str>, --format <str>                Format of the output [default: xml]
   -g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: xml]
@@ -37,7 +37,7 @@ class Combine(nn.Module):#SmtagModel?
             # need to handle empty position and return identity
             name = 'unet2__'+'_'.join([str(e) for e in model.output_semantics])
             self.add_module(name, model)
-            print("model.output_semantics", model.output_semantics)
+            #print("model.output_semantics", ", ".join([str(f) for f in model.output_semantics]))
             self.output_semantics += model.output_semantics # some of them can have > 1 output feature hence += instead of .append
             self.anonymize_with.append(anonymize_with)
         self.concat = Concat(1)
@@ -65,55 +65,54 @@ class Connector(nn.Module):
 
 class SmtagEngine:
 
+    # @timer
     def __init__(self, cartridge={}):
         #change this to accept a 'cartridge' that descibes which models to load
         if cartridge:
             self.cartridge = cartridge
         else:
             self.cartridge = {
-                'entities': [
-                    (load_model('geneprod.zip'), ''),
-                    (load_model('small_molecule.zip'), '')
+                'entity': [
+                    (load_model('geneprod.zip', PROD_DIR), '')
                 ],
                 'only_once': [
-                    (load_model('reporter_geneprod.zip'), '')
+                    (load_model('reporter_geneprod.zip', PROD_DIR), '')
                 ],
                 'context': [
-                    (load_model('causality_entities.zip'), 'geneprod'),
-                    (load_model('causality_small_mol.zip'), 'small_mol')
+                    (load_model('causality_geneprod.zip', PROD_DIR), 'geneprod')
                 ], 
                 'panelizer': [
-                    (load_model('panel_start.zip'), '')
+                    (load_model('panel_start.zip', PROD_DIR), '')
                 ]
             }
         self.models = {}
         for model_family in self.cartridge:
-            self.models[model_family] = Combine([(model, anonymize_with) for model, anonymize_with in cartridge[model_family]])
+            self.models[model_family] = Combine([(model, anonymize_with) for model, anonymize_with in self.cartridge[model_family]])
 
-    @timer
-    def __entities(self, input_string):
+    # @timer
+    def __entity(self, input_string):
         input_t_string = TString(input_string)
         p = SimplePredictor(self.models['entity'])
         binarized = p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
         return binarized
 
     def entity(self, input_string):
-        return self.serialize(self.__entities(input_string))
+        return self.serialize(self.__entity(input_string))
 
-    @timer
+    # @timer
     def __entity_and_context(self, input_string):
 
         input_t_string = TString(input_string)
         
-        entity_p = SimplePredictor(self.model['entity'])
+        entity_p = SimplePredictor(self.models['entity'])
         binarized = entity_p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
 
         # select and order the predicted marks to be fed to the second context_p semantics from context model.
-        rewire = Connector(self.models['entity'].output_semantics, self.model['context'].anonymize_with)
+        rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
         marks = rewire.forward(binarized.marks)
 
         context_p = ContextualPredictor(self.models['context'])
-        context_binarized = context_p.pred_binarized(input_string, marks, self.model['context'].output_semantics)
+        context_binarized = context_p.pred_binarized(input_string, marks, self.models['context'].output_semantics)
         
         #concatenate entity and output_semantics before calling Serializer()
         binarized.cat_(context_binarized)
@@ -122,6 +121,7 @@ class SmtagEngine:
     def tag(self, input_string):
         return self.serialize(self.__entity_and_context(input_string))
 
+    # @timer
     def __all(self, input_string):
         
         input_t_string = TString(input_string)
@@ -133,43 +133,43 @@ class SmtagEngine:
         # PREDICT ENTITIES
         entity_p = SimplePredictor(self.models['entity'])
         binarized_entities = entity_p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
-        print("binarized.marks after entity"); Show.print_pretty(binarized_entities.marks)
-        print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
+        #print("binarized.marks after entity"); Show.print_pretty(binarized_entities.marks)
+        #print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output = binarized_entities.clone()
         cumulated_output.cat_(binarized_panels)
-        print("1: cumulated_output.marks after panel and entity"); Show.print_pretty(cumulated_output.marks)
-        print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
+        #print("1: cumulated_output.marks after panel and entity"); Show.print_pretty(cumulated_output.marks)
+        #print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # PREDICT REPORTERS
         reporter_p = SimplePredictor(self.models['only_once'])
         binarized_reporter = reporter_p.pred_binarized(input_t_string, self.models['only_once'].output_semantics)
-        print("2: binarized_reporter.marks");Show.print_pretty(binarized_reporter.marks)
-        print("output semantics: ", "; ".join([str(e) for e in binarized_reporter.output_semantics]))
+        #print("2: binarized_reporter.marks");Show.print_pretty(binarized_reporter.marks)
+        #print("output semantics: ", "; ".join([str(e) for e in binarized_reporter.output_semantics]))
 
         # there should be as many reporter model slots, even if empty, as entities are predicted.
         binarized_entities.erase_(binarized_reporter) # will it erase itself? need to assume output is 1 channel only
-        print("3: binarized_entities.marks after erase_(reporter)"); Show.print_pretty(binarized_entities.marks)
-        print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
+        #print("3: binarized_entities.marks after erase_(reporter)"); Show.print_pretty(binarized_entities.marks)
+        #print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output.cat_(binarized_reporter) # add reporter prediction to output features
-        print("4: cumulated_output.marks after cat_(reporter)"); Show.print_pretty(cumulated_output.marks)
-        print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
+        #print("4: cumulated_output.marks after cat_(reporter)"); Show.print_pretty(cumulated_output.marks)
+        #print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # select and order the predicted entity marks to be fed to the second context_p semantics from context model.
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
         marks = rewire.forward(binarized_entities.marks) # should not include reporter marks; need to test
-        print("5: marks"); Show.print_pretty(marks)
+        #print("5: marks"); Show.print_pretty(marks)
 
         # PREDICT ROLES ON NON REPORTER ENTITIES
         context_p = ContextualPredictor(self.models['context'])
         context_binarized = context_p.pred_binarized(input_t_string, marks, self.models['context'].output_semantics)
-        print("6: context_binarized"); Show.print_pretty(context_binarized.marks)
+        #print("6: context_binarized"); Show.print_pretty(context_binarized.marks)
 
         #concatenate entity and output_semantics before calling Serializer()
         cumulated_output.cat_(context_binarized)
-        print("7: final cumulated_output.marks");Show.print_pretty(cumulated_output.marks)
-        print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
+        #print("7: final cumulated_output.marks");Show.print_pretty(cumulated_output.marks)
+        #print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
         
         return cumulated_output
 
@@ -196,5 +196,15 @@ if __name__ == "__main__":
     # PARSE ARGUMENTS
     arguments = docopt(__doc__, version='0.1')
     input_string = arguments['--text']
-
-    print(SmtagEngine().entities(input_string))
+    method = arguments['--method']
+    engine = SmtagEngine()
+    if method == 'smtag':
+        print(engine.smtag(input_string))
+    elif method == 'panelize':
+        print(engine.panelizer(input_string))
+    elif method == 'tag':
+        print(engine.tag(input_string))
+    elif method == 'entity':
+        print(engine.entity(input_string))
+    else:
+        print("unknown method {}".format(method))

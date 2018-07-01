@@ -15,7 +15,7 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
     model.cpu() # model.cpu().double() ?
     # extract the SmtagModel from the nn.DataParallel table, if necessary
     if isinstance(model, torch.nn.DataParallel):
-        print("getting SmtagModel")
+        #print("getting SmtagModel")
         model = [m for m in model.children if isinstance(m, SmtagModel)][0]
     opt = model.opt
     if custom_name:
@@ -48,27 +48,28 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
 def load_model(archive_filename, model_dir=MODEL_DIR):
     archive_path = archive_filename # os.path.join(model_dir, archive_filename)
     with cd(model_dir):
+        # print("now in {}".format(os.getcwd()))
         with ZipFile(archive_path) as myzip:
-            print(f"Extracting:")
-            myzip.printdir()
+            #print(f"Extracting:")
+            #myzip.printdir()
             myzip.extractall()
             for filename in myzip.namelist():
                 _, ext = os.path.splitext(filename)
                 if ext == '.sddl':
                     model_path = filename
-                    print("extracted {}".format(model_path))
+                    #print("extracted {}".format(model_path))
                 elif ext == '.json':
                     option_path = filename
-                    print("extracted {}".format(option_path))
+                    #print("extracted {}".format(option_path))
 
         with open(option_path, 'r') as optionfile:
             opt = json.load(optionfile)
-        print("trying to build model with options:")
-        print(opt)
+        #print("trying to build model with options:")
+        #print(opt)
         model =  SmtagModel(opt)
         model.load_state_dict(torch.load(model_path))
-        print("removing {}".format(model_path))
+        #print("removing {}".format(model_path))
         os.remove(model_path)
-        print("removing {}".format(option_path))
+        #print("removing {}".format(option_path))
         os.remove(option_path)
     return model

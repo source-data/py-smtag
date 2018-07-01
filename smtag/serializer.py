@@ -4,7 +4,7 @@
 #from abc import ABC
 import torch
 import xml.etree.ElementTree as ET
-from smtag.utils import xml_escape
+from smtag.utils import xml_escape, timer
 from smtag.mapper import Catalogue, Boundary
 
 
@@ -122,8 +122,8 @@ class AbstractTagger(AbstractSerializer):
                 boundaries = binarized.start[ i , panel_feature , :].nonzero() # carefule: nonzero() return a list of coordinates of non zero element in the Tensor.
 
             token_start_positions = binarized.tokenized[i]['start_index']
-            print("token_start_positions", token_start_positions)
-            print("token list", " ".join([t.text for t in binarized.tokenized[i]['token_list']]))
+            #print("token_start_positions", token_start_positions)
+            #print("token list", " ".join([t.text for t in binarized.tokenized[i]['token_list']]))
             # segment example based on boundaries
 
             start = token_start_positions[0]
@@ -138,16 +138,15 @@ class AbstractTagger(AbstractSerializer):
                         segment = binarized.tokenized[i]['token_list'][start:next_token_index]
                         segments.append(segment)
                         start = next_token_index
-                        # SO VERY WRONG... NEED THE LAST SEGMENT TOO STUPID...
-                        print("segment: ", b, next_token_index, token_start_positions.index(b), " ".join([t.text for t in segment]))
+
             last_segment = binarized.tokenized[i]['token_list'][start:]
-            print("last segment: ", " ".join([t.text for t in last_segment]))
+            #print("last segment: ", " ".join([t.text for t in last_segment]))
             segments.append(last_segment)
 
             for token_list in segments:
             # change this to binarized.start.sum(1).nonzero etc then identify which feature is on; same for stop 
             # change this to to start in benarized.tokenized.start_index to get immediately only the position where tag needs to be genearated: much faster!
-                print("serialize segment", " ".join([t.text for t in token_list]))
+                #print("serialize segment", " ".join([t.text for t in token_list]))
                 ml_string += "<sd-panel>" # self.serialize_boundary('open') # problem: left spacer should be put before that
                 for t in token_list:
                     start = t.start
@@ -160,7 +159,6 @@ class AbstractTagger(AbstractSerializer):
                     else:
                         ml_string += left_spacer
 
-                    # PROBLEM: it will add boundaries as well!!
                     # scan features that need to be opened
                     for f in range(self.nf):
                         if not isinstance(self.output_semantics[f], Boundary) and binarized.start[i][f][start] != 0:  
@@ -224,6 +222,11 @@ class XMLTagger(AbstractTagger):
 
     def serialize_boundary(self, action): # preliminary naive implementation...
         return XMLElementSerializer.mark_boundary(action)
+
+    def serialize(self, binarized_pred):
+        xml_string_list = super(XMLTagger, self).serialize(binarized_pred)
+        # need to provide valid xml
+        return ["<smtag>{}</smtag>".format(xml_string) for xml_string in xml_string_list]
 
 class HTMLTagger(AbstractTagger):
 

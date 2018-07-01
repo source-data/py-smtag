@@ -26,11 +26,11 @@ class SmtagModel(nn.Module):
         
         self.output_semantics = Catalogue.from_list(opt['selected_features']) 
         if 'collapsed_features' in opt:
-            print(opt['collapsed_features'])
+            #print(opt['collapsed_features'])
             if opt['collapsed_features']:
                 self.output_semantics.append(Catalogue.from_label(opt['collapsed_features'][-1]))  # keep only the last one by convention, not too great...
         if 'overlap_features' in opt:
-             print(opt['overlap_features'])
+             #print(opt['overlap_features'])
              if opt['overlap_features']:
                  self.output_semantics.append(Catalogue.from_label(opt['overlap_features'][-1])) # keep only the last one by convention, not too great...
         self.opt = opt

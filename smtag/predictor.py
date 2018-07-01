@@ -7,9 +7,10 @@ from collections import namedtuple
 from smtag.converter import TString
 from smtag.binarize import Binarized
 from smtag.serializer import Serializer
-from smtag.utils import tokenize
+from smtag.utils import tokenize, timer
 from smtag.operations import t_replace
 from smtag.config import MIN_PADDING,  MIN_SIZE, MARKING_CHAR
+
 
 MARKING_ENCODED = TString(MARKING_CHAR)
 SPACE_ENCODED = TString(" ")
@@ -25,7 +26,7 @@ class Predictor: #(nn.Module?)
         padding_length = ceil(max(MIN_SIZE - len(input), MIN_PADDING)/2)
         pad = SPACE_ENCODED.repeat(padding_length)
         return pad + input + pad
-        
+
     def combine_with_input_features(self, input, additional_input_features=None):
         #CAUTION: should additional_input_features be cloned before modifying it?
         if additional_input_features is not None:
@@ -37,7 +38,7 @@ class Predictor: #(nn.Module?)
         else:
             combined_input = input
         return combined_input
-    
+
     def forward(self, input, additional_input_features = None): 
         padded = self.padding(input)
         L = len(padded)
@@ -48,7 +49,7 @@ class Predictor: #(nn.Module?)
         self.model.eval()
         prediction = self.model(input.toTensor()) #.float()
         self.model.train()
-    
+
         #remove safety padding
         prediction = prediction[ : , : , padding_length : L-padding_length]
         return prediction
@@ -62,7 +63,7 @@ class Predictor: #(nn.Module?)
 
 
 class SimplePredictor(Predictor):
-    
+
     def __init__(self, model, tag='sd-tag', format='xml'):
         super(SimplePredictor, self).__init__(model) # the model should carry the semantics with him, transmit it to pred and be used by Tagger.element()
 
@@ -72,14 +73,23 @@ class SimplePredictor(Predictor):
 
 
 class ContextualPredictor(Predictor):
-    
+
     def __init__(self, model, tag='sd-tag', format='xml'):
         super(ContextualPredictor, self).__init__(model)
         self.tag = tag
         self.format = format
 
     def anonymize(self, input, marks, replacement = MARKING_ENCODED):
-        return TString(t_replace(input.toTensor().clone(), marks, replacement.toTensor()))
+        i = 0
+        res = ''
+        for c in str(input):
+            if marks[0, i] > 0.99:
+                res += MARKING_CHAR
+            else:
+                res += c
+            i += 1
+        return TString(res)
+        # return TString(t_replace(input.toTensor().clone(), marks, replacement.toTensor())) # cute but surprisingly slow!
 
     def forward(self, input, marks): 
         predictions = []
@@ -89,7 +99,7 @@ class ContextualPredictor(Predictor):
             predictions.append(super(ContextualPredictor, self).forward(anonymized_t))
         prediction = torch.cat(predictions, 1)
         return prediction
-    
+
     def pred_binarized(self, input_t_string, marks, output_semantics):
         prediction = self.forward(input_t_string, marks)
         return super(ContextualPredictor, self).pred_bin(input_t_string, prediction, output_semantics)
