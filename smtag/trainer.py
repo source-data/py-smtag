@@ -70,8 +70,8 @@ class Trainer:
             avg_validation_loss = self.validate() # the average loss over the validation minibatches
             print("\n\n\nepoch {}\ttraining_loss={:5}\tvalidation loss={:5}".format(e, avg_train_loss, avg_validation_loss))
             Show.example(self.validation_minibatches, self.model)
-            if not self.cuda_on:
-                self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
+            #if not self.cuda_on:
+            self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
             #Log values and gradients of the parameters (histogram summary)
             #for name, param in self.model.named_parameters():
             #    name = name.replace('.', '/')
