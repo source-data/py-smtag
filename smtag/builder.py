@@ -28,11 +28,14 @@ class SmtagModel(nn.Module):
         if 'collapsed_features' in opt:
             #print(opt['collapsed_features'])
             if opt['collapsed_features']:
-                self.output_semantics.append(Catalogue.from_label(opt['collapsed_features'][-1]))  # keep only the last one by convention, not too great...
+                # WARNING! keep only the first one by convention. NO GREAT. LACK OF STRUCTURE IN FEATURE SEMANTICS. CATEGORY, TYPE, ROLE
+                self.output_semantics.append(Catalogue.from_label(opt['collapsed_features'][0]))
         if 'overlap_features' in opt:
              #print(opt['overlap_features'])
              if opt['overlap_features']:
-                 self.output_semantics.append(Catalogue.from_label(opt['overlap_features'][-1])) # keep only the last one by convention, not too great...
+                 # WARNING! keep only the first one by convention. NO GREAT. LACK OF STRUCTURE IN FEATURE SEMANTICS. CATEGORY, TYPE, ROLE
+                 # for example if model trained with meta -a geneprod,reporter, the resulting model will carry only GENEPROD as its output semantics
+                 self.output_semantics.append(Catalogue.from_label(opt['overlap_features'][0]))
         self.opt = opt
 
     def forward(self, x):

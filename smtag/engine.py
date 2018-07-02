@@ -27,6 +27,10 @@ from smtag.viz import Show
 
 # maybe should be in buidler.py
 class Combine(nn.Module):#SmtagModel?
+    '''
+    This module takes a list of SmtagModels and concatenates their output along the second dimension (feature axe).
+    The output_semantics keeps track of the semantics of each module in the right order.
+    '''
 
     def __init__(self, model_list):
         super(Combine, self).__init__()
@@ -34,7 +38,7 @@ class Combine(nn.Module):#SmtagModel?
         self.output_semantics = []
         self.anonymize_with = []
         for model, anonymize_with in model_list:
-            # need to handle empty position and return identity
+            # need to handle empty position and return identity ?
             name = 'unet2__'+'_'.join([str(e) for e in model.output_semantics])
             self.add_module(name, model)
             #print("model.output_semantics", ", ".join([str(f) for f in model.output_semantics]))
@@ -53,13 +57,11 @@ class Combine(nn.Module):#SmtagModel?
 class Connector(nn.Module):
     def __init__(self, output_semantics, input_semantics):
         super(Connector, self).__init__()
-        self.output_semantics = output_semantics
-        self.input_semantics = input_semantics
         #get indices of output channels (of the source module) in the order require by input semantics (of the receiving module).
-        self.indices = [input_semantics.index(input) for input in input_semantics] # finds the position of the required input concept in the list of output concepts
+        self.indices = [input_semantics.index(concept) for concept in output_semantics] # finds the position of the required input concept in the list of output concepts
 
     def forward(self, x):
-        #returns the tensor where second dimension (channels) are reordered appropriately
+        #returns the tensor where second dimension (channels) of the input are reordered to match the needs of the downstream modules
         return x[ : , self.indices, : ]
 
 
@@ -73,7 +75,13 @@ class SmtagEngine:
         else:
             self.cartridge = {
                 'entity': [
-                    (load_model('geneprod.zip', PROD_DIR), '')
+                    (load_model('small_mol.zip', PROD_DIR), ''),
+                    (load_model('geneprod.zip', PROD_DIR), ''),
+                    (load_model('subcellular.zip', PROD_DIR), ''),
+                    (load_model('cell.zip', PROD_DIR), ''),
+                    (load_model('tissue.zip', PROD_DIR), ''),
+                    (load_model('organism.zip', PROD_DIR), ''),
+                    (load_model('exp_assay.zip', PROD_DIR), '')
                 ],
                 'only_once': [
                     (load_model('reporter_geneprod.zip', PROD_DIR), '')
@@ -108,6 +116,7 @@ class SmtagEngine:
         binarized = entity_p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
 
         # select and order the predicted marks to be fed to the second context_p semantics from context model.
+        # OUCH! CHANGE THIS
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
         marks = rewire.forward(binarized.marks)
 
