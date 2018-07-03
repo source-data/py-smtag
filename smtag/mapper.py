@@ -63,14 +63,14 @@ class Concept(object):
         y.for_serialization += x.for_serialization
         return y
 
-    def equalType(self, x): 
+    def equal_type(self, x): 
         # we neglect differences in role to call it 'equal'; ok to find concept in list of entities but not very general.
         return self.category == x.category and self.type == x.type
 
     def my_index(self, list):
         i = 0
         for c in list:
-            if c.type == self.type:
+            if self.equal_type(c):
                 return i
             i += 1
         if i == len(list):
