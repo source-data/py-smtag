@@ -145,7 +145,6 @@ class SmtagEngine:
     def tag(self, input_string):
         return self.serialize(self.__entity_and_context(input_string))
 
-    @timer
     def __all(self, input_string):
         
         input_t_string = TString(input_string)
@@ -205,6 +204,7 @@ class SmtagEngine:
         
         return cumulated_output
 
+    @timer
     def smtag(self, input_string):
         return self.serialize(self.__all(input_string))
     
