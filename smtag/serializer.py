@@ -30,7 +30,7 @@ class XMLElementSerializer(AbstractElementSerializer):
             if concept:
                 for attribute, value in XMLElementSerializer.map(concept):
                     # sometimes prediction is ambiguous and several values are found for a type or a role
-                    if attribute in attribute_list:
+                    if attribute in attribute_list and value != attribute_list[attribute]:
                         attribute_list[attribute] = "{}_{}".format(attribute_list[attribute], value) # not sure this is so great
                     else:
                         attribute_list[attribute] = value
