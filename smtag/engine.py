@@ -3,11 +3,12 @@
 
 """smtag
 Usage:
-  engine.py [-m <str> -t <str> -f <xml]
+  engine.py [-m <str> -t <str> -f <str>]
 
 Options:
-  -m <str>, --method <str>                Method to call [default: smtag)
-  -t <str>, --text <str>                  Text input in unicode [default: "Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment."].
+
+  -m <str>, --method <str>                Method to call [default: smtag]
+  -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
   -g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: sd-tag]
 """	
@@ -219,6 +220,7 @@ class SmtagEngine:
 if __name__ == "__main__":
     # PARSE ARGUMENTS
     arguments = docopt(__doc__, version='0.1')
+    print(arguments)
     input_string = arguments['--text']
     method = arguments['--method']
     engine = SmtagEngine()
