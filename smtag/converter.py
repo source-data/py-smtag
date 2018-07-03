@@ -95,9 +95,9 @@ class TString(str): # (str) or (torch.Tensor)?
 
     def __add__(self, x): # overwrites tensor adding into tensor concatenation like strings
         if len(x) == 0:
-            return self
+            return self # or should it return a cloned self?
         elif len(self.s) == 0:
-            return x
+            return x # or should it return a cloned x?
         else:
             concatenated = TString()
             concatenated.t = torch.cat((self.toTensor(), x.toTensor()), 2)
@@ -129,6 +129,7 @@ class TString(str): # (str) or (torch.Tensor)?
 
 
 if __name__ == "__main__":
+    # more systematic tests in test.test_converter
     parser = argparse.ArgumentParser( description="Encode decode string into binary tensors" )
     parser.add_argument('input_string', nargs='?', default= "this is so ☾😎 😎 L ‼️", help="The string to convert")
     args = parser.parse_args()

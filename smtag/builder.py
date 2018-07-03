@@ -6,7 +6,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from copy import deepcopy
-from smtag.mapper import Catalogue
+from smtag.mapper import Concept, Catalogue
 
 class SmtagModel(nn.Module):
 
@@ -29,13 +29,22 @@ class SmtagModel(nn.Module):
             #print(opt['collapsed_features'])
             if opt['collapsed_features']:
                 # WARNING! keep only the first one by convention. NO GREAT. LACK OF STRUCTURE IN FEATURE SEMANTICS. CATEGORY, TYPE, ROLE
-                self.output_semantics.append(Catalogue.from_label(opt['collapsed_features'][0]))
+                # WARning: this will fail one way or the other; keeping entity allows Connect to wokr, but serialization fails; other way around serialization is ocrrect but cannot connect
+                concepts = [Catalogue.from_label(f) for f in opt['collapsed_features']]
+                collapsed_concepts = Concept()
+                for c in concepts:
+                    collapsed_concepts += c # __add__ operation defined in mapper, complements or concatenates types, roles and serialization recipes; maybe misleading because not commutative?
+                self.output_semantics.append(collapsed_concepts)
         if 'overlap_features' in opt:
              #print(opt['overlap_features'])
              if opt['overlap_features']:
                  # WARNING! keep only the first one by convention. NO GREAT. LACK OF STRUCTURE IN FEATURE SEMANTICS. CATEGORY, TYPE, ROLE
                  # for example if model trained with meta -a geneprod,reporter, the resulting model will carry only GENEPROD as its output semantics
-                 self.output_semantics.append(Catalogue.from_label(opt['overlap_features'][0]))
+                concepts = [Catalogue.from_label(f) for f in opt['overlap_features']]
+                overlap_features = Concept()
+                for c in concepts:
+                    overlap_features += c # __add__ operation defined in mapper, complements or concatenates types, roles and serialization recipes; maybe misleading because not commutative?
+                self.output_semantics.append(overlap_features)
         self.opt = opt
 
     def forward(self, x):
