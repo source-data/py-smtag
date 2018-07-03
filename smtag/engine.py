@@ -3,7 +3,7 @@
 
 """smtag
 Usage:
-  engine.py [-m <str> -t <str> -f <str>]
+  engine.py [-D -d -m <str> -t <str> -f <str>]
 
 Options:
 
@@ -11,8 +11,11 @@ Options:
   -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
   -g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: sd-tag]
+  -D, --debug                             Debug mode to see the successive processing steps in the engine.
+  -d, --demo                              Demo with a long sample.
 """	
 
+import re
 from torch import nn
 import torch
 from docopt import docopt
@@ -64,14 +67,10 @@ class Connector(nn.Module):
     '''
     def __init__(self, output_semantics, input_semantics): 
         super(Connector, self).__init__()
-        #get indices of output channels (of the source module) in the order require by input semantics (of the receiving module).
-        print("input_semantics", " ".join([str(c) for c in input_semantics]))
-        print("output_semantics", " ".join([str(c) for c in output_semantics]))
-        print(Catalogue.GENEPROD.my_index(input_semantics))
+        # get indices of output channels (of the source module) in the order require by input semantics (of the receiving module).
         # features should match by type or by role or by both?
-        # implement eq, eqByRole, eqByType?
+        # my_index uses equal_type() to tests for equality of the type attribute of Concept objects
         matches = list(filter(None, [concept.my_index(output_semantics) for concept in input_semantics])) # finds the position of the required input concept in the list of output concepts
-        print("matches ", matches)
         self.indices = matches
 
     def forward(self, x):
@@ -146,7 +145,7 @@ class SmtagEngine:
     def tag(self, input_string):
         return self.serialize(self.__entity_and_context(input_string))
 
-    # @timer
+    @timer
     def __all(self, input_string):
         
         input_t_string = TString(input_string)
@@ -158,43 +157,51 @@ class SmtagEngine:
         # PREDICT ENTITIES
         entity_p = SimplePredictor(self.models['entity'])
         binarized_entities = entity_p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
-        print("\n0: binarized.marks after entity"); Show.print_pretty(binarized_entities.marks)
-        print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
+        if DEBUG:
+            print("\n0: binarized.marks after entity"); Show.print_pretty(binarized_entities.marks)
+            print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output = binarized_entities.clone()
         cumulated_output.cat_(binarized_panels)
-        print("\n1: cumulated_output.marks after panel and entity"); Show.print_pretty(cumulated_output.marks)
-        print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
+        if DEBUG:
+            print("\n1: cumulated_output.marks after panel and entity"); Show.print_pretty(cumulated_output.marks)
+            print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # PREDICT REPORTERS
         reporter_p = SimplePredictor(self.models['only_once'])
         binarized_reporter = reporter_p.pred_binarized(input_t_string, self.models['only_once'].output_semantics)
-        print("\n2: binarized_reporter.marks");Show.print_pretty(binarized_reporter.marks)
-        print("output semantics: ", "; ".join([str(e) for e in binarized_reporter.output_semantics]))
+        if DEBUG:
+            print("\n2: binarized_reporter.marks");Show.print_pretty(binarized_reporter.marks)
+            print("output semantics: ", "; ".join([str(e) for e in binarized_reporter.output_semantics]))
 
         # there should be as many reporter model slots, even if empty, as entities are predicted.
         binarized_entities.erase_(binarized_reporter) # will it erase itself? need to assume output is 1 channel only
-        print("\n3: binarized_entities.marks after erase_(reporter)"); Show.print_pretty(binarized_entities.marks)
-        print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
+        if DEBUG:
+            print("\n3: binarized_entities.marks after erase_(reporter)"); Show.print_pretty(binarized_entities.marks)
+            print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output.cat_(binarized_reporter) # add reporter prediction to output features
-        print("\n4: cumulated_output.marks after cat_(reporter)"); Show.print_pretty(cumulated_output.marks)
-        print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
+        if DEBUG:
+            print("\n4: cumulated_output.marks after cat_(reporter)"); Show.print_pretty(cumulated_output.marks)
+            print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # select and match by type the predicted entity marks to be fed to the second context_p semantics from context model.
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
         anonymization_marks = rewire.forward(binarized_entities.marks) # should not include reporter marks; 
-        print("\n5: anonymization_marks"); Show.print_pretty(anonymization_marks)
+        if DEBUG:
+            print("\n5: anonymization_marks"); Show.print_pretty(anonymization_marks)
 
         # PREDICT ROLES ON NON REPORTER ENTITIES
         context_p = ContextualPredictor(self.models['context'])
         context_binarized = context_p.pred_binarized(input_t_string, anonymization_marks, self.models['context'].output_semantics)
-        print("\n6: context_binarized"); Show.print_pretty(context_binarized.marks)
+        if DEBUG:
+            print("\n6: context_binarized"); Show.print_pretty(context_binarized.marks)
 
         #concatenate entity and output_semantics before calling Serializer()
         cumulated_output.cat_(context_binarized)
-        print("\n7: final cumulated_output.marks");Show.print_pretty(cumulated_output.marks)
-        print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
+        if DEBUG:
+            print("\n7: final cumulated_output.marks");Show.print_pretty(cumulated_output.marks)
+            print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
         
         return cumulated_output
 
@@ -220,9 +227,26 @@ class SmtagEngine:
 if __name__ == "__main__":
     # PARSE ARGUMENTS
     arguments = docopt(__doc__, version='0.1')
-    print(arguments)
     input_string = arguments['--text']
     method = arguments['--method']
+    DEBUG = arguments['--debug']
+    DEMO = arguments['--demo']
+    if DEMO:
+        input_string = '''The indicated panel of cell lines was exposed to either normoxia (20% O2) or hypoxia (1% O2) for up to 48 h prior to RNA and protein extraction.
+
+A, B (A) LIMD1 mRNA and (B) protein levels were increased following hypoxic exposure.
+
+C. Densitometric analysis of (B).
+
+D. The LIMD1 promoter contains a hypoxic response element responsible for HIF binding and transcriptional activation of LIMD1. Three predicted HRE elements were individually deleted within the context of the wild‐type LIMD1 promoter‐driven Renilla luciferase.
+
+E. Reporter constructs in (D) were expressed in U2OS cells and exposed to hypoxia for the indicated time‐points. Luciferase activity was then assayed and normalised to firefly control. Data are displayed normalised to the normoxic value for each construct. Deletion of the third HRE present within the LIMD1 promoter (ΔHRE3) inhibited hypoxic induction of LIMD1 transcription.
+
+F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the indicated species demonstrate that the HRE3 consensus sequence is highly conserved.'''
+
+    input_string = re.sub("[\n\r\t]", " ", input_string)
+    input_string = re.sub(" +", " ", input_string)
+    
     engine = SmtagEngine()
 
     if method == 'smtag':
