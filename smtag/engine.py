@@ -71,7 +71,8 @@ class Connector(nn.Module):
         # get indices of output channels (of the source module) in the order require by input semantics (of the receiving module).
         # features should match by type or by role or by both?
         # my_index uses equal_type() to tests for equality of the type attribute of Concept objects
-        matches = list(filter(None, [concept.my_index(output_semantics) for concept in input_semantics])) # finds the position of the required input concept in the list of output concepts
+        matches = [concept.my_index(output_semantics) for concept in input_semantics] # finds the position of the required input concept in the list of output concepts
+        matches = [m for m in matches if m is not None] # filter(None, matches) would filter out zeros which would be wrong; we could also use list(filter(lambda x: x or x==0, matches)) to filter None or [] or "" but not clearer
         self.indices = matches
 
     def forward(self, x):
@@ -82,6 +83,8 @@ class Connector(nn.Module):
 
 
 class SmtagEngine:
+
+    DEBUG = False
 
     def __init__(self, cartridge={}):
         #change this to accept a 'cartridge' that descibes which models to load
@@ -148,7 +151,7 @@ class SmtagEngine:
     def __all(self, input_string):
         
         input_t_string = TString(input_string)
-        if DEBUG:
+        if self.DEBUG:
             print(input_t_string)
         #PREDICT PANELS
         panel_p = SimplePredictor(self.models['panelizer'])
@@ -157,50 +160,52 @@ class SmtagEngine:
         # PREDICT ENTITIES
         entity_p = SimplePredictor(self.models['entity'])
         binarized_entities = entity_p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
-        if DEBUG:
-            print("\n0: binarized.marks after entity"); Show.print_pretty(binarized_entities.marks)
+        if self.DEBUG:
+            print("\n0: binarized.marks after entity ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()]))); Show.print_pretty(binarized_entities.marks)
             print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output = binarized_entities.clone()
         cumulated_output.cat_(binarized_panels)
-        if DEBUG:
-            print("\n1: cumulated_output.marks after panel and entity"); Show.print_pretty(cumulated_output.marks)
+        if self.DEBUG:
+            print("\n1: cumulated_output.marks after panel and entity ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()]))); Show.print_pretty(cumulated_output.marks)
             print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # PREDICT REPORTERS
         reporter_p = SimplePredictor(self.models['only_once'])
         binarized_reporter = reporter_p.pred_binarized(input_t_string, self.models['only_once'].output_semantics)
-        if DEBUG:
-            print("\n2: binarized_reporter.marks");Show.print_pretty(binarized_reporter.marks)
+        if self.DEBUG:
+            print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])));Show.print_pretty(binarized_reporter.marks)
             print("output semantics: ", "; ".join([str(e) for e in binarized_reporter.output_semantics]))
 
         # there should be as many reporter model slots, even if empty, as entities are predicted.
         binarized_entities.erase_(binarized_reporter) # will it erase itself? need to assume output is 1 channel only
-        if DEBUG:
-            print("\n3: binarized_entities.marks after erase_(reporter)"); Show.print_pretty(binarized_entities.marks)
+        if self.DEBUG:
+            print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])));Show.print_pretty(binarized_reporter.marks)
+            print("\n3: binarized_entities.marks after erase_(reporter) ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()]))); Show.print_pretty(binarized_entities.marks)
             print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output.cat_(binarized_reporter) # add reporter prediction to output features
-        if DEBUG:
-            print("\n4: cumulated_output.marks after cat_(reporter)"); Show.print_pretty(cumulated_output.marks)
+        if self.DEBUG:
+            print("\n4: cumulated_output.marks after cat_(reporter) ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()]))); Show.print_pretty(cumulated_output.marks)
             print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # select and match by type the predicted entity marks to be fed to the second context_p semantics from context model.
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
         anonymization_marks = rewire.forward(binarized_entities.marks) # should not include reporter marks; 
-        if DEBUG:
-            print("\n5: anonymization_marks"); Show.print_pretty(anonymization_marks)
+        if self.DEBUG:
+            print("\n5: rewiring models['entity'].output_semantics and models['context'].anonymize_with", ", ".join([str(e) for e in self.models['entity'].output_semantics]), ", ".join([str(e) for e in self.models['context'].anonymize_with]))
+            print("anonymization_marks ({})".format(" x ".join([str(s) for s in anonymization_marks.size()]))); Show.print_pretty(anonymization_marks)
 
         # PREDICT ROLES ON NON REPORTER ENTITIES
         context_p = ContextualPredictor(self.models['context'])
         context_binarized = context_p.pred_binarized(input_t_string, anonymization_marks, self.models['context'].output_semantics)
-        if DEBUG:
-            print("\n6: context_binarized"); Show.print_pretty(context_binarized.marks)
+        if self.DEBUG:
+            print("\n6: context_binarized ({})".format(" x ".join([str(s) for s in context_binarized.marks.size()]))); Show.print_pretty(context_binarized.marks)
 
         #concatenate entity and output_semantics before calling Serializer()
         cumulated_output.cat_(context_binarized)
-        if DEBUG:
-            print("\n7: final cumulated_output.marks");Show.print_pretty(cumulated_output.marks)
+        if self.DEBUG:
+            print("\n7: final cumulated_output.marks ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])));Show.print_pretty(cumulated_output.marks)
             print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
         
         return cumulated_output
@@ -250,6 +255,7 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
     input_string = re.sub(" +", " ", input_string)
     
     engine = SmtagEngine()
+    engine.DEBUG = DEBUG
 
     if method == 'smtag':
         print(engine.smtag(input_string))

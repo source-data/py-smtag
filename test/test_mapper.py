@@ -9,6 +9,7 @@ from smtag.mapper import Catalogue, Concept, Category, Entity, Role, Boundary
 
 class MapperTest(SmtagTestCase):
 
+
     def test_add_1(self):
         gene_protein = Catalogue.GENE + Catalogue.PROTEIN
         self.assertEqual("gene_protein", gene_protein.type)
@@ -17,6 +18,14 @@ class MapperTest(SmtagTestCase):
         gene_intervention = Catalogue.GENE + Catalogue.INTERVENTION
         self.assertEqual("gene", gene_intervention.type)
         self.assertEqual("intervention", gene_intervention.role)
+        self.assertEqual("entity", gene_intervention.category)
+
+    def test_add_3(self):
+        geneprod_reporter = Catalogue.GENEPROD + Catalogue.REPORTER
+        #geneprod_reporter = Catalogue.REPORTER + Catalogue.GENEPROD
+        self.assertEqual("geneprod", geneprod_reporter.type)
+        self.assertEqual("reporter", geneprod_reporter.role)
+        self.assertEqual("entity", geneprod_reporter.category)
 
     def test_find_index(self):
         gene_intervention = Catalogue.GENE + Catalogue.INTERVENTION

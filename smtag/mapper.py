@@ -48,13 +48,16 @@ class Concept(object):
         self.role = ""
     
     def __str__(self):
-        return self.label
+        return "'{}'({})".format(self.label, "; ".join(filter(None, [self.category, self.type, self.role])))
 
     def __add__(self, x): # maybe misleading because not commutative
         assert(self.category == x.category or self.category == "" or x.category == "") # cannot combine concepts across categories but can do with category-less object
         y = Concept()
+        y.label = "_".join(filter(None, [self.label, x.label]))
         if self.category == "":
             y.category = x.category
+        else:
+            y.category = self.category
         if self.role != x.role:
             y.role = "_".join(filter(None, [self.role, x.role]))
         if self.type != x.type:
