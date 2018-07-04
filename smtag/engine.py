@@ -65,6 +65,7 @@ class Connector(nn.Module):
     Usage example:
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
     '''
+
     def __init__(self, output_semantics, input_semantics): 
         super(Connector, self).__init__()
         # get indices of output channels (of the source module) in the order require by input semantics (of the receiving module).
@@ -82,7 +83,6 @@ class Connector(nn.Module):
 
 class SmtagEngine:
 
-    # @timer
     def __init__(self, cartridge={}):
         #change this to accept a 'cartridge' that descibes which models to load
         if cartridge:
@@ -113,17 +113,16 @@ class SmtagEngine:
         for model_family in self.cartridge:
             self.models[model_family] = Combine([(model, Catalogue.from_label(anonymize_with)) for model, anonymize_with in self.cartridge[model_family]])
 
-    # @timer
     def __entity(self, input_string):
         input_t_string = TString(input_string)
         p = SimplePredictor(self.models['entity'])
         binarized = p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
         return binarized
 
+    @timer
     def entity(self, input_string):
         return self.serialize(self.__entity(input_string))
 
-    # @timer
     def __entity_and_context(self, input_string):
 
         input_t_string = TString(input_string)
@@ -142,13 +141,15 @@ class SmtagEngine:
         binarized.cat_(context_binarized)
         return binarized
 
+    @timer
     def tag(self, input_string):
         return self.serialize(self.__entity_and_context(input_string))
 
     def __all(self, input_string):
         
         input_t_string = TString(input_string)
-        print(input_t_string)
+        if DEBUG:
+            print(input_t_string)
         #PREDICT PANELS
         panel_p = SimplePredictor(self.models['panelizer'])
         binarized_panels = panel_p.pred_binarized(input_t_string, self.models['panelizer'].output_semantics)
@@ -221,6 +222,7 @@ class SmtagEngine:
         binarized = p.pred_binarized(input_t_string, self.models['panelizer'].output_semantics)
         return binarized
 
+    @timer
     def panelizer(self, input_string):
         return self.serialize(self.__panels(input_string))
 

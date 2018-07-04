@@ -145,9 +145,9 @@ def timer(f):
         @timer
         def some_function_to_profile(x, y, z):
     '''
-    def t(*args):
+    def t(*args, **kwargs):
         start_time = time.time()
-        output = f(*args)
+        output = f(*args, **kwargs)
         end_time = time.time()
         delta_t = end_time - start_time
         print("Exec time for '{}': {:.3f}s".format(f.__name__, delta_t))
