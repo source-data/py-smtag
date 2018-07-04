@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-from smtag.loader import Dataset
+from train.loader import Dataset
 import torch
 from math import floor
 import logging

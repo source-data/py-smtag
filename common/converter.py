@@ -4,7 +4,7 @@
 import numpy as np
 import argparse
 import torch
-from smtag.utils import timer
+from common.utils import timer
 
 class Converter():
     """

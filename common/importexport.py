@@ -7,9 +7,9 @@ from zipfile import ZipFile
 import json
 from datetime import datetime
 import torch
-from smtag.config import MODEL_DIR
-from smtag.builder import SmtagModel
-from smtag.utils import cd
+from common.config import MODEL_DIR
+from train.builder import SmtagModel
+from common.utils import cd
 
 def export_model(model, custom_name = '', model_dir = MODEL_DIR):
     model.cpu() # model.cpu().double() ?

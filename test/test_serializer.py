@@ -3,11 +3,11 @@
 
 import unittest
 import torch
-from smtag.utils import tokenize
-from smtag.binarize import Binarized
-from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from smtag.utils import timer
-from smtag.mapper import Catalogue
+from common.utils import tokenize
+from predict.binarize import Binarized
+from predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from common.utils import timer
+from common.mapper import Catalogue
 
 class SerializerTest(unittest.TestCase):
 

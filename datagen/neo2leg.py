@@ -6,7 +6,7 @@ from xml.etree.ElementTree import fromstring, Element, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node
 from random import random
 import difflib
-from smtag.config import MARKING_CHAR, MARKING_CHAR_ORD, SD_PANEL_OPEN, SD_PANEL_CLOSE
+from common.config import MARKING_CHAR, MARKING_CHAR_ORD, SD_PANEL_OPEN, SD_PANEL_CLOSE
 #from copy import deepcopy
 
 #DB = GraphDatabase("http://localhost:7474/db/data/",username="neo4j",password="sourcedata")

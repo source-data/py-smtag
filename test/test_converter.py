@@ -5,8 +5,8 @@
 import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
-from smtag.converter import Converter, TString
-from smtag.utils import timer
+from common.converter import Converter, TString
+from common.utils import timer
 from timeit import timeit
 
 class ConverterTest(SmtagTestCase):

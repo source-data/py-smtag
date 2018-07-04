@@ -4,8 +4,8 @@
 import argparse
 import re
 from os import path, listdir
-from smtag.dataprep import DataPreparator
-from smtag.featurizer import AnnFeaturizer
+from datagen.dataprep import DataPreparator
+from datagen.featurizer import AnnFeaturizer
 
 class AnnPreparator(DataPreparator):
     ANN_EXTENSION = 'ann'

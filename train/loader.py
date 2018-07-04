@@ -6,10 +6,10 @@ import numpy as np
 import torch
 # import logging
 import math
-from smtag.converter import Converter
-from smtag.mapper import Catalogue, concept2index
-from smtag.progress import progress
-from smtag.viz import Show 
+from common.converter import Converter
+from common.mapper import Catalogue, concept2index
+from commmon.progress import progress
+from common.viz import Show 
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')

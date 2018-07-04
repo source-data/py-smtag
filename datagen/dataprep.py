@@ -9,12 +9,12 @@ from string import ascii_letters
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
 from math import floor
-from smtag.mapper import index2concept, Catalogue
-from smtag.converter import TString
+from common.mapper import index2concept, Catalogue
+from common.converter import TString
 import os.path
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
-from smtag.utils import cd
-from smtag.config import DATA_DIR
+from common.utils import cd
+from common.config import DATA_DIR
 
 SPACE_ENCODED = TString(" ")
 
