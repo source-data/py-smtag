@@ -30,7 +30,7 @@ class PredictorTest(SmtagTestCase):
 
         self.anonymized_text_example = self.text_example.replace("X", MARKING_CHAR)
         self.z = TString(self.anonymized_text_example)
-        self.context_model = toy_model(self.z.toTensor(), self.y, selected_feature=['intervention'])
+        self.context_model = toy_model(self.z.toTensor(), self.y, selected_features=['intervention'])
 
     def test_model_stability(self): 
         '''

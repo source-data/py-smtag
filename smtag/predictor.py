@@ -79,12 +79,12 @@ class ContextualPredictor(Predictor):
         self.tag = tag
         self.format = format
 
-    def anonymize(self, input, marks, replacement = MARKING_ENCODED):
+    def anonymize(self, input, marks, replacement = MARKING_CHAR):
         i = 0
         res = ''
         for c in str(input):
             if marks[0, i] > 0.99:
-                res += MARKING_CHAR
+                res += replacement
             else:
                 res += c
             i += 1
