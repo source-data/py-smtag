@@ -4,7 +4,7 @@
 import torch
 import re
 from copy import deepcopy
-from smtag.utils import xml_escape
+from smtag.utils import xml_escape, timer
 
 
 class Binarized:

@@ -29,7 +29,8 @@ class EngineTest(SmtagTestCase):
 
         self.y2 = torch.Tensor(# A A A   Y Y ,   X X X ,   A A 
                               [[[0,0,0,0,1,1,0,0,0,0,0,0,0,0,0]]])
-        self.models['only_once'] = toy_model(self.x, self.y2, selected_features = ["reporter"], threshold = 1E-04, epochs=1000)
+
+        self.models['only_once'] = toy_model(self.x, self.y2, selected_features = [], overlap_features = ["geneprod", "reporter"], threshold = 1E-04, epochs=1000)
 
         self.anonymized_text_example = self.text_example.replace("X", MARKING_CHAR)
         self.z = TString(self.anonymized_text_example).toTensor()
@@ -56,20 +57,13 @@ class EngineTest(SmtagTestCase):
                 ]
             }
 
-    def test_model_stability(self): 
-        '''
-        Testing that test model returns the same result
-        '''
-        iterations = 100
-        for i in range(iterations):
-            y_1 = self.models['entity'](self.x)
-            self.assertTensorEqual(self.y1, y_1)
-
     @timer
     def test_engine_all(self):
-        ml = SmtagEngine(self.cartridge).smtag(self.text_example)
+        engine = SmtagEngine(self.cartridge)
+        engine.DEBUG = True
+        ml = engine.smtag(self.text_example)
         print(ml)
-        expected = '''<sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag></sd-panel><sd-panel>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag></sd-panel><sd-panel>, AA</sd-panel>'''
+        expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag></sd-panel><sd-panel>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag></sd-panel><sd-panel>, AA</sd-panel></smtag>'''
         self.assertEqual(expected, ml)
 
 

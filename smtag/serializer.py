@@ -26,14 +26,14 @@ class XMLElementSerializer(AbstractElementSerializer):
 
         attribute_list= {}
 
-        for concept in on_features:
+        for concept in on_features: # what if a features correspond to mixed concepts? features should be linked to set of concepts or there should be a way to 'fuse' features.
             if concept:
-                attribute, value = XMLElementSerializer.map(concept)
-                # sometimes prediction is ambiguous and several values are found for a type or a role
-                if attribute in attribute_list:
-                    attribute_list[attribute] = "{}_{}".format(attribute_list[attribute], value) # not sure this is so great
-                else:
-                    attribute_list[attribute] = value
+                for attribute, value in XMLElementSerializer.map(concept):
+                    # sometimes prediction is ambiguous and several values are found for a type or a role
+                    if attribute in attribute_list and value != attribute_list[attribute]:
+                        attribute_list[attribute] = "{}_{}".format(attribute_list[attribute], value) # not sure this is so great
+                    else:
+                        attribute_list[attribute] = value
         xml_attributes = ['{}="{}"'.format(a, attribute_list[a]) for a in attribute_list]
         xml_string = "<{} {}>{}</{}>".format(tag, ' '.join(xml_attributes), inner_text, tag)
         return xml_string # because both HTML and XML handled, working with strings is easier than return ET.tostring(xml_string)
@@ -55,7 +55,14 @@ class HTMLElementSerializer(AbstractElementSerializer):
 
     @staticmethod
     def make_element(tag, on_features, inner_text):
-        html_classes = [HTMLElementSerializer.map(concept) for concept in on_features if concept]
+        html_classes = []
+        html_class = ""
+        for concept in on_features:
+            if concept:
+                for attribute, value in HTMLElementSerializer.map(concept):
+                     html_class = "_".join([attribute, value])
+                     if html_class not in html_classes:
+                         html_classes.append(html_class)
         html_string = "<span class=\"{} {}\">{}</span>".format(tag, ' '.join(html_classes), inner_text)
         return html_string
 
@@ -69,9 +76,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
 
     @staticmethod
     def map(concept):
-        #attribute, value = entity_serializing_map[concept] 
-        attribute, value = concept.for_serialization
-        return "{}_{}".format(attribute, value)
+        return concept.for_serialization
 
 
 class AbstractSerializer(object): #(ABC)

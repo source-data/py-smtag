@@ -14,11 +14,11 @@ class Converter():
     @staticmethod
     def t_encode(input_string):
         """
-        Static method that encodes an input string into a 4D tensor.
+        Static method that encodes an input string into a 3D tensor.
         Args
             input_string (str): string to convert
         Returns
-            (torch.Tensor): 3D tensor 1 x 32 x 1 x L, (1 example x 32 bits x L characters) representing characters as 32 features
+            (torch.Tensor): 3D tensor 1 x 32 x L, (1 example x 32 bits x L characters) representing characters as 32 features
         """
         
         L = len(input_string)
@@ -47,7 +47,6 @@ class Converter():
             (str): resulting string
         """
 
-        #tensor is 3D
         L = t.size(2)
         str = ""
         for i in range(L):
@@ -60,17 +59,21 @@ class Converter():
 
 class TString(str): # (str) or (torch.Tensor)?
     '''
-    String encoded into a 3D 1 example x 32 bits x L characters Tensor.
+    Class to represent strings simultaneously as Tensor and as str. String is encoded into a 3D (1 example x 32 bits x L characters) Tensor.
 
     Args:
-        x: either a string, in in which case it is converted into the corresonding Tensor, or a Tensor, in which case it does not need conversion but needs to be 3 dim with size(1)==NBITS (32).
+        x: either a string, in in which case it is converted into the corresonding Tensor;
+        or a Tensor, in which case it does not need conversion but needs to be 3 dim with size(1)==NBITS (32).
+        If no argument is provided, TString is initialized with an empty string.
 
     Methods:
-        __str__(): allows to print the TString
-        __len__(): length with len(TString)
-        __add__(TString): concatenates TString
-        repeat(int): repeat the TString
-        all the methods from torch.Tensor
+        __str__(): string representation of TString
+        __len__(): length with len(TString) and returns int
+        __add__(TString): concatenates TString and returns a TString; allow operation like tstring_1 + tstring_2 
+        __getitem(i): gets the i-th element of the string and of the underlying tensor and returns a TString; allows to slice with tstring[start:stop]
+        repeat(N): repeats the TString N time
+        toTensor(): returns the torch.Tensor representation of the encoded string
+        all the remainint methods from torch.Tensor
     '''
 
     def __init__(self, x=''):
@@ -92,9 +95,9 @@ class TString(str): # (str) or (torch.Tensor)?
 
     def __add__(self, x): # overwrites tensor adding into tensor concatenation like strings
         if len(x) == 0:
-            return self
+            return self # or should it return a cloned self?
         elif len(self.s) == 0:
-            return x
+            return x # or should it return a cloned x?
         else:
             concatenated = TString()
             concatenated.t = torch.cat((self.toTensor(), x.toTensor()), 2)
@@ -126,6 +129,7 @@ class TString(str): # (str) or (torch.Tensor)?
 
 
 if __name__ == "__main__":
+    # more systematic tests in test.test_converter
     parser = argparse.ArgumentParser( description="Encode decode string into binary tensors" )
     parser.add_argument('input_string', nargs='?', default= "this is so ☾😎 😎 L ‼️", help="The string to convert")
     args = parser.parse_args()
