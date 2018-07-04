@@ -57,11 +57,31 @@ class EngineTest(SmtagTestCase):
                 ]
             }
 
+        self.engine = SmtagEngine(self.cartridge)
+        self.engine.DEBUG = True
+
+
+    def test_panel(self):
+        ml = self.engine.panelizer(self.text_example)
+        print(ml)
+        expected = '''<smtag><sd-panel>AAA YY</sd-panel><sd-panel>, XXX</sd-panel><sd-panel>, AA</sd-panel></smtag>'''
+        self.assertEqual(expected, ml)
+
+    def test_entity(self):
+        ml = self.engine.entity(self.text_example)
+        print(ml)
+        expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod">YY</sd-tag>, <sd-tag type="geneprod">XXX</sd-tag>, AA</sd-panel></smtag>'''
+
+    def test_tag(self):
+        ml = self.engine.tag(self.text_example)
+        print(ml)
+        expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag>, AA</sd-panel></smtag>'''
+        self.assertEqual(expected, ml)
+
+    # @unittest.skip("unstable reporter toy model")
     @timer
-    def test_engine_all(self):
-        engine = SmtagEngine(self.cartridge)
-        engine.DEBUG = True
-        ml = engine.smtag(self.text_example)
+    def test_all(self):
+        ml = self.engine.smtag(self.text_example)
         print(ml)
         expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag></sd-panel><sd-panel>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag></sd-panel><sd-panel>, AA</sd-panel></smtag>'''
         self.assertEqual(expected, ml)
