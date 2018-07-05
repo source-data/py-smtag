@@ -48,11 +48,11 @@ WORK IN PROGRESS for meta
 # Contributing
 
 * Remember to update the `requirements.txt` whenever you add a new python dependency to the project by running
-    
+
     ```
     pip freeze > requirements.txt
     ```
-    
+
 * How to set up a breakpoint to get an interactive debugger console in Python
 
     ```
