@@ -216,7 +216,7 @@ class DataPreparator(object):
     #@abstractmethod
     def import_examples(self, source):
         """
-        Abstract method to import raw examples from a source eg. text files or databse
+        Abstract method to import raw examples from a source eg. text files or database
         """
         #self.examples, errors = neo2leg.neo2xml(self.options)
         pass 

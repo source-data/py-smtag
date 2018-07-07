@@ -100,7 +100,8 @@ class SmtagEngine:
                     (load_model('cell.zip', PROD_DIR), ''),
                     (load_model('tissue.zip', PROD_DIR), ''),
                     (load_model('organism.zip', PROD_DIR), ''),
-                    (load_model('exp_assay.zip', PROD_DIR), '')
+                    (load_model('exp_assay.zip', PROD_DIR), ''),
+                    (load_model('disease.zip', PROD_DIR), '')
                 ],
                 'only_once': [
                     (load_model('reporter_geneprod.zip', PROD_DIR), '')

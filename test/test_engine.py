@@ -71,6 +71,7 @@ class EngineTest(SmtagTestCase):
         ml = self.engine.entity(self.text_example)
         print(ml)
         expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod">YY</sd-tag>, <sd-tag type="geneprod">XXX</sd-tag>, AA</sd-panel></smtag>'''
+        self.assertEqual(expected, ml)
 
     @unittest.skip("unstable reporter toy model")
     def test_tag(self):
