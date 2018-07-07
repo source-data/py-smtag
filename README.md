@@ -6,6 +6,7 @@ Make sure to have `python3` available and run from to root of the project https:
     python3 -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
+    pip install --upgrade tensorflow # see doc/tensorboard.md
 
 ## Alternative way with Anaconda
 Install Anaconda https://www.anaconda.com/download/#macos
@@ -47,11 +48,11 @@ WORK IN PROGRESS for meta
 # Contributing
 
 * Remember to update the `requirements.txt` whenever you add a new python dependency to the project by running
-    
+
     ```
     pip freeze > requirements.txt
     ```
-    
+
 * How to set up a breakpoint to get an interactive debugger console in Python
 
     ```
