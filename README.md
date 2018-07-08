@@ -95,7 +95,7 @@ The SmartTag engine is located in the `predict` module. It loads automatically m
 
     Options:
 
-    -m <str>, --method <str>                Method to call [default: smtag]
+    -m <str>, --method <str>                Method to call (smtag|tag|entity|panelize) [default: smtag]
     -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
     -f <str>, --format <str>                Format of the output [default: xml]
     -D, --debug                             Debug mode to see the successive processing steps in the engine.
