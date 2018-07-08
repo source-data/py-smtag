@@ -29,7 +29,7 @@ Install Anaconda https://www.anaconda.com/download/#macos
 
 # Training: Command Line Interface Usage
 
-Training of new models is managed via `meta` in the `train` module. Run the help command to get a list of options
+Training of new models is managed via `meta` in the `train` package. Run the help command to get a list of options
 
     $ python -m train.meta --help
 
@@ -85,7 +85,7 @@ Try demo training:
 
 # Semantic tagging: SmartTag engine
 
-The SmartTag engine is located in the `predict` module. It loads automatically models from `rack/` and processes text to segment it, tag terms and assign context-dependent semantic categories.
+The SmartTag engine is located in the `predict` package. It loads automatically models from `rack/` and processes text to segment it, tag terms and assign context-dependent semantic categories.
 
     $ python -m predict.engine --help
     SmartTag semantic tagging engine.
