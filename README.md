@@ -85,7 +85,7 @@ Try demo training:
 
 # Semantic tagging: SmartTag engine
 
-The SmartTag engine is located in the `predict` module. It loads automatically models from `rack/` and processes text to segment it, tag terms and assign semantic categories based on context.
+The SmartTag engine is located in the `predict` module. It loads automatically models from `rack/` and processes text to segment it, tag terms and assign context-dependent semantic categories.
 
     $ python -m predict.engine --help
     SmartTag semantic tagging engine.

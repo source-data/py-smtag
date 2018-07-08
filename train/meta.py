@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-"""smtag
+"""Top level module to manage training..
+
 Usage:
   meta.py [-f <file> -E <int> -Z <int> -R <float> -V <float> -o <str> -i <str> -a <str> -c <str> -n <str> -k <str> -p <str>]
 
