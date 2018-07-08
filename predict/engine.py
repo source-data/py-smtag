@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-"""smtag
+"""
+SmartTag semantic tagging engine.
+
 Usage:
   engine.py [-D -d -m <str> -t <str> -f <str>]
 
@@ -10,10 +12,11 @@ Options:
   -m <str>, --method <str>                Method to call [default: smtag]
   -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
-  -g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: sd-tag]
   -D, --debug                             Debug mode to see the successive processing steps in the engine.
   -d, --demo                              Demo with a long sample.
 """	
+
+#-g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: sd-tag]
 
 import re
 from torch import nn

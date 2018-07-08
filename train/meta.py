@@ -35,7 +35,6 @@ import os
 #        logging.config.dictConfig(config)
 #    else:
 #        logging.basicConfig(level=default_level)
-import sys; print("sys.path=",sys.path) # for debugging
 import argparse
 import torch
 from train.loader import Loader
@@ -69,7 +68,6 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--pool_table',  default= [2,2,2], help='Pooling for each hidden layer (use quotes if comma+space delimited).')
 
     arguments = vars(parser.parse_args()) # to cast as dict which is what is return by docopt in case we would use it
-    print(arguments)
     # map arguments to opt to decouple command line options from internal representation
     opt = {}
     opt['namebase'] = arguments['file']
