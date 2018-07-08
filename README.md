@@ -123,5 +123,5 @@ The SmartTag engine is located in the `predict` package. It loads automatically 
 * Run the test suite
 
     ```
-    python -m unittest discover
+    python -m unittest discover -v
     ```
