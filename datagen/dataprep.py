@@ -107,7 +107,6 @@ class DataPreparator(object):
         progress_counter = 1
         for i in range(N):
             text_i = dataset[i]['text'] 
-            textcoded4th_i= TString(text_i, dtype=torch.uint8)
             features_i = dataset[i]['features']
             #compute_features_i['marks']['sd-tag']['geneprod'] here or somethign
             provenance_i = dataset[i]['provenance']
@@ -131,10 +130,6 @@ class DataPreparator(object):
                 start = fragment[0]
                 stop = min(start + length, L)
                 sub_text = text_i[start:stop]
-                # sub_text4th = TString()
-                # sub_text4th.s = sub_text # not so nice, but textcoded4th[start:stop] would need to implement __getitem__(); needs to be tested 
-                #sub_text4th = textcoded4th_i[ : , :, start:stop] # 3D
-                sub_text4th = textcoded4th_i[start:stop]
 
                 padding = length + min_padding - len(sub_text)
                 if random_shifting: 
@@ -151,16 +146,7 @@ class DataPreparator(object):
                 #    text_ij = left_padding_chars + sub_text + right_padding_chars
 
                 text4th.append(text_ij)
-                #add textcoded4th
-                #textcoded4th[index] = TString(text_ij).toTensor(dtype=torch.uint8) # pedestrian but maybe slow way
-
-                #faster ??? but lower level
-                #pad textcoded4th_ij with suitable encoded spaces matrices
-                left_padding_encoded = SPACE_ENCODED.repeat(random_shift) 
-                right_padding_encoded = SPACE_ENCODED.repeat(right_padding)
-                textcoded4th_ij = left_padding_encoded + sub_text4th + right_padding_encoded
-                textcoded4th[index] = textcoded4th_ij.toTensor() # would be nicer to save directly TString and work only with TString ?
-
+                textcoded4th[index] = TString(text_ij, dtype=torch.uint8).toTensor() # pedestrian and actually faster than playing with tensors
                 provenance4th.append(provenance_i)
 
                 #fill tensor of features   
