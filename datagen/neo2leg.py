@@ -6,13 +6,15 @@ from xml.etree.ElementTree import fromstring, Element, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node
 from random import random
 import difflib
-from common.config import MARKING_CHAR, MARKING_CHAR_ORD, SD_PANEL_OPEN, SD_PANEL_CLOSE
+from common.config import MARKING_CHAR, MARKING_CHAR_ORD
+
 #from copy import deepcopy
 
 #DB = GraphDatabase("http://localhost:7474/db/data/",username="neo4j",password="sourcedata")
 #DB = GraphDatabase("http://sdtag.net:7474/db/data/",username="neo4j",password="sourcedata")
 #amazon elastic IP is 34.202.28.116 and domain is sdtag.net
 
+SD_PANEL_OPEN, SD_PANEL_CLOSE = "<sd-panel>", "</sd-panel>"
 
 def anonymize_sdtags(panel_xml, tags_neo):
    # mini_index = [] #keeps an index of terms that are the same; will be anonymized by respective 'marker' characters
