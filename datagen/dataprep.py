@@ -192,7 +192,7 @@ class DataPreparator(object):
         The list of raw examples is split early on into trainset and testset, to make sure they are kept completely separate.
         """
         test_fraction = self.options['testset_fraction']
-        print("number of raw_examples", len(raw_examples))
+        print("\nnumber of raw_examples\n", len(raw_examples))
         #hmmm, what if raw_examples is a dictionary instead of a list as is the case in sdgraph2th        
         N = len(raw_examples)
         N_train = int(floor(N * (1 - test_fraction)))
