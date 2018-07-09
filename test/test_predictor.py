@@ -92,7 +92,7 @@ class PredictorTest(SmtagTestCase):
             [[0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0]]
         )
         p = ContextualPredictor(self.context_model)
-        anonymized_encoded = p.anonymize(input_string_encoded, marks, replacement = TString("$"))
+        anonymized_encoded = p.anonymize(input_string_encoded, marks, replacement = "$")
         anonymized = str(anonymized_encoded)
         expected = "the $$$ with a hat"
         self.assertEqual(expected, anonymized)
