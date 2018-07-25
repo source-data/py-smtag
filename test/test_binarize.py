@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
+
 import unittest
 import torch
-from smtag.utils import tokenize, assertTensorEqual
-from smtag.binarize import Binarized
+from common.utils import tokenize
+from test.smtagunittest import SmtagTestCase
+from predict.binarize import Binarized
+from common.mapper import Catalogue
 
-class BinarizeTest(unittest.TestCase):
-    
-    @staticmethod
-    def assertTensorEqual(x, y):
-        return assertTensorEqual(x,y)
+class BinarizeTest(SmtagTestCase):
 
     def test_binarize(self):
         '''
@@ -19,16 +20,16 @@ class BinarizeTest(unittest.TestCase):
                                     [0   ,0   ,0.99,0.99,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ]
                                   ]])
         expected_start = torch.Tensor([[
-                                    [ 0. ,0.  ,1.   ,0.  ,0.  ,1.  ,0.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
+                                    [0.  ,0.  ,1.   ,0.  ,0.  ,1.  ,0.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
         expected_stop = torch.Tensor([[
-                                    [ 0. ,0.  ,0.   ,1.  ,0.  ,0.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
+                                    [0.  ,0.  ,0.   ,1.  ,0.  ,0.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
         expected_marks = torch.Tensor([[
-                                    [ 0. ,0.  ,1.   ,1.  ,0.  ,1.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
+                                    [0.  ,0.  ,1.   ,1.  ,0.  ,1.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
         
-        b = Binarized([input_string], prediction, ['geneprod'])
+        b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         print(b.start)
@@ -56,7 +57,7 @@ class BinarizeTest(unittest.TestCase):
                                     [0.   ,0.  ,1.   ,1.  ,1.  ,1.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
 
-        b = Binarized([input_string], prediction, ['geneprod'])
+        b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent(regex="\t")
@@ -87,7 +88,7 @@ class BinarizeTest(unittest.TestCase):
                                     [0.  ,0.  ,1.   ,1.  ,1.  ,1.  ,1.  ]
                                      ]])
 
-        b = Binarized([input_string], prediction, ['geneprod'])
+        b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent()
@@ -98,7 +99,6 @@ class BinarizeTest(unittest.TestCase):
         self.assertTensorEqual(expected_start, b.start)
         self.assertTensorEqual(expected_stop, b.stop)
         self.assertTensorEqual(expected_marks, b.marks)
-
 
 
 if __name__ == '__main__':

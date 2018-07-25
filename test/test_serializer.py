@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
+#T. Lemberger, 2018
+
 import unittest
 import torch
-from smtag.utils import tokenize
-from smtag.binarize import Binarized
-from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from common.utils import tokenize
+from predict.binarize import Binarized
+from predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from common.utils import timer
+from common.mapper import Catalogue
 
 class SerializerTest(unittest.TestCase):
 
     def test_element_serializer(self):
         #tag, on_features, inner_text
         tag = 'sd-tag'
-        on_features = ['intervention', None, None, 'protein']
+        on_features = [Catalogue.INTERVENTION, None, None, Catalogue.PROTEIN]
         inner_text = 'test text'
         expected_xml_string = '<sd-tag role="intervention" type="protein">test text</sd-tag>'
         expected_html_string = '<span class="sd-tag role_intervention type_protein">test text</span>'
@@ -34,12 +38,12 @@ class SerializerTest(unittest.TestCase):
                                   ]])
         
         #self, text_examples, prediction, output_semantics
-        b = Binarized([input_string], prediction, ['gene','small_molecule','tissue','protein'])
+        b = Binarized([input_string], prediction, Catalogue.from_list(['gene','small_molecule','tissue','protein']))
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         serializer = Serializer(tag="sd-tag", format="xml")
         predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = 'A <sd-tag type="gene">gene</sd-tag> or <sd-tag type="protein">protein</sd-tag>.'
+        expected_xml_string = '<smtag>A <sd-tag type="gene">gene</sd-tag> or <sd-tag type="protein">protein</sd-tag>.</smtag>'
         #expected_html_string = 'A <span class="sd-tag gene">gene</span> or <span class="sd-tag protein">protein</span>.'
         #print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
@@ -58,16 +62,17 @@ class SerializerTest(unittest.TestCase):
                                   ]])
         
         #self, text_examples, prediction, output_semantics
-        b = Binarized([input_string], prediction, ['geneprod','small_molecule','intervention','protein'])
+        b = Binarized([input_string], prediction, Catalogue.from_list(['geneprod','small_molecule','intervention','protein']))
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent()
         serializer = Serializer(tag="sd-tag", format="xml")
         predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = 'A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag role="intervention" type="protein">others</sd-tag>'
+        expected_xml_string = '<smtag>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag role="intervention" type="protein">others</sd-tag></smtag>'
         #print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
 
+    @timer
     def test_serializer_3(self):
         '''
         Testing tagging with staggered features and xml escaping.
@@ -81,13 +86,14 @@ class SerializerTest(unittest.TestCase):
                                   ]])
         
         #self, text_examples, prediction, output_semantics
-        b = Binarized([input_string], prediction, ['geneprod','assayed','intervention','protein'])
+        b = Binarized([input_string], prediction, Catalogue.from_list(['geneprod','assayed','intervention','protein']))
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent()
-        serializer = Serializer(tag="sd-tag", format="xml")
-        predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = 'A <sd-tag type="geneprod">gene </sd-tag><sd-tag type="geneprod" role="assayed">or</sd-tag> <sd-tag role="intervention" type="protein">oth&gt;rs</sd-tag>'
+        for _ in range(100):
+            serializer = Serializer(tag="sd-tag", format="xml")
+            predicted_xml_string = serializer.serialize(b)[0]
+        expected_xml_string = '<smtag>A <sd-tag type="geneprod">gene </sd-tag><sd-tag type="geneprod" role="assayed">or</sd-tag> <sd-tag role="intervention" type="protein">oth&gt;rs</sd-tag></smtag>'
         print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
 
