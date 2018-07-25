@@ -43,7 +43,7 @@ class SerializerTest(unittest.TestCase):
         b.binarize_with_token([token_list])
         serializer = Serializer(tag="sd-tag", format="xml")
         predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = '<smtag><sd-panel>A <sd-tag type="gene">gene</sd-tag> or <sd-tag type="protein">protein</sd-tag>.</sd-panel></smtag>'
+        expected_xml_string = '<smtag>A <sd-tag type="gene">gene</sd-tag> or <sd-tag type="protein">protein</sd-tag>.</smtag>'
         #expected_html_string = 'A <span class="sd-tag gene">gene</span> or <span class="sd-tag protein">protein</span>.'
         #print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
@@ -68,7 +68,7 @@ class SerializerTest(unittest.TestCase):
         b.fuse_adjascent()
         serializer = Serializer(tag="sd-tag", format="xml")
         predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = '<smtag><sd-panel>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag role="intervention" type="protein">others</sd-tag></sd-panel></smtag>'
+        expected_xml_string = '<smtag>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag role="intervention" type="protein">others</sd-tag></smtag>'
         #print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
 
@@ -93,7 +93,7 @@ class SerializerTest(unittest.TestCase):
         for _ in range(100):
             serializer = Serializer(tag="sd-tag", format="xml")
             predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = '<smtag><sd-panel>A <sd-tag type="geneprod">gene </sd-tag><sd-tag type="geneprod" role="assayed">or</sd-tag> <sd-tag role="intervention" type="protein">oth&gt;rs</sd-tag></sd-panel></smtag>'
+        expected_xml_string = '<smtag>A <sd-tag type="geneprod">gene </sd-tag><sd-tag type="geneprod" role="assayed">or</sd-tag> <sd-tag role="intervention" type="protein">oth&gt;rs</sd-tag></smtag>'
         print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
 

@@ -70,14 +70,14 @@ class EngineTest(SmtagTestCase):
     def test_entity(self):
         ml = self.engine.entity(self.text_example)
         print(ml)
-        expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod">YY</sd-tag>, <sd-tag type="geneprod">XXX</sd-tag>, AA</sd-panel></smtag>'''
+        expected = '''<smtag>AAA <sd-tag type="geneprod">YY</sd-tag>, <sd-tag type="geneprod">XXX</sd-tag>, AA</smtag>'''
         self.assertEqual(expected, ml)
 
     @unittest.skip("unstable reporter toy model")
     def test_tag(self):
         ml = self.engine.tag(self.text_example)
         print(ml)
-        expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag>, AA</sd-panel></smtag>'''
+        expected = '''<smtag>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag>, AA</smtag>'''
         self.assertEqual(expected, ml)
 
     @unittest.skip("unstable reporter toy model")

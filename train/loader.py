@@ -44,7 +44,7 @@ class Dataset:
         provenance_filename = 'data/{}.prov'.format(basename)
 
         print("Loading {} as features for the dataset.".format(features_filename))
-        self.output = torch.load(features_filename).float() #saved file is 3D; need to change this?
+        self.output = torch.load(features_filename).float()
         self.N = self.output.size(0) #number of examples
         self.nf_output = self.output.size(1) #number of features
         self.L = self.output.size(2) #length of text snippet 
