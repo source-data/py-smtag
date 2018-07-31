@@ -29,6 +29,13 @@ setuptools.setup(
         'neo4jrestclient==2.1.1',
         'nltk==3.2.4',
     ],
+    include_package_data=True,
+    entry_points = {
+        'console_scripts': [
+            'smtag-meta=py_smtag.command_line:meta',
+            'smtag=py_smtag.command_line:about',
+        ],
+    },
     # keywords="",
     classifiers=(
         # full list: https://pypi.org/pypi?%3Aaction=list_classifiers
