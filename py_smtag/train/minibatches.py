@@ -41,7 +41,7 @@ class Minibatches(object): #Minibatches(Dataset)?
 
         for i in range(self.minibatch_number):
             this_minibatch = Dataset(self.minibatch_size, self.nf_input, self.nf_output, self.L)
-            #minibatch_size is 1 for online training 
+            #minibatch_size is 1 for online training
             start = i * self.minibatch_size
             stop = start + self.minibatch_size
             this_minibatch.input = dataset.input[start:stop, : , : ]
@@ -60,12 +60,12 @@ class Minibatches(object): #Minibatches(Dataset)?
 
     def __next__(self):
         return next(self.minibatches)
-        
+
     def __len__(self):
         return len(self.minibatches)
-        
+
     def __getitem__(self, i):
         return self.minibatches[i]
-        
+
     def __setitem__(self, i, val):
         self.minibatches[i] = val
