@@ -39,7 +39,7 @@ class XMLElementSerializer(AbstractElementSerializer):
         return xml_string # because both HTML and XML handled, working with strings is easier than return ET.tostring(xml_string)
 
     @staticmethod
-    def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL 
+    def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL
         if action == 'open':
             return '<{}>'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
         elif action == 'close':
@@ -67,7 +67,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
         return html_string
 
     @staticmethod
-    def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL 
+    def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL
         if action == 'open':
             return '<span class="{}">'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
         elif action == 'close':
@@ -109,7 +109,7 @@ class AbstractTagger(AbstractSerializer):
             panel_feature = binarized.output_semantics.index(Catalogue.PANEL_START)
         else:
             panel_feature = None
-        
+
         for i in range(self.N):
             #example_text = binarized.example_text[i]
             ml_string = ""
@@ -136,7 +136,7 @@ class AbstractTagger(AbstractSerializer):
             if len(boundaries.nonzero()) != 0: # if example i has a position where boundaries[i] is 1, we need to segment
 
                 for b in boundaries: # what if multiple kind of boundaries? this would be too complicated for the moment!!
-                    if b in token_start_positions: 
+                    if b in token_start_positions:
                         #find index of corresponding token
                         next_token_index = token_start_positions.index(b)
                         # add token from previous start to token before next
@@ -149,7 +149,7 @@ class AbstractTagger(AbstractSerializer):
             segments.append(last_segment)
 
             for token_list in segments:
-            # change this to binarized.start.sum(1).nonzero etc then identify which feature is on; same for stop 
+            # change this to binarized.start.sum(1).nonzero etc then identify which feature is on; same for stop
             # change this to to start in benarized.tokenized.start_index to get immediately only the position where tag needs to be genearated: much faster!
                 #print("serialize segment", " ".join([t.text for t in token_list]))
                 #WARNING: CHECK BEFORE WHETHER ANY BOUNDARY FEATURES; IF NOT, DO NOT FLANK WITH <sd-panel>
@@ -168,14 +168,14 @@ class AbstractTagger(AbstractSerializer):
 
                     # scan features that need to be opened
                     for f in range(self.nf):
-                        if not isinstance(self.output_semantics[f], Boundary) and binarized.start[i][f][start] != 0:  
+                        if not isinstance(self.output_semantics[f], Boundary) and binarized.start[i][f][start] != 0:
                             need_to_open[f] = True
                             need_to_open_any = True
                             active_features += 1
 
                     # as soon as something new needs to be opened all the rest needs to be closed first with the accumulated inner text
                     if need_to_open_any:
-                        if inner_text: 
+                        if inner_text:
                             tagged_string = self.serialize_element(current_concepts, inner_text)
                         else:
                             tagged_string =''
