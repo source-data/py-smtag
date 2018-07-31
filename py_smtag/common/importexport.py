@@ -32,7 +32,8 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
     #torch.save(model, model_filename) # does not work
     archive_path = "{}.zip".format(name)
     option_path = "{}.json".format(name)
-    with cd(MODEL_DIR):
+    os.makedirs(model_dir, exist_ok=True)
+    with cd(model_dir):
         with ZipFile(archive_path, 'w') as myzip:
             torch.save(model.state_dict(), model_path)
             myzip.write(model_path)
