@@ -49,7 +49,7 @@ class Binarized:
         Args:
             tokenized_examples (list of lists): list of lists of token for each example.
         '''
-        
+
         #PROBLEM: set token index
         self.tokenized = tokenized_examples
         for i in range(self.N):
@@ -61,23 +61,23 @@ class Binarized:
                 for k in range(self.nf):
                     avg_score = float(self.prediction[i, k, start:stop].sum()) / token_length
                     concept = self.output_semantics[k]
-                    if avg_score >= concept.threshold: 
+                    if avg_score >= concept.threshold:
                         self.start[i, k, start] = 1
-                        self.stop[i, k, stop-1] = 1 # stop mark has to be stop-1 to be the last character and not the next; otherwise we would always need later to test if stop < length of string because of last token 
+                        self.stop[i, k, stop-1] = 1 # stop mark has to be stop-1 to be the last character and not the next; otherwise we would always need later to test if stop < length of string because of last token
                         self.score[i, k, start] = round(100*avg_score)
                         self.marks[i, k, start:stop].fill_(1)
 
     def fuse_adjascent(self, regex=" "):
         '''
         When to adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
-        
+
         Args:
-            regext (str default=" "): a regex pattern that is used to identify spacers between token that 
+            regext (str default=" "): a regex pattern that is used to identify spacers between token that
         '''
         test = re.compile(regex)
         for i in range(self.N):
             input_string = self.text_examples[i]
-            #if self.tokenized: 
+            #if self.tokenized:
             #    pos_iter = PositionIter(token=self.tokenized[i], mode='stop')
             #else:
             #    pos_iter = PositionIter(input_string)
@@ -92,11 +92,11 @@ class Binarized:
                 # pos = 17: stop[, ,17] > 0.99 and start[,,18] > 0.99 [,,17]==" "
                 if stop_mark < self.L - 2: #
                     for k in range(self.nf):
-                        if self.stop[i, k, stop_mark] > 0.99 and self.start[i, k, stop_mark+2] > 0.99 and re.match(test, input_string[stop_mark+1]): 
+                        if self.stop[i, k, stop_mark] > 0.99 and self.start[i, k, stop_mark+2] > 0.99 and re.match(test, input_string[stop_mark+1]):
                             self.stop[i, k, stop_mark] = 0 # remove the stop boundary of first term
                             self.start[i, k, stop_mark+2] = 0 # remove the start boundary of next term
                             self.marks[i, k, stop_mark+1] = 1 # fill the gap by marking the space as part of the tagged term
-                            self.score[i, k, stop_mark] = 0 #ideally the average of the score of the fused words but would ned to find start of upstream word 
+                            self.score[i, k, stop_mark] = 0 #ideally the average of the score of the fused words but would ned to find start of upstream word
 
     def cat_(self, other):
         # self.text_examples stays untouched, assumed to be the same, could be tested
