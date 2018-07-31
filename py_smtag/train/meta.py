@@ -45,7 +45,7 @@ from .builder import SmtagModel
 from ..common.importexport import export_model, load_model
 from ..common.config import MODEL_DIR
 
-if __name__ == '__main__':
+def main():
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)
     # logging.config.fileConfig('logging.yml')
     # logging.basicConfig(level=logging.INFO)
@@ -108,3 +108,6 @@ if __name__ == '__main__':
 
     #SAVE MODEL
     export_model(model)
+
+if __name__ == '__main__':
+    main()
