@@ -27,7 +27,7 @@ class DataPreparator(object):
 
     def __init__(self, parser):
         """
-        Part of the initialisation is to define a common set of command line options. 
+        Part of the initialisation is to define a common set of command line options.
         The call to self.main() is left to implementing classes.
         The call to self.set_options(parser.parse_args()) is left to implementing classes to leave the possibility to add specialized command line options.
         """
@@ -45,7 +45,7 @@ class DataPreparator(object):
         parser.add_argument('-W', '--window', action='store_true', help='switches to the sampling fig legends using a random window instead of parsing full sentences')
         parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
         parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
-        #parser.add_argument('-c', '--rand_char_padding', action='store_true', help='padding with random characters instead of white spaces') 
+        #parser.add_argument('-c', '--rand_char_padding', action='store_true', help='padding with random characters instead of white spaces')
         parser.add_argument('-p', '--padding', default=20, help='minimum padding added to text')
         self.options = {}
         #implementation: self.options = self.set_options(parser.parse_args())
@@ -61,14 +61,14 @@ class DataPreparator(object):
         Returns:
             (dict): options correspondning to each argument parsed from command line
         """
-        options = {} 
+        options = {}
         options['namebase'] = args.filenamebase
         options['iterations'] = args.iterations
         options['verbose'] = args.verbose
         options['testset_fraction'] = args.testfract
         options['length'] = args.length
         if args.window:
-            options['sampling_mode'] = 'window' 
+            options['sampling_mode'] = 'window'
         elif args.start:
             options['sampling_mode'] = 'start'
         else:
@@ -106,18 +106,18 @@ class DataPreparator(object):
         total_count = N * iterations
         progress_counter = 1
         for i in range(N):
-            text_i = dataset[i]['text'] 
+            text_i = dataset[i]['text']
             features_i = dataset[i]['features']
             #compute_features_i['marks']['sd-tag']['geneprod'] here or somethign
             provenance_i = dataset[i]['provenance']
             L = len(text_i)
             length_statistics.append(L)
             sentence_ranges = PunktSentenceTokenizer().span_tokenize(text_i) if mode == 'sentence' else None
-            
+
             for j in range(iterations): # j is index of sampling iteration
                 progress(progress_counter, total_count, "sampling")
                 if mode == 'sentence':
-                    fragment = choice(sentence_ranges) 
+                    fragment = choice(sentence_ranges)
                 elif mode == 'start':
                     fragment = (0, length)
                 else: #random window sampling method
@@ -132,14 +132,14 @@ class DataPreparator(object):
                 sub_text = text_i[start:stop]
 
                 padding = length + min_padding - len(sub_text)
-                if random_shifting: 
+                if random_shifting:
                     random_shift = int(floor(padding * random()))
                 else:
                     random_shift = 0
                 right_padding = padding - random_shift
 
                 #if white_space_padding:
-                text_ij = ' ' * random_shift + sub_text + ' ' * right_padding 
+                text_ij = ' ' * random_shift + sub_text + ' ' * right_padding
                 #else:
                 #    left_padding_chars = ''.join([choice(ascii_letters+' ') for i in range(random_shift)])
                 #    right_padding_chars = ''.join([choice(ascii_letters+' ') for i in range(right_padding)])
@@ -149,12 +149,12 @@ class DataPreparator(object):
                 textcoded4th[index] = TString(text_ij, dtype=torch.uint8).toTensor() # pedestrian and actually faster than playing with tensors
                 provenance4th.append(provenance_i)
 
-                #fill tensor of features   
-                for kind in features_i: 
+                #fill tensor of features
+                for kind in features_i:
                     for element in features_i[kind]:
                         for attribute in features_i[kind][element]:
                             f = [None] * random_shift + features_i[kind][element][attribute][start:stop] + [None] * right_padding
-                            for pos in range(length+min_padding): 
+                            for pos in range(length+min_padding):
                                 code = f[pos]
                                 if code is not None:
                                     tensor4th[index][code][pos] = 1 # True
@@ -164,22 +164,22 @@ class DataPreparator(object):
         text_avg = float(sum(length_statistics) / N)
         text_sd = float(torch.Tensor(length_statistics).std())
         text_max = max(length_statistics)
-        text_min = min(length_statistics)  
+        text_min = min(length_statistics)
         print("\nlength of the {} examples selected:".format(N))
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_sd, text_min, text_max))
         if self.options['verbose']:
             self.display(text4th, tensor4th)
 
-        return {'text4th':text4th, 'textcoded4th':textcoded4th, 'provenance4th':provenance4th, 'tensor4th':tensor4th} 
+        return {'text4th':text4th, 'textcoded4th':textcoded4th, 'provenance4th':provenance4th, 'tensor4th':tensor4th}
 
 
-    def split_trainset_testset(self, raw_examples):  
+    def split_trainset_testset(self, raw_examples):
         """
         The list of raw examples is split early on into trainset and testset, to make sure they are kept completely separate.
         """
         test_fraction = self.options['testset_fraction']
         print("\nnumber of raw_examples\n", len(raw_examples))
-        #hmmm, what if raw_examples is a dictionary instead of a list as is the case in sdgraph2th        
+        #hmmm, what if raw_examples is a dictionary instead of a list as is the case in sdgraph2th
         N = len(raw_examples)
         N_train = int(floor(N * (1 - test_fraction)))
         if isinstance(raw_examples, list):
@@ -211,13 +211,13 @@ class DataPreparator(object):
         Abstract method to import raw examples from a source eg. text files or database
         """
         #self.examples, errors = neo2leg.neo2xml(self.options)
-        pass 
-        
+        pass
+
     #@abstractmethod
     def build_feature_dataset(self, dataset):
         """
         Abstract method to extract and map features from the loaded examples.
-        """ 
+        """
         #features, _, _ = xml2features(figure_xml)
         pass
 
@@ -226,7 +226,7 @@ class DataPreparator(object):
         """
         Saving datasets prepared for torch to a text file with text example, a npy file for the extracted features and a provenance file that keeps track of origin of each example.
         """
-        
+
         with cd(DATA_DIR):
             for k in self.dataset4th: # 'train' | 'valid' | 'test'
                 archive_path = "{}_{}".format(filenamebase, k)
@@ -235,26 +235,26 @@ class DataPreparator(object):
                     tensor_filename = "{}.pyth".format(archive_path)
                     torch.save(self.dataset4th[k]['tensor4th'], tensor_filename)
                     myzip.write(tensor_filename)
-                    os.remove(tensor_filename) 
-                    
+                    os.remove(tensor_filename)
+
                     # write encoded text tensor
                     textcoded_filename = "{}_textcoded.pyth".format(archive_path)
                     torch.save(self.dataset4th[k]['textcoded4th'], textcoded_filename)
                     myzip.write(textcoded_filename)
-                    os.remove(textcoded_filename) 
+                    os.remove(textcoded_filename)
 
                     # write text examples into text file
                     text_filename = "{}.txt".format(archive_path)
                     with open(text_filename, 'w') as f:
-                        for line in self.dataset4th[k]['text4th']: 
+                        for line in self.dataset4th[k]['text4th']:
                             f.write("{}\n".format(line))
                     myzip.write(text_filename)
-                    os.remove(text_filename) 
+                    os.remove(text_filename)
 
                     # write provenenance of each example into text file
                     provenance_filename = "{}.prov".format(archive_path)
                     with open(provenance_filename, 'w') as f:
-                        for line in self.dataset4th[k]['provenance4th']: 
+                        for line in self.dataset4th[k]['provenance4th']:
                             f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
                     myzip.write(provenance_filename)
                     os.remove(provenance_filename)
@@ -269,13 +269,13 @@ class DataPreparator(object):
         Errors that are detected during feature extraction are kept and logged into a log file.
         """
         for e in errors:
-            if errors[e]: 
+            if errors[e]:
                 print("####################################################")
                 print(" Writing {} {} errors to errors_{}.log".format(len(errors[e]), e, e))
                 print("####################################################" )
-            #write log file anyway, even if zero errors, to remove old copy 
+            #write log file anyway, even if zero errors, to remove old copy
             with open('errors_{}.log'.format(e), 'w') as f:
-                for line in errors[e]: 
+                for line in errors[e]:
                     ids, err = line
                     f.write(u"\nerror:\t{}\t{}\n".format('\t'.join(ids), err))
             f.close()
@@ -285,7 +285,7 @@ class DataPreparator(object):
         Display text fragments and extracted features to the console.
         """
         N, featsize, L = tensor4th.shape
-    
+
         for i in range(N):
             print
             print("Text:")
