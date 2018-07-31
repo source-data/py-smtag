@@ -12,14 +12,14 @@ class AnnPreparator(DataPreparator):
     ANN_EXTENSION = 'ann'
     TXT_EXTENSION = 'txt'
     ALLOWED_FILE_TYPES = [ANN_EXTENSION, TXT_EXTENSION]
-    
+
     def __init__(self, parser):
         super(AnnPreparator, self).__init__(parser) #hopefully parser is mutable otherwise use self.parser
         parser.add_argument('dir', type=str, default='../data/test_brat', help='path to directory to scan')
         self.options = self.set_options(parser.parse_args())
         if self.options['verbose']: print(self.options)
         super(AnnPreparator, self).main()
-        
+
     @staticmethod
     #implements @abstractmethod
     def set_options(args):
@@ -38,7 +38,7 @@ class AnnPreparator(DataPreparator):
             text = re.sub('[\r\n\t]', ' ', text)
             with open(path.join(mypath, annotation_filename), 'r') as f:
                 annotation_lines = f.readlines()
-       
+
             #example:
             #Emerin deficiency at the nuclear membrane in patients with Emery-Dreifuss muscular dystrophy.
             #T1 DISO 0 17   Emerin deficiency
@@ -76,17 +76,17 @@ class AnnPreparator(DataPreparator):
         return raw_examples
 
     #implements @abstractmethod
-    def build_feature_dataset(self, examples): 
-   
+    def build_feature_dataset(self, examples):
+
         dataset = []
- 
+
         for ex in examples:
             text = ex['text']
             features = AnnFeaturizer.ann2features(ex)
             provenance = {'id':ex['provenance'],'index': 0}
             dataset.append({'provenance': provenance, 'text': text, 'features': features})
         return dataset
-        
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generates text and tensor files from brat annotations for smtag training")
     p = AnnPreparator(parser)
