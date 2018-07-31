@@ -7,7 +7,7 @@ def t_replace(x, mask, replacement):
     A function to replace the columns that are marked by a mask by a replacement column.
     Example with
     mask:        0110 the second and third columns of x need to be replaced
-    
+
     x:           1011   replacement column: 1
                  1010                       1
                  0100                       1
@@ -21,12 +21,12 @@ def t_replace(x, mask, replacement):
     Args:
         x (torch.Tensor): a 3D N x nf x L Tensor filled with 0 or 1 values, where N is number of examples with L columns, nf number of features in a column, L is length of a row or number of columns.
         mask (torch.Tensor): a 2D N x L Tensor, filled with 0 or 1 values. For each example, the columns to be changes in x (second dimension) are labeled with 1 in mask.
-        replacement (torch.Tensor): a 3D 1 x nf x 1 Tensor filled with 0 or 1 values. Each column of x labeled by mask will be replaced by replacement. 
-    
+        replacement (torch.Tensor): a 3D 1 x nf x 1 Tensor filled with 0 or 1 values. Each column of x labeled by mask will be replaced by replacement.
+
     Returns:
        (torch.Tensor): a 3D tensor where the columns labeled by the mask have been replaced by the replacement column.
     '''
-    
+
     # replace this with x.index_copy_(3, mask3D, replacement3D) or somethign similar: nope, index cannot be 3D
     # maybe with something like x[:,:][mask] = replacement_vector: nope ;-()
 
