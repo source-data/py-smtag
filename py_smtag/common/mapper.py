@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-# SmartTag learns to recognize a number of features in stretches of text. For example if a strech of text corresponds to a gene product, 
+# SmartTag learns to recognize a number of features in stretches of text. For example if a strech of text corresponds to a gene product,
 # a disease or if a new figure panel legends is starting, the respective features will be recognized by SmartTag.
-# For training, features are typically learned from compendia where the features were tagged, for example using xml tags. 
-# At prediction stage, the recognized features can be serialized back into xml (or html). 
+# For training, features are typically learned from compendia where the features were tagged, for example using xml tags.
+# At prediction stage, the recognized features can be serialized back into xml (or html).
 # So we have the back and forther conversion from XML to tensor to XML:
 # XML --> train features(text) // predict features(text) --> XML rendering.
 # A feature can either be a set of longitudinal marks under each character of the word/text that possess the feature. This is the system used for entitiy recognition.
 # Or it can be a boundary that defines the begining or the end of a segment of text. This is the system used to recognize the start of a figure panel.
 # To transform xml into stacked features, specific combinations of element/attribute/value are mapped onto the index of the feature (or channel).
-# where they are represented (1 or 0 in a torch.Tensor). 
+# where they are represented (1 or 0 in a torch.Tensor).
 # The tensor that holds the features is 3D: N examples X nf features (or channels) x L characters (string length).
 # For example the feature "organism" will mark the word "cat" and the feature "tissue" will mark "heart" in the sentence below:
 #
 #                  The cat with a heart.
 # SMALL_MOLECULE   000000000000000000000
-#    ...   
+#    ...
 # TISSUE           000000000000000111110
 # ORGANISM         000011100000000000000
 #   ...
 #
 # This tensor is is extracted from the xml:
 #     <xml><p>The <sd-tag type='organism'>cat</sd-tag> with a <sd-tag type='tissue'>heart</sd-tag>.</xml>
-# by mapping the element sd-tag with attribute @type='organism' to the feature (channel) with index 6 (zero based). 
+# by mapping the element sd-tag with attribute @type='organism' to the feature (channel) with index 6 (zero based).
 # The mapping is given in xml_map. The xml to feature conversion is carried out in the module smtag.featurizer
 #
 # The reverse operation is made possible by the class Concept and Catalogue.
@@ -34,7 +34,7 @@
 # This is still messy and problematic. Ultimately Concept, Catalogue and xml_map have to be unified/merged into a single object and json description.
 # Element, Entity and Boundary are used in smtag.serializer
 # Another source of difficulty is that some features are combinations of several features (with And or Or).
-# __add__() implements a way to fuse/merge concepts. 
+# __add__() implements a way to fuse/merge concepts.
 # There should be a way to search for a feature based on one attribute of the concept
 
 
@@ -46,7 +46,7 @@ class Concept(object):
         self.category = ""
         self.type = ""
         self.role = ""
-    
+
     def __str__(self):
         return "{}: '{}' ({})".format(self.category, self.label, "; ".join(filter(None, [self.type, self.role])))
 
@@ -66,7 +66,7 @@ class Concept(object):
         y.for_serialization += x.for_serialization
         return y
 
-    def equal_type(self, x): 
+    def equal_type(self, x):
         # we neglect differences in role to call it 'equal'; ok to find concept in list of entities but not very general.
         return self.category == x.category and self.type == x.type
 
@@ -127,7 +127,7 @@ class Catalogue():
     PANEL_START = Boundary('panel_start','sd-panel',  0.5)
     PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
     GENEPROD = Entity('geneprod', [('type', 'geneprod')], 0.5)
-    
+
     # the order of the Concepts in the catalogue matters and determines the order in which these concepts are expected in datasets used for training
     standard_channels = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,
             INTERVENTION, MEASUREMENT, NORMALIZING, REPORTER, EXP_VAR, GENERIC,
@@ -137,7 +137,7 @@ class Catalogue():
     @staticmethod
     def from_list(labels):
         return [Catalogue.from_label(label) for label in labels]
-    
+
     @staticmethod
     def from_label(label):
         if label:
