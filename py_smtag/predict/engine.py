@@ -14,7 +14,7 @@ Options:
   -f <str>, --format <str>                Format of the output [default: xml]
   -D, --debug                             Debug mode to see the successive processing steps in the engine.
   -d, --demo                              Demo with a long sample.
-"""	
+"""
 
 #-g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: sd-tag]
 
@@ -69,7 +69,7 @@ class Connector(nn.Module):
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
     '''
 
-    def __init__(self, output_semantics, input_semantics): 
+    def __init__(self, output_semantics, input_semantics):
         super(Connector, self).__init__()
         # get indices of output channels (of the source module) in the order require by input semantics (of the receiving module).
         # features should match by type or by role or by both?
@@ -111,7 +111,7 @@ class SmtagEngine:
                 ],
                 'context': [
                     (load_model('causality_geneprod.zip', PROD_DIR), 'geneprod')
-                ], 
+                ],
                 'panelizer': [
                     (load_model('panel_start.zip', PROD_DIR), '')
                 ]
@@ -191,7 +191,7 @@ class SmtagEngine:
 
         # select and match by type the predicted entity marks to be fed to the second context_p semantics from context model.
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
-        anonymization_marks = rewire.forward(binarized_entities.marks) # should not include reporter marks; 
+        anonymization_marks = rewire.forward(binarized_entities.marks) # should not include reporter marks;
         if self.DEBUG:
             print("\n5: rewiring models['entity'].output_semantics and models['context'].anonymize_with", ", ".join([str(e) for e in self.models['entity'].output_semantics]), ", ".join([str(e) for e in self.models['context'].anonymize_with]))
             print("anonymization_marks ({})".format(" x ".join([str(s) for s in anonymization_marks.size()]))); Show.print_pretty(anonymization_marks)
@@ -206,7 +206,7 @@ class SmtagEngine:
         if self.DEBUG:
             print("\n7: final cumulated_output.marks ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])));Show.print_pretty(cumulated_output.marks)
             print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
-        
+
         return cumulated_output
 
     def __serialize(self, output):
@@ -254,7 +254,7 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
 
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
-    
+
     engine = SmtagEngine()
     engine.DEBUG = DEBUG
 
