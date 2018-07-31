@@ -20,7 +20,7 @@ class Converter():
         Returns
             (torch.Tensor): 3D tensor 1 x 32 x L, (1 example x 32 bits x L characters) representing characters as 32 features
         """
-        
+
         L = len(input_string)
         t = torch.zeros(1, 32, L, dtype=dtype)
         for i in range(L):
@@ -69,7 +69,7 @@ class TString: # (str) or (torch.Tensor)?
     Methods:
         __str__(): string representation of TString
         __len__(): length with len(TString) and returns int
-        __add__(TString): concatenates TString and returns a TString; allow operation like tstring_1 + tstring_2 
+        __add__(TString): concatenates TString and returns a TString; allow operation like tstring_1 + tstring_2
         __getitem(i): gets the i-th element of the string and of the underlying tensor and returns a TString; allows to slice with tstring[start:stop]
         repeat(N): repeats the TString N time
         toTensor(): returns the torch.Tensor representation of the encoded string
@@ -136,5 +136,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_string = args.input_string#.encod('utf-8')
     print("the decoded of encoded:", Converter.t_decode(Converter.t_encode(input_string)))
-    
-    
+
+

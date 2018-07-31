@@ -22,7 +22,7 @@ class Predictor: #(nn.Module?)
         self.tag = tag
         self.format = format
 
-    def padding(self, input): 
+    def padding(self, input):
         padding_length = ceil(max(MIN_SIZE - len(input), MIN_PADDING)/2)
         pad = SPACE_ENCODED.repeat(padding_length)
         return pad + input + pad
@@ -39,12 +39,12 @@ class Predictor: #(nn.Module?)
             combined_input = input
         return combined_input
 
-    def forward(self, input, additional_input_features = None): 
+    def forward(self, input, additional_input_features = None):
         padded = self.padding(input)
         L = len(padded)
         padding_length = int((L - len(input)) / 2)
         input = self.combine_with_input_features(padded, additional_input_features)
-        
+
         #PREDICTION
         self.model.eval()
         prediction = self.model(input.toTensor()) #.float()
@@ -91,7 +91,7 @@ class ContextualPredictor(Predictor):
         return TString(res)
         # return TString(t_replace(input.toTensor().clone(), marks, replacement.toTensor())) # cute but surprisingly slow!
 
-    def forward(self, input, marks): 
+    def forward(self, input, marks):
         predictions = []
         # each anonymization needs to be done separately as it anonymize all the input features
         for i in range(marks.size(1)):

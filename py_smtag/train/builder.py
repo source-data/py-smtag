@@ -12,19 +12,19 @@ class SmtagModel(nn.Module):
 
     def __init__(self, opt):
         super(SmtagModel, self).__init__()
-        nf_input = opt['nf_input'] 
+        nf_input = opt['nf_input']
         nf_output = opt['nf_output']
         nf_table = deepcopy(opt['nf_table']) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
         kernel_table = deepcopy(opt['kernel_table']) # need to deep copy/clone
         pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
         dropout = opt['dropout']
-        
+
         self.pre = nn.BatchNorm1d(nf_input)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1)
         self.BN = nn.BatchNorm1d(nf_output)
-        
-        self.output_semantics = Catalogue.from_list(opt['selected_features']) 
+
+        self.output_semantics = Catalogue.from_list(opt['selected_features'])
         if 'collapsed_features' in opt:
             if opt['collapsed_features']:
                 concepts = [Catalogue.from_label(f) for f in opt['collapsed_features']]
@@ -73,7 +73,7 @@ class Unet2(nn.Module):
            self.padding = floor((self.kernel-1)/2)
         self.dropout_rate = dropout_rate
         self.dropout = nn.Dropout(self.dropout_rate)
-        
+
         self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding)
         self.BN_down_A = nn.BatchNorm1d(self.nf_input)
 
@@ -94,7 +94,7 @@ class Unet2(nn.Module):
         self.reduce = nn.Conv1d(2*self.nf_input, self.nf_input, 1, 1)
 
     def forward(self, x):
-        
+
         y = self.dropout(x)
         y = self.conv_down_A(y)
         y = F.relu(self.BN_down_A(y))
@@ -118,7 +118,7 @@ class Unet2(nn.Module):
 
         #y = x + y # this is the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
         y = self.concat((x, y)) # merge via concatanation of output layers followed by reducing from 2*nf_output to nf_output
-        y = self.reduce(y) 
+        y = self.reduce(y)
 
         return y
 

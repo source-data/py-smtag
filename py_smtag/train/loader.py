@@ -47,7 +47,7 @@ class Dataset:
         self.output = torch.load(features_filename).float()
         self.N = self.output.size(0) #number of examples
         self.nf_output = self.output.size(1) #number of features
-        self.L = self.output.size(2) #length of text snippet 
+        self.L = self.output.size(2) #length of text snippet
 
         print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
         self.textcoded = torch.load(textcoded_filename).float()
@@ -94,7 +94,7 @@ class Loader:
         if self.overlap_features:
             self.nf_output += 1
             self.index_of_overlap_feature = self.nf_output - 1
-        else: 
+        else:
             self.index_of_overlap_feature = None
 
         # debugging
@@ -158,7 +158,7 @@ class Loader:
             last_example = datasets[k]['last_example']
             N_examples = last_example - first_example + 1
             dataset = Dataset(N_examples, self.nf_input, self.nf_output, L)
-            
+
             print("Generating {} set with {} examples ({}, {})".format(k, N_examples, first_example, last_example))
             print("input dataset['{}'] tensor created".format(k))
             print("output dataset['{}'] tensor created".format(k))
@@ -186,17 +186,17 @@ class Loader:
                 for f in self.selected_features:
                     j = self.selected_features.index(f)
                     dataset.output[index, j, : ] = raw_dataset.output[i, concept2index[f], : ]
-                    
+
                 #dataset.output[index, nf_collapsed_feature,:] is already initialized with zeros
                 for f in self.collapsed_features:
-                    dataset.output[index, self.index_of_collapsed_feature,  : ] += raw_dataset.output[i, concept2index[f], : ]  
+                    dataset.output[index, self.index_of_collapsed_feature,  : ] += raw_dataset.output[i, concept2index[f], : ]
 
                 #for overlap features, need initialization with ones
                 if self.overlap_features:
                     dataset.output[index, self.index_of_overlap_feature, : ].fill_(1)
                 for f in self.overlap_features:
                     dataset.output[index, self.index_of_overlap_feature, : ] *= raw_dataset.output[i, concept2index[f], : ]
-            
+
             print("\ndone\n")
             datasets[k] = dataset
         return datasets

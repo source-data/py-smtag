@@ -20,7 +20,7 @@ Options:
   -n <str>, --nf_table <str>              Number of features for each hidden layer (use quotes if comma+space delimited) [default: 8,8,8]
   -k <str>, --kernel_table <str>          Convolution kernel for each hidden layer (use quotes if comma+space delimited) [default: 6,6,6]
   -p <str>, --pool_table <str>            Pooling for each hidden layer (use quotes if comma+space delimited) [default: 2,2,2]
-  
+
   -h --help     Show this screen.
   --version     Show version.
 """
