@@ -4,10 +4,10 @@
 
 import unittest
 import torch
-from smtag.utils import tokenize
+from common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
-from smtag.binarize import Binarized
-from smtag.mapper import Catalogue
+from predict.binarize import Binarized
+from common.mapper import Catalogue
 
 class BinarizeTest(SmtagTestCase):
 
@@ -20,13 +20,13 @@ class BinarizeTest(SmtagTestCase):
                                     [0   ,0   ,0.99,0.99,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ]
                                   ]])
         expected_start = torch.Tensor([[
-                                    [ 0. ,0.  ,1.   ,0.  ,0.  ,1.  ,0.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
+                                    [0.  ,0.  ,1.   ,0.  ,0.  ,1.  ,0.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
         expected_stop = torch.Tensor([[
-                                    [ 0. ,0.  ,0.   ,1.  ,0.  ,0.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
+                                    [0.  ,0.  ,0.   ,1.  ,0.  ,0.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
         expected_marks = torch.Tensor([[
-                                    [ 0. ,0.  ,1.   ,1.  ,0.  ,1.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
+                                    [0.  ,0.  ,1.   ,1.  ,0.  ,1.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
         
         b = Binarized([input_string], prediction, [Catalogue.GENEPROD])

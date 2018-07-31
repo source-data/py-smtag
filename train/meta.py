@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-"""smtag
+"""Top level module to manage training..
+
 Usage:
   meta.py [-f <file> -E <int> -Z <int> -R <float> -V <float> -o <str> -i <str> -a <str> -c <str> -n <str> -k <str> -p <str>]
 
@@ -35,15 +36,14 @@ import os
 #        logging.config.dictConfig(config)
 #    else:
 #        logging.basicConfig(level=default_level)
-import sys; print("sys.path=",sys.path) # for debugging
 import argparse
 import torch
-from smtag.loader import Loader
-from smtag.minibatches import Minibatches
-from smtag.trainer import Trainer
-from smtag.builder import SmtagModel
-from smtag.importexport import export_model, load_model
-from smtag.config import MODEL_DIR
+from train.loader import Loader
+from train.minibatches import Minibatches
+from train.trainer import Trainer
+from train.builder import SmtagModel
+from common.importexport import export_model, load_model
+from common.config import MODEL_DIR
 
 if __name__ == '__main__':
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)
@@ -69,7 +69,6 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--pool_table',  default= [2,2,2], help='Pooling for each hidden layer (use quotes if comma+space delimited).')
 
     arguments = vars(parser.parse_args()) # to cast as dict which is what is return by docopt in case we would use it
-    print(arguments)
     # map arguments to opt to decouple command line options from internal representation
     opt = {}
     opt['namebase'] = arguments['file']

@@ -2,7 +2,7 @@
 #T. Lemberger, 2018
 
 import unittest
-from smtag.utils import tokenize, timer
+from common.utils import tokenize, timer
 
 class TokenizerTest(unittest.TestCase):
     def setUp(self):

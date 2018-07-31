@@ -4,8 +4,8 @@
 #from abc import ABC
 import torch
 import xml.etree.ElementTree as ET
-from smtag.utils import xml_escape, timer
-from smtag.mapper import Catalogue, Boundary
+from common.utils import xml_escape, timer
+from common.mapper import Catalogue, Boundary
 
 
 class AbstractElementSerializer(object): # (ABC)
@@ -152,7 +152,9 @@ class AbstractTagger(AbstractSerializer):
             # change this to binarized.start.sum(1).nonzero etc then identify which feature is on; same for stop 
             # change this to to start in benarized.tokenized.start_index to get immediately only the position where tag needs to be genearated: much faster!
                 #print("serialize segment", " ".join([t.text for t in token_list]))
-                ml_string += "<sd-panel>" # self.serialize_boundary('open') # problem: left spacer should be put before that
+                #WARNING: CHECK BEFORE WHETHER ANY BOUNDARY FEATURES; IF NOT, DO NOT FLANK WITH <sd-panel>
+                if panel_feature is not None:
+                    ml_string += "<sd-panel>" # self.serialize_boundary('open') # problem: left spacer should be put before that
                 for t in token_list:
                     start = t.start
                     stop = t.stop-1
@@ -212,7 +214,8 @@ class AbstractTagger(AbstractSerializer):
                                 current_concepts[f] = False
                                 current_scores[f] = 0
                         need_to_close_any = False
-                ml_string += "</sd-panel>" #self.serialize_boundary('close')
+                if panel_feature is not None:
+                    ml_string += "</sd-panel>" #self.serialize_boundary('close')
             #phew!
             self.serialized_examples.append(ml_string)
         return self.serialized_examples

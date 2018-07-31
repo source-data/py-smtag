@@ -5,7 +5,7 @@ import torch
 from torch import nn, optim
 from random import shuffle
 import logging
-from smtag.viz import Show, Plotter
+from common.viz import Show, Plotter
 
 class Trainer:
 

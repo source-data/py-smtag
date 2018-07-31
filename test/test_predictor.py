@@ -4,17 +4,17 @@
 import unittest
 import torch
 from torch import nn, optim
-from smtag.utils import tokenize
+from common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
-from smtag.converter import Converter, TString
-from smtag.binarize import Binarized
-from smtag.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from smtag.predictor import SimplePredictor, ContextualPredictor
-from smtag.mapper import Catalogue
-from smtag.viz import Show
-from smtag.importexport import load_model
-from smtag.config import PROD_DIR, MARKING_CHAR
+from common.converter import Converter, TString
+from predict.binarize import Binarized
+from predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from predict.predictor import SimplePredictor, ContextualPredictor
+from common.mapper import Catalogue
+from common.viz import Show
+from common.importexport import load_model
+from common.config import PROD_DIR, MARKING_CHAR
 
 
 class PredictorTest(SmtagTestCase):
@@ -92,7 +92,7 @@ class PredictorTest(SmtagTestCase):
             [[0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0]]
         )
         p = ContextualPredictor(self.context_model)
-        anonymized_encoded = p.anonymize(input_string_encoded, marks, replacement = TString("$"))
+        anonymized_encoded = p.anonymize(input_string_encoded, marks, replacement = "$")
         anonymized = str(anonymized_encoded)
         expected = "the $$$ with a hat"
         self.assertEqual(expected, anonymized)

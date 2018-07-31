@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-from smtag.config import NBITS
+from common.config import NBITS
 import numpy as np
 import torch
 # import logging
 import math
-from smtag.converter import Converter
-from smtag.mapper import Catalogue, concept2index
-from smtag.progress import progress
-from smtag.viz import Show 
+from common.converter import Converter
+from common.mapper import Catalogue, concept2index
+from common.progress import progress
+from common.viz import Show 
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')
@@ -38,21 +38,19 @@ class Dataset:
         self.output = torch.zeros(self.N, self.nf_output, self.L)
 
     def from_files(self, basename):
-        features_filename = "data/{}.npy".format(basename)
+        features_filename = "data/{}.pyth".format(basename)
         text_filename = 'data/{}.txt'.format(basename)
-        textcoded_filename = "data/{}_textcoded.npy".format(basename)
+        textcoded_filename = "data/{}_textcoded.pyth".format(basename)
         provenance_filename = 'data/{}.prov'.format(basename)
 
         print("Loading {} as features for the dataset.".format(features_filename))
-        np_features = np.load(features_filename) #saved file is 3D; need to change this?
-        self.N = np_features.shape[0] #number of examples
-        self.nf_output = np_features.shape[1] #number of features
-        self.L = np_features.shape[2] #length of text snippet 
-        self.output = torch.from_numpy(np_features).float() #saved files are from numpy, need conversion to torch and make sure it is a FloatTensor othwerise problems with default dtype 
+        self.output = torch.load(features_filename).float()
+        self.N = self.output.size(0) #number of examples
+        self.nf_output = self.output.size(1) #number of features
+        self.L = self.output.size(2) #length of text snippet 
 
         print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
-        textcoded = np.load(textcoded_filename)
-        self.textcoded = torch.from_numpy(textcoded)
+        self.textcoded = torch.load(textcoded_filename).float()
 
         print("Loading {} for the original texts of the dataset.".format(text_filename))
         with open(text_filename, 'r') as f:

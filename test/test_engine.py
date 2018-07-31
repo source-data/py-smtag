@@ -4,13 +4,13 @@
 import unittest
 import torch
 from torch import nn, optim
-from smtag.utils import tokenize, timer
-from smtag.converter import TString
+from common.utils import tokenize, timer
+from common.converter import TString
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
-from smtag.engine import SmtagEngine, Combine, Connector
-from smtag.progress import progress
-from smtag.config import MARKING_CHAR
+from predict.engine import SmtagEngine, Combine, Connector
+from common.progress import progress
+from common.config import MARKING_CHAR
 
 #maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
 
@@ -57,11 +57,33 @@ class EngineTest(SmtagTestCase):
                 ]
             }
 
+        self.engine = SmtagEngine(self.cartridge)
+        self.engine.DEBUG = True
+
+
+    def test_panel(self):
+        ml = self.engine.panelizer(self.text_example)
+        print(ml)
+        expected = '''<smtag><sd-panel>AAA YY</sd-panel><sd-panel>, XXX</sd-panel><sd-panel>, AA</sd-panel></smtag>'''
+        self.assertEqual(expected, ml)
+
+    def test_entity(self):
+        ml = self.engine.entity(self.text_example)
+        print(ml)
+        expected = '''<smtag>AAA <sd-tag type="geneprod">YY</sd-tag>, <sd-tag type="geneprod">XXX</sd-tag>, AA</smtag>'''
+        self.assertEqual(expected, ml)
+
+    @unittest.skip("unstable reporter toy model")
+    def test_tag(self):
+        ml = self.engine.tag(self.text_example)
+        print(ml)
+        expected = '''<smtag>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag>, AA</smtag>'''
+        self.assertEqual(expected, ml)
+
+    @unittest.skip("unstable reporter toy model")
     @timer
-    def test_engine_all(self):
-        engine = SmtagEngine(self.cartridge)
-        engine.DEBUG = True
-        ml = engine.smtag(self.text_example)
+    def test_all(self):
+        ml = self.engine.smtag(self.text_example)
         print(ml)
         expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag></sd-panel><sd-panel>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag></sd-panel><sd-panel>, AA</sd-panel></smtag>'''
         self.assertEqual(expected, ml)

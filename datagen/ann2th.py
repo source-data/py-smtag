@@ -4,8 +4,9 @@
 import argparse
 import re
 from os import path, listdir
-from smtag.dataprep import DataPreparator
-from smtag.featurizer import AnnFeaturizer
+from datagen.dataprep import DataPreparator
+from datagen.featurizer import AnnFeaturizer
+from common.progress import progress
 
 class AnnPreparator(DataPreparator):
     ANN_EXTENSION = 'ann'
@@ -14,7 +15,7 @@ class AnnPreparator(DataPreparator):
     
     def __init__(self, parser):
         super(AnnPreparator, self).__init__(parser) #hopefully parser is mutable otherwise use self.parser
-        parser.add_argument('dir', type=str, default='../corpora/test/train', help='path to directory to scan')
+        parser.add_argument('dir', type=str, default='../data/test_brat', help='path to directory to scan')
         self.options = self.set_options(parser.parse_args())
         if self.options['verbose']: print(self.options)
         super(AnnPreparator, self).main()
@@ -43,8 +44,7 @@ class AnnPreparator(DataPreparator):
             #T1 DISO 0 17   Emerin deficiency
             #T2 DISO 59 92  Emery-Dreifuss muscular dystrophy
 
-            parsing_pattern = re.compile('^(\w+)\t(\w+) (\d+) (\d+)\t(.*)$')
- 
+            parsing_pattern = re.compile(r'^(\w+)\t(\w+) (\d+) (\d+)\t(.*)$')
             for l in annotation_lines:
                 r = re.search(parsing_pattern, l)
                 a = {}
@@ -53,11 +53,11 @@ class AnnPreparator(DataPreparator):
                 a['start'] = int(r.group(3))
                 a['stop'] = int(r.group(4))
                 a['term'] = r.group(5)
-                annot.append(a) 
+                annot.append(a)
 
-            example = {'text': text.decode('utf-8'), 'annot': annot, 'provenance': basename} #in the case of xml, annot and text are the same...
+            example = {'text': text, 'annot': annot, 'provenance': basename} #in the case of xml, annot and text are the same...
             return example
-        
+
         filenames = []
         all_files_in_dir = [f for f in listdir(mypath) if path.isfile(path.join(mypath, f))]
         #reduce list ot list of unique filenames
@@ -65,8 +65,14 @@ class AnnPreparator(DataPreparator):
             basename, ext = f.split('.')
             if basename not in filenames and ext in self.ALLOWED_FILE_TYPES:
                 filenames.append(basename)
-        
-        raw_examples = [read_ann_from_file(mypath, b) for b in filenames]
+
+        raw_examples = []
+        total = len(filenames)
+        count = 0
+        for b in filenames:
+            progress(count, total, status='loading examples'); count += 1
+            raw_examples.append(read_ann_from_file(mypath, b))
+
         return raw_examples
 
     #implements @abstractmethod

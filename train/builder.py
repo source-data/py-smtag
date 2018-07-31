@@ -6,7 +6,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from copy import deepcopy
-from smtag.mapper import Concept, Catalogue
+from common.mapper import Concept, Catalogue
 
 class SmtagModel(nn.Module):
 
@@ -26,20 +26,14 @@ class SmtagModel(nn.Module):
 
         self.output_semantics = Catalogue.from_list(opt['selected_features'])
         if 'collapsed_features' in opt:
-            #print(opt['collapsed_features'])
             if opt['collapsed_features']:
-                # WARNING! keep only the first one by convention. NO GREAT. LACK OF STRUCTURE IN FEATURE SEMANTICS. CATEGORY, TYPE, ROLE
-                # WARning: this will fail one way or the other; keeping entity allows Connect to wokr, but serialization fails; other way around serialization is ocrrect but cannot connect
                 concepts = [Catalogue.from_label(f) for f in opt['collapsed_features']]
                 collapsed_concepts = Concept()
                 for c in concepts:
                     collapsed_concepts += c # __add__ operation defined in mapper, complements or concatenates types, roles and serialization recipes; maybe misleading because not commutative?
                 self.output_semantics.append(collapsed_concepts)
         if 'overlap_features' in opt:
-             #print(opt['overlap_features'])
              if opt['overlap_features']:
-                 # WARNING! keep only the first one by convention. NO GREAT. LACK OF STRUCTURE IN FEATURE SEMANTICS. CATEGORY, TYPE, ROLE
-                 # for example if model trained with meta -a geneprod,reporter, the resulting model will carry only GENEPROD as its output semantics
                 concepts = [Catalogue.from_label(f) for f in opt['overlap_features']]
                 overlap_features = Concept()
                 for c in concepts:
@@ -48,7 +42,6 @@ class SmtagModel(nn.Module):
         self.opt = opt
 
     def forward(self, x):
-        # print("in forward", " x ".join([str(n) for n in list(x.size())]))
         x = self.pre(x)
         x = self.unet(x)
         x = self.adapter(x)

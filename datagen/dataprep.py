@@ -3,27 +3,28 @@
 
 #from abc import ABC, abstractmethod
 import argparse
-import numpy as np
 import torch
+import os.path
 from string import ascii_letters
+from math import floor
+
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
-from math import floor
-from smtag.mapper import index2concept, Catalogue
-from smtag.converter import TString
-import os.path
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
-from smtag.utils import cd
-from smtag.config import DATA_DIR
 
-SPACE_ENCODED = TString(" ")
+from common.mapper import index2concept, Catalogue
+from common.converter import TString
+from common.utils import cd, timer
+from common.config import DATA_DIR
+from common.progress import progress
 
-#class DataPreparator(ABC):
+SPACE_ENCODED = TString(" ", dtype=torch.uint8)
+
 class DataPreparator(object):
     """
     An abstract class to prepare text examples as dataset that can be imported in smtag
     """
-    
+
     def __init__(self, parser):
         """
         Part of the initialisation is to define a common set of command line options. 
@@ -75,10 +76,11 @@ class DataPreparator(object):
         options['random_shifting'] = not args.disable_shifting
         # options['white_space_padding'] = not args.rand_char_padding
         options['padding'] = args.padding
-        
+
         return options
 
 
+    @timer
     def sample(self, dataset):
         """
         Once examples are loaded in the dataset, each example will be sampled multiple (=iterations) times, sliced, shifted and padded.
@@ -95,15 +97,16 @@ class DataPreparator(object):
         text4th = []
         provenance4th = []
         number_of_features = len(Catalogue.standard_channels) # includes the virtual geneprod feature
-        tensor4th = np.zeros((N * iterations, number_of_features, length+min_padding)) # dtype = np.bool_
-        textcoded4th = np.zeros((N * iterations, 32, length+min_padding)) # dtype = np.bool_
-        
+        tensor4th = torch.zeros((N * iterations, number_of_features, length+min_padding), dtype = torch.uint8) # dtype = np.bool_
+        textcoded4th = torch.zeros((N * iterations, 32, length+min_padding), dtype = torch.uint8) # dtype = np.bool_
+
         length_statistics = []
         print("generating {}*{} x {} x {} tensor.".format(N, self.options['iterations'], number_of_features, length+min_padding))
 
+        total_count = N * iterations
+        progress_counter = 1
         for i in range(N):
             text_i = dataset[i]['text'] 
-            textcoded4th_i= TString(text_i)
             features_i = dataset[i]['features']
             #compute_features_i['marks']['sd-tag']['geneprod'] here or somethign
             provenance_i = dataset[i]['provenance']
@@ -112,6 +115,7 @@ class DataPreparator(object):
             sentence_ranges = PunktSentenceTokenizer().span_tokenize(text_i) if mode == 'sentence' else None
             
             for j in range(iterations): # j is index of sampling iteration
+                progress(progress_counter, total_count, "sampling")
                 if mode == 'sentence':
                     fragment = choice(sentence_ranges) 
                 elif mode == 'start':
@@ -126,10 +130,6 @@ class DataPreparator(object):
                 start = fragment[0]
                 stop = min(start + length, L)
                 sub_text = text_i[start:stop]
-                # sub_text4th = TString()
-                # sub_text4th.s = sub_text # not so nice, but textcoded4th[start:stop] would need to implement __getitem__(); needs to be tested 
-                #sub_text4th = textcoded4th_i[ : , :, start:stop] # 3D
-                sub_text4th = textcoded4th_i[start:stop]
 
                 padding = length + min_padding - len(sub_text)
                 if random_shifting: 
@@ -146,16 +146,7 @@ class DataPreparator(object):
                 #    text_ij = left_padding_chars + sub_text + right_padding_chars
 
                 text4th.append(text_ij)
-                #add textcoded4th
-                #textcoded4th[index] = TString(text_ij).toTensor() # pedestrian but slow way
-
-                #faster ??? but lower level
-                #pad textcoded4th_ij with suitable encoded spaces matrices
-                left_padding_encoded = SPACE_ENCODED.repeat(random_shift) 
-                right_padding_encoded = SPACE_ENCODED.repeat(right_padding)
-                textcoded4th_ij = left_padding_encoded + sub_text4th + right_padding_encoded
-                textcoded4th[index] = textcoded4th_ij.toTensor() # would be nicer to save directly TString and work only with TString ?
-
+                textcoded4th[index] = TString(text_ij, dtype=torch.uint8).toTensor() # pedestrian and actually faster than playing with tensors
                 provenance4th.append(provenance_i)
 
                 #fill tensor of features   
@@ -168,16 +159,17 @@ class DataPreparator(object):
                                 if code is not None:
                                     tensor4th[index][code][pos] = 1 # True
                 index += 1
+                progress_counter += 1
 
         text_avg = float(sum(length_statistics) / N)
-        text_sd = np.std (length_statistics)
+        text_sd = float(torch.Tensor(length_statistics).std())
         text_max = max(length_statistics)
         text_min = min(length_statistics)  
-        print("length of the {} examples selected:".format(N))
+        print("\nlength of the {} examples selected:".format(N))
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_sd, text_min, text_max))
         if self.options['verbose']:
             self.display(text4th, tensor4th)
-        
+
         return {'text4th':text4th, 'textcoded4th':textcoded4th, 'provenance4th':provenance4th, 'tensor4th':tensor4th} 
 
 
@@ -186,7 +178,7 @@ class DataPreparator(object):
         The list of raw examples is split early on into trainset and testset, to make sure they are kept completely separate.
         """
         test_fraction = self.options['testset_fraction']
-        print("number of raw_examples", len(raw_examples))
+        print("\nnumber of raw_examples\n", len(raw_examples))
         #hmmm, what if raw_examples is a dictionary instead of a list as is the case in sdgraph2th        
         N = len(raw_examples)
         N_train = int(floor(N * (1 - test_fraction)))
@@ -203,9 +195,9 @@ class DataPreparator(object):
     #only called in implementation at the end of __init__()?
     def main(self):
         self.raw_examples = self.import_examples(self.options['source'])
-        
+
         self.split_trainset_testset(self.raw_examples)
-        
+
         for subset in ['train', 'test']:
             dataset = self.build_feature_dataset(self.split_examples[subset]) #should return dataset[i]['text'|'provenance'|'features']
             self.dataset4th[subset] = self.sample(dataset)
@@ -216,7 +208,7 @@ class DataPreparator(object):
     #@abstractmethod
     def import_examples(self, source):
         """
-        Abstract method to import raw examples from a source eg. text files or databse
+        Abstract method to import raw examples from a source eg. text files or database
         """
         #self.examples, errors = neo2leg.neo2xml(self.options)
         pass 
@@ -240,14 +232,14 @@ class DataPreparator(object):
                 archive_path = "{}_{}".format(filenamebase, k)
                 with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
                     # write feature tensor
-                    tensor_filename = "{}.npy".format(archive_path)
-                    np.save(tensor_filename, self.dataset4th[k]['tensor4th'])
+                    tensor_filename = "{}.pyth".format(archive_path)
+                    torch.save(self.dataset4th[k]['tensor4th'], tensor_filename)
                     myzip.write(tensor_filename)
                     os.remove(tensor_filename) 
                     
                     # write encoded text tensor
-                    textcoded_filename = "{}_textcoded.npy".format(archive_path)
-                    np.save(textcoded_filename, self.dataset4th[k]['textcoded4th'])
+                    textcoded_filename = "{}_textcoded.pyth".format(archive_path)
+                    torch.save(self.dataset4th[k]['textcoded4th'], textcoded_filename)
                     myzip.write(textcoded_filename)
                     os.remove(textcoded_filename) 
 

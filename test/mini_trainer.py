@@ -1,7 +1,7 @@
 import torch
 from torch import nn, optim
-from smtag.builder import SmtagModel
-from smtag.progress import progress
+from train.builder import SmtagModel
+from common.progress import progress
 
 def toy_model(x, y, selected_features = ['geneprod'], overlap_features = [], collapsed_features = [], threshold = 1E-02, epochs = 100):
         opt = {}

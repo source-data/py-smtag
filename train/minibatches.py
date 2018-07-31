@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-from smtag.loader import Dataset
+from train.loader import Dataset
 import torch
 from math import floor
 import logging
 logger = logging.getLogger(__name__)
 
-class Minibatches: #Minibatches(Dataset)?
+class Minibatches(object): #Minibatches(Dataset)?
     '''
     Chunks a Dataset of already randomized examples into an array of minibatches.
     Minibatches is iterable and yields successively one minibatch (Dataset).

@@ -1,34 +1,37 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-"""smtag
+"""
+SmartTag semantic tagging engine.
+
 Usage:
   engine.py [-D -d -m <str> -t <str> -f <str>]
 
 Options:
 
-  -m <str>, --method <str>                Method to call [default: smtag]
+  -m <str>, --method <str>                Method to call (smtag|tag|entity|panelize) [default: smtag]
   -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
-  -g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: sd-tag]
   -D, --debug                             Debug mode to see the successive processing steps in the engine.
   -d, --demo                              Demo with a long sample.
 """	
+
+#-g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: sd-tag]
 
 import re
 from torch import nn
 import torch
 from docopt import docopt
-from smtag.importexport import load_model
-from smtag.utils import tokenize, timer
-from smtag.builder import Concat
-from smtag.converter import TString
-from smtag.mapper import Catalogue
-from smtag.binarize import Binarized
-from smtag.predictor import SimplePredictor, ContextualPredictor
-from smtag.serializer import Serializer
-from smtag.config import PROD_DIR
-from smtag.viz import Show
+from common.importexport import load_model
+from common.utils import tokenize, timer
+from train.builder import Concat
+from common.converter import TString
+from common.mapper import Catalogue
+from predict.binarize import Binarized
+from predict.predictor import SimplePredictor, ContextualPredictor
+from predict.serializer import Serializer
+from common.config import PROD_DIR
+from common.viz import Show
 
 # maybe should be in buidler.py
 class Combine(nn.Module):#SmtagModel?
@@ -100,7 +103,8 @@ class SmtagEngine:
                     (load_model('cell.zip', PROD_DIR), ''),
                     (load_model('tissue.zip', PROD_DIR), ''),
                     (load_model('organism.zip', PROD_DIR), ''),
-                    (load_model('exp_assay.zip', PROD_DIR), '')
+                    (load_model('exp_assay.zip', PROD_DIR), ''),
+                    (load_model('disease.zip', PROD_DIR), '')
                 ],
                 'only_once': [
                     (load_model('reporter_geneprod.zip', PROD_DIR), '')
@@ -116,50 +120,48 @@ class SmtagEngine:
         for model_family in self.cartridge:
             self.models[model_family] = Combine([(model, Catalogue.from_label(anonymize_with)) for model, anonymize_with in self.cartridge[model_family]])
 
-    def __entity(self, input_string):
-        input_t_string = TString(input_string)
+    def __panels(self, input_t_string):
+        p = SimplePredictor(self.models['panelizer'])
+        binarized = p.pred_binarized(input_t_string, self.models['panelizer'].output_semantics)
+        return binarized
+
+    def __entity(self, input_t_string):
         p = SimplePredictor(self.models['entity'])
         binarized = p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
         return binarized
 
-    @timer
-    def entity(self, input_string):
-        return self.serialize(self.__entity(input_string))
+    def __reporter(self, input_t_string):
+        p = SimplePredictor(self.models['only_once'])
+        binarized = p.pred_binarized(input_t_string, self.models['only_once'].output_semantics)
+        return binarized
 
-    def __entity_and_context(self, input_string):
-
-        input_t_string = TString(input_string)
-        
-        entity_p = SimplePredictor(self.models['entity'])
-        binarized = entity_p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
-
-        # select and order the predicted marks to be fed to the second context_p semantics from context model.
-        rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
-        marks = rewire.forward(binarized.marks)
-
+    def __context(self, input_t_string, anonymization_marks):
         context_p = ContextualPredictor(self.models['context'])
-        context_binarized = context_p.pred_binarized(input_string, marks, self.models['context'].output_semantics)
-        
-        #concatenate entity and output_semantics before calling Serializer()
+        binarized = context_p.pred_binarized(input_t_string, anonymization_marks, self.models['context'].output_semantics)
+        return binarized
+
+    def __entity_and_role(self, input_t_string):
+        binarized = self.__entity(input_t_string)
+        binarized_reporter =self.__reporter(input_t_string)
+        binarized.erase_(binarized_reporter)
+        binarized.cat_(binarized_reporter)
+        rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
+        anonymization_marks = rewire.forward(binarized.marks)
+        context_binarized = self.__context(input_t_string, anonymization_marks)
         binarized.cat_(context_binarized)
         return binarized
 
-    @timer
-    def tag(self, input_string):
-        return self.serialize(self.__entity_and_context(input_string))
-
     def __all(self, input_string):
-        
+
         input_t_string = TString(input_string)
         if self.DEBUG:
             print(input_t_string)
+
         #PREDICT PANELS
-        panel_p = SimplePredictor(self.models['panelizer'])
-        binarized_panels = panel_p.pred_binarized(input_t_string, self.models['panelizer'].output_semantics)
+        binarized_panels = self.__panels(input_t_string)
 
         # PREDICT ENTITIES
-        entity_p = SimplePredictor(self.models['entity'])
-        binarized_entities = entity_p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
+        binarized_entities = self.__entity(input_t_string)
         if self.DEBUG:
             print("\n0: binarized.marks after entity ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()]))); Show.print_pretty(binarized_entities.marks)
             print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
@@ -171,13 +173,11 @@ class SmtagEngine:
             print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # PREDICT REPORTERS
-        reporter_p = SimplePredictor(self.models['only_once'])
-        binarized_reporter = reporter_p.pred_binarized(input_t_string, self.models['only_once'].output_semantics)
+        binarized_reporter = self.__reporter(input_t_string)
         if self.DEBUG:
             print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])));Show.print_pretty(binarized_reporter.marks)
             print("output semantics: ", "; ".join([str(e) for e in binarized_reporter.output_semantics]))
 
-        # there should be as many reporter model slots, even if empty, as entities are predicted.
         binarized_entities.erase_(binarized_reporter) # will it erase itself? need to assume output is 1 channel only
         if self.DEBUG:
             print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])));Show.print_pretty(binarized_reporter.marks)
@@ -197,8 +197,7 @@ class SmtagEngine:
             print("anonymization_marks ({})".format(" x ".join([str(s) for s in anonymization_marks.size()]))); Show.print_pretty(anonymization_marks)
 
         # PREDICT ROLES ON NON REPORTER ENTITIES
-        context_p = ContextualPredictor(self.models['context'])
-        context_binarized = context_p.pred_binarized(input_t_string, anonymization_marks, self.models['context'].output_semantics)
+        context_binarized = self.__context(input_t_string, anonymization_marks)
         if self.DEBUG:
             print("\n6: context_binarized ({})".format(" x ".join([str(s) for s in context_binarized.marks.size()]))); Show.print_pretty(context_binarized.marks)
 
@@ -210,29 +209,31 @@ class SmtagEngine:
         
         return cumulated_output
 
-    @timer
-    def smtag(self, input_string):
-        return self.serialize(self.__all(input_string))
-    
-    def serialize(self, output):
+    def __serialize(self, output):
         ml = Serializer().serialize(output)
         return ml[0]
-    
-    def add_roles(self, input_xml):
-        pass
 
-    def __panels(self, input_string):
-        input_t_string = TString(input_string)
-        p = SimplePredictor(self.models['panelizer'])
-        binarized = p.pred_binarized(input_t_string, self.models['panelizer'].output_semantics)
-        return binarized
+    @timer
+    def entity(self, input_string):
+        return self.__serialize(self.__entity(TString(input_string)))
+
+    @timer
+    def tag(self, input_string):
+        return self.__serialize(self.__entity_and_role(TString(input_string)))
+
+    @timer
+    def smtag(self, input_string):
+        return self.__serialize(self.__all(input_string))
+
+    @timer
+    def add_roles(self, input_xml):
+        pass # need to implement an xml updater
 
     @timer
     def panelizer(self, input_string):
-        return self.serialize(self.__panels(input_string))
+        return self.__serialize(self.__panels(TString(input_string)))
 
 if __name__ == "__main__":
-    # PARSE ARGUMENTS
     arguments = docopt(__doc__, version='0.1')
     input_string = arguments['--text']
     method = arguments['--method']

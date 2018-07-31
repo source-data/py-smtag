@@ -7,9 +7,9 @@ from zipfile import ZipFile
 import json
 from datetime import datetime
 import torch
-from smtag.config import MODEL_DIR
-from smtag.builder import SmtagModel
-from smtag.utils import cd
+from common.config import MODEL_DIR
+from train.builder import SmtagModel
+from common.utils import cd
 
 def export_model(model, custom_name = '', model_dir = MODEL_DIR):
     model.cpu() # model.cpu().double() ?
@@ -22,11 +22,11 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
         name = custom_name
     else:
         suffixes = []
-        suffixes.append("_".join([str(f) for f in model.output_semantics]))
+        suffixes.append("_".join([f for f in opt['selected_features']]))
         suffixes.append("_or_".join([f for f in opt['collapsed_features']]))
         suffixes.append("_and_".join([f for f in opt['overlap_features']]))
         suffixes.append(datetime.now().isoformat("-",timespec='minutes').replace(":", "-"))
-        suffix = "_".join(suffixes)
+        suffix = "_".join(filter(None,suffixes))
         name = "{}_{}".format(opt['namebase'], suffix)
     model_path = "{}.sddl".format(name)
     #torch.save(model, model_filename) # does not work

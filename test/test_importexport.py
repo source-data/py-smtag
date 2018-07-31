@@ -7,16 +7,15 @@ import torch
 from torch import nn, optim
 import sys
 import os
-from smtag.utils import tokenize
+from common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
-from smtag.converter import Converter, TString
-from smtag.predictor import SimplePredictor
-from smtag.importexport import load_model
-from smtag.config import MODEL_DIR
-from smtag.progress import progress
-from smtag.mapper import Catalogue
-from smtag.importexport import export_model, load_model
+from common.converter import Converter, TString
+from predict.predictor import SimplePredictor
+from common.config import MODEL_DIR
+from common.progress import progress
+from common.mapper import Catalogue
+from common.importexport import export_model, load_model
 
 #maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
 

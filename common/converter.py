@@ -4,7 +4,7 @@
 import numpy as np
 import argparse
 import torch
-from smtag.utils import timer
+from common.utils import timer
 
 class Converter():
     """
@@ -12,7 +12,7 @@ class Converter():
     """
 
     @staticmethod
-    def t_encode(input_string):
+    def t_encode(input_string, dtype=torch.float):
         """
         Static method that encodes an input string into a 3D tensor.
         Args
@@ -22,7 +22,7 @@ class Converter():
         """
         
         L = len(input_string)
-        t = torch.zeros(1, 32, L)
+        t = torch.zeros(1, 32, L, dtype=dtype)
         for i in range(L):
             code = ord(input_string[i])
             # the integer is first represented as binary in a padded string with bin(code) and [2:] to remove "0b"
@@ -57,7 +57,7 @@ class Converter():
             str += chr(code) #python 2: unichr()
         return str
 
-class TString(str): # (str) or (torch.Tensor)?
+class TString: # (str) or (torch.Tensor)?
     '''
     Class to represent strings simultaneously as Tensor and as str. String is encoded into a 3D (1 example x 32 bits x L characters) Tensor.
 
@@ -76,11 +76,12 @@ class TString(str): # (str) or (torch.Tensor)?
         all the remainint methods from torch.Tensor
     '''
 
-    def __init__(self, x=''):
+    def __init__(self, x='', dtype=torch.float):
         super(TString, self).__init__()
-        self.t = torch.Tensor()
+        self.dtype = dtype
+        self.t = torch.zeros([], dtype=self.dtype) # empty tensor
         if isinstance(x, str):
-            self.t = Converter.t_encode(x)
+            self.t = Converter.t_encode(x, dtype=self.dtype)
             self.s = x
         elif isinstance(x, torch.Tensor):
             assert(x.dim() == 3 and x.size(1) == 32)
@@ -99,7 +100,7 @@ class TString(str): # (str) or (torch.Tensor)?
         elif len(self.s) == 0:
             return x # or should it return a cloned x?
         else:
-            concatenated = TString()
+            concatenated = TString(dtype=self.dtype)
             concatenated.t = torch.cat((self.toTensor(), x.toTensor()), 2)
             concatenated.s = str(self) + str(x)
             return concatenated
@@ -108,13 +109,13 @@ class TString(str): # (str) or (torch.Tensor)?
         if len(self.s) == 0:
             return TString()
         else:
-            item = TString()
+            item = TString(dtype=self.dtype)
             item.s = self.s[i]
             item.t = self.t[ : , : , i]
             return item
 
     def repeat(self, N):
-        repeated = TString()
+        repeated = TString(dtype=self.dtype)
         repeated.t = self.t.repeat(1, 1, N) # WARNING: if N == 0, returned tensor is 2D !!!
         repeated.s = self.s * N
         return repeated

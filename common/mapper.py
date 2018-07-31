@@ -48,7 +48,7 @@ class Concept(object):
         self.role = ""
     
     def __str__(self):
-        return "'{}'({})".format(self.label, "; ".join(filter(None, [self.category, self.type, self.role])))
+        return "{}: '{}' ({})".format(self.category, self.label, "; ".join(filter(None, [self.type, self.role])))
 
     def __add__(self, x): # maybe misleading because not commutative
         assert(self.category == x.category or self.category == "" or x.category == "") # cannot combine concepts across categories but can do with category-less object
@@ -123,7 +123,7 @@ class Catalogue():
     ENTITY = Category('entity', [('category', 'entity')], 0.5)
     TIME = Category('time', [('category', 'assay')], 0.5)
     PHYSICAL_VAR = Category('physical', [('category', 'physical')], 0.5)
-    DISEASE = Category('disease', [('category', 'disease')], 0.5)
+    DISEASE = Category('disease', [('category', 'disease')], 0.8)
     PANEL_START = Boundary('panel_start','sd-panel',  0.5)
     PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
     GENEPROD = Entity('geneprod', [('type', 'geneprod')], 0.5)
