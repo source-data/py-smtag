@@ -16,9 +16,9 @@ Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer'])
 
 def tokenize(s):
     #patterns derived from python nltk library http://www.nltk.org/_modules/nltk/tokenize/punkt.html#PunktLanguageVars.word_tokenize
-    
+
     re_word_start = r"[^\./\(\"\`{\[:;&\#\*@\)}\]\-–—‐−,]" #added . and / and dashes
-    re_non_word_chars = r"(?:[\.?!)\";}\]\*:@\'\({\[,])" # added . and + 
+    re_non_word_chars = r"(?:[\.?!)\";}\]\*:@\'\({\[,])" # added . and +
     re_multi_char_punct = r"(?:\-–—‐−{2,}|\.{2,}|(?:\.\s){2,}\.)" # added dashes
     re_genotype = r"(?:[+\-–—‐−]/[+\-–—‐−])"
     re_hyphenated = r"(?<=[^\dαβγδεζηθικλμνξπρστυφχψω])(?:[\-–—‐−][^\dαβγδεζηθικλμνξπρστυφχψω])" # IL-β or γ-actin vs GFP-P53 or 12-330-3244 or Creb-1
@@ -64,7 +64,7 @@ def tokenize(s):
         start_index.append(start)
         stop_index.append(stop)
         last_stop = stop
-    
+
     return {'token_list':token_list, 'start_index':start_index, 'stop_index':stop_index}
 
 class TokenIter:
@@ -104,19 +104,19 @@ class PositionIter:
     '''
     Iterates either on a string or, if token are available, on list of token. If it iterates on token, mode allows to select whether it is it start position, stop position or its text that is yielded
     The idea is to allow to go faster through text by jumping from token to token, provided the text has already been tokenized.
-    
+
     Args:
         L (int): makes PositionIter a normal range(L)
         token (list): if not empty, PositionIter is a TokenIter which returns one field of each token
         mode ('start'|'stop'|'text'): the field that needs to be yielded at each step
     '''
-    
+
     def __init__(self, s='', token=[], mode='start'):
         if token:
            self.it = TokenIter(token, mode)
         else:
            self.it = StringIter(s)
-    def __iter__(self): 
+    def __iter__(self):
            return self.it.__iter__()
     def __next__(self):
            return next(self.it)
