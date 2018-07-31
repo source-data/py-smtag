@@ -7,25 +7,25 @@ from common.mapper import brat_map, xml_map
 #define abstract Featurizer class that takes Example and returns Features
 
 class AnnFeaturizer(object):
-        
+
     @staticmethod
     def ann2features(example):
         L = len(example['text'])
         annot = example['annot']
-        features = {'marks':{'ann':{'type':[None] * L}}} 
+        features = {'marks':{'ann':{'type':[None] * L}}}
         for a in annot:
             start = a['start']
             stop = a['stop']
             type = a['type']
             code = brat_map[type]
-            for i in range(start, stop): 
+            for i in range(start, stop):
                 features['marks']['ann']['type'][i] = code
-        return features 
-            
+        return features
+
 class XMLFeaturizer(object):
 
     @staticmethod
-    def featurize_marks(element, L, features = {}):   
+    def featurize_marks(element, L, features = {}):
         element_tag = element.tag
         #initialization if no features were coded before from a parent element
         if not features:
@@ -33,12 +33,12 @@ class XMLFeaturizer(object):
 
         if element_tag in xml_map['marks']:
             if '' in xml_map['marks'][element_tag]:
-                features['marks'][element_tag][''] = [xml_map['marks'][element_tag]['']['']] * L 
+                features['marks'][element_tag][''] = [xml_map['marks'][element_tag]['']['']] * L
 
             for attribute in (set(xml_map['marks'][element_tag].keys()) & set(element.attrib)):
                 val = element.attrib[attribute]
-                if val and val in xml_map['marks'][element_tag][attribute]: 
-                    features['marks'][element_tag][attribute] = [xml_map['marks'][element_tag][attribute][val]] * L       
+                if val and val in xml_map['marks'][element_tag][attribute]:
+                    features['marks'][element_tag][attribute] = [xml_map['marks'][element_tag][attribute][val]] * L
         return features
 
     @staticmethod
@@ -51,11 +51,11 @@ class XMLFeaturizer(object):
             if '' in xml_map['boundaries'][element_tag]:
                 features['boundaries'][element_tag][''][0] = xml_map['boundaries'][element_tag][''][''][0]
                 features['boundaries'][element_tag][''][L-1] = xml_map['boundaries'][element_tag][''][''][1]
-   
-    
+
+
             for attribute in (set(xml_map['boundaries'][element_tag].keys()) & set(element.attrib)):
                 val = element.attrib[attribute]
-                if val and val in xml_map['boundaries'][element_tag][attribute]: 
+                if val and val in xml_map['boundaries'][element_tag][attribute]:
                     features['boundaries'][element_tag][attribute][0] = xml_map['boundaries'][element_tag][attribute][val][0]
                     features['boundaries'][element_tag][attribute][L-1] = xml_map['boundaries'][element_tag][attribute][val][1]
         return features
@@ -93,7 +93,7 @@ class XMLFeaturizer(object):
                 print(features)
                 print(L_tot)
                 raise(e)
-                
-            #add 'virtual' computed features here?  
+
+            #add 'virtual' computed features here?
 
         return features, L_tot, L_tail
