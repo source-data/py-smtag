@@ -4,9 +4,9 @@
 import argparse
 from getpass import getpass
 from xml.etree.ElementTree import tostring
-from datagen.dataprep import DataPreparator
-from datagen.featurizer import XMLFeaturizer
-import datagen.neo2leg as neo2leg
+from .dataprep import DataPreparator
+from .featurizer import XMLFeaturizer
+from . import neo2leg
 
 
 class SDGraphPreparator(DataPreparator):

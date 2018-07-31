@@ -3,8 +3,8 @@
 
 import math
 from random import random
-from common.converter import Converter
-from common.config import MARKING_CHAR
+from .converter import Converter
+from .config import MARKING_CHAR
 from tensorboardX import SummaryWriter
 
 #for code in {1..256}; do printf "\e[38;5;${code}m'$code'\e[0m";echo; done

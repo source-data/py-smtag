@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-from common.config import NBITS
+from ..common.config import NBITS
 import numpy as np
 import torch
 # import logging
 import math
-from common.converter import Converter
-from common.mapper import Catalogue, concept2index
-from common.progress import progress
-from common.viz import Show 
+from ..common.converter import Converter
+from ..common.mapper import Catalogue, concept2index
+from ..common.progress import progress
+from ..common.viz import Show
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')

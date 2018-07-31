@@ -38,12 +38,12 @@ import os
 #        logging.basicConfig(level=default_level)
 import argparse
 import torch
-from train.loader import Loader
-from train.minibatches import Minibatches
-from train.trainer import Trainer
-from train.builder import SmtagModel
-from common.importexport import export_model, load_model
-from common.config import MODEL_DIR
+from .loader import Loader
+from .minibatches import Minibatches
+from .trainer import Trainer
+from .builder import SmtagModel
+from ..common.importexport import export_model, load_model
+from ..common.config import MODEL_DIR
 
 if __name__ == '__main__':
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)

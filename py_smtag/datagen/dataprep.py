@@ -12,11 +12,11 @@ from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 
-from common.mapper import index2concept, Catalogue
-from common.converter import TString
-from common.utils import cd, timer
-from common.config import DATA_DIR
-from common.progress import progress
+from ..common.mapper import index2concept, Catalogue
+from ..common.converter import TString
+from ..common.utils import cd, timer
+from ..common.config import DATA_DIR
+from ..common.progress import progress
 
 SPACE_ENCODED = TString(" ", dtype=torch.uint8)
 

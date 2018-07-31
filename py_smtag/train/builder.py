@@ -6,7 +6,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from copy import deepcopy
-from common.mapper import Concept, Catalogue
+from ..common.mapper import Concept, Catalogue
 
 class SmtagModel(nn.Module):
 

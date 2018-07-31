@@ -4,8 +4,8 @@
 #from abc import ABC
 import torch
 import xml.etree.ElementTree as ET
-from common.utils import xml_escape, timer
-from common.mapper import Catalogue, Boundary
+from ..common.utils import xml_escape, timer
+from ..common.mapper import Catalogue, Boundary
 
 
 class AbstractElementSerializer(object): # (ABC)

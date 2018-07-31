@@ -22,16 +22,16 @@ import re
 from torch import nn
 import torch
 from docopt import docopt
-from common.importexport import load_model
-from common.utils import tokenize, timer
-from train.builder import Concat
-from common.converter import TString
-from common.mapper import Catalogue
-from predict.binarize import Binarized
-from predict.predictor import SimplePredictor, ContextualPredictor
-from predict.serializer import Serializer
-from common.config import PROD_DIR
-from common.viz import Show
+from ..common.importexport import load_model
+from ..common.utils import tokenize, timer
+from ..train.builder import Concat
+from ..common.converter import TString
+from ..common.mapper import Catalogue
+from .binarize import Binarized
+from .predictor import SimplePredictor, ContextualPredictor
+from .serializer import Serializer
+from ..common.config import PROD_DIR
+from ..common.viz import Show
 
 # maybe should be in buidler.py
 class Combine(nn.Module):#SmtagModel?

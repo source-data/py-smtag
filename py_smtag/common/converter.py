@@ -4,7 +4,7 @@
 import numpy as np
 import argparse
 import torch
-from common.utils import timer
+from .utils import timer
 
 class Converter():
     """

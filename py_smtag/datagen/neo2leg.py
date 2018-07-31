@@ -6,7 +6,7 @@ from xml.etree.ElementTree import fromstring, Element, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node
 from random import random
 import difflib
-from common.config import MARKING_CHAR, MARKING_CHAR_ORD
+from ..common.config import MARKING_CHAR, MARKING_CHAR_ORD
 
 #from copy import deepcopy
 

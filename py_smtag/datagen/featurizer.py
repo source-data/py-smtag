@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-from common.mapper import brat_map, xml_map
+from ..common.mapper import brat_map, xml_map
 
 #features should be instance of Features()
 #define abstract Featurizer class that takes Example and returns Features

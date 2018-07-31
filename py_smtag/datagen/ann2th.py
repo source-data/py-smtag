@@ -4,9 +4,9 @@
 import argparse
 import re
 from os import path, listdir
-from datagen.dataprep import DataPreparator
-from datagen.featurizer import AnnFeaturizer
-from common.progress import progress
+from .dataprep import DataPreparator
+from .featurizer import AnnFeaturizer
+from ..common.progress import progress
 
 class AnnPreparator(DataPreparator):
     ANN_EXTENSION = 'ann'

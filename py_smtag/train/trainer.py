@@ -5,7 +5,7 @@ import torch
 from torch import nn, optim
 from random import shuffle
 import logging
-from common.viz import Show, Plotter
+from ..common.viz import Show, Plotter
 
 class Trainer:
 
@@ -14,8 +14,8 @@ class Trainer:
         # we copy the options opt and output_semantics to the trainer itself
         # in case we will need them during accuracy monitoring (for example to binarize output with feature-specific thresholds)
         # on a GPU machine, the model is wrapped into a nn.DataParallel object and the opt and output_semantics attributes would not be directly accessible
-        self.opt = model.opt 
-        self.output_semantics = model.output_semantics # 
+        self.opt = model.opt
+        self.output_semantics = model.output_semantics #
         model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
         print(model_descriptor)
         # wrap model into nn.DataParallel if we are on a GPU machine
@@ -28,7 +28,7 @@ class Trainer:
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
-        self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() # 
+        self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() #
 
     def validate(self):
         self.model.eval()
@@ -49,7 +49,7 @@ class Trainer:
         self.learning_rate = self.opt['learning_rate']
         self.epochs = self.opt['epochs']
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
-        
+
         for e in range(self.epochs):
             shuffle(self.minibatches) # order of minibatches is randomized at every epoch
             avg_train_loss = 0 # loss averaged over all minibatches
