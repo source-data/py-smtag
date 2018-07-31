@@ -13,7 +13,7 @@ from tensorboardX import SummaryWriter
 #for i in range(25,50): print(f"\033[{i};1mTesting color {i}\033[0m")
 COLORS = ["\033[30;1m", #grey
           "\033[34;1m", #blue first since often assayed
-          "\033[31;1m", #red 
+          "\033[31;1m", #red
           "\033[33;1m", #yellow
           "\033[32;1m", #green
           "\033[35;1m", #pink
@@ -40,7 +40,7 @@ class Show():
         # original_text =  minibatches[rand_i].text[rand_j]
         # provenance = minibatches[rand_i].provenance[rand_j]
         nf_input = input.size(1)
-        if model is not None: 
+        if model is not None:
             model.eval()
             prediction = model(input)
             model.train()
@@ -53,13 +53,13 @@ class Show():
         print("\nExpected:")
         Show.print_pretty_color(target, text) # visualize anonymized characters with a symbol
         Show.print_pretty(target)
-        
+
         if model is not None:
             print("\nPredicted:")
             Show.print_pretty_color(prediction, text)
             Show.print_pretty(prediction)
 
-    symbols = ['_','.',':','^','|'] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1 
+    symbols = ['_','.',':','^','|'] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1
 
     @staticmethod
     def print_pretty(features):
@@ -97,13 +97,13 @@ class Plotter(SummaryWriter):
 
     def __init__(self):
         super(Plotter, self).__init__()
-    
+
     def add_losses(self, losses, epoch):
         print("\nepoch {}\tavg_train_loss={}\tavg_validation_loss={}".format(epoch, losses['train'], losses['valid']))
         main_tag = "data/losses"
         tag_scalar_dict = {'train':losses['train'], 'valid': losses['valid']}
         global_step = epoch
         super(Plotter, self).add_scalars(main_tag, tag_scalar_dict, global_step)
-    
+
     def close(self):
         super(Plotter, self).close()
