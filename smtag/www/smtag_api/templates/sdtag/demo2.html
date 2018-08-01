@@ -46,6 +46,10 @@
 
 <body>
 	<h1>SourceData SmartTag Editor</h1>
+  <div>
+    <input type="radio" name="predictor" value="lua" checked> Lua<br>
+    <input type="radio" name="predictor" value="python"> Python<br>
+  </div>
 	<div class="container">
 		<label for="#input">Input</label>
 		<textarea rows="4" id="input_box" type="text" placeholder="Type a typical figure legend..."></textarea>
@@ -64,12 +68,13 @@
 	<script>
 
 	$("#button").bind("click", function(event) {//$("#input_box").bind("input" for AJAX
-	  var text = $("#input_box").val()
+    var text = $("#input_box").val()
+    var predictor = $('input[name="predictor"]:checked')[0].value
     // rest = "http://sdtag.net:7475/" //Amazon EC2 instance Turbo Lua
 	  rest = window.location.protocol + '//' + window.location.host + '/' // use current url
 	  //rest = "http://localhost:7475/" //local Turbo lua server
 
-	  $.post(rest+"smtag", {format: "html", text: text}, function(data) {
+	  $.post(rest+"smtag", {format: "html", text: text, predictor: predictor}, function(data) {
 	    $("#tagged_html").html(data);
 	  });
 

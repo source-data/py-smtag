@@ -8,3 +8,4 @@ MarkupSafe==1.0
 python-dotenv==0.8.2
 PyYAML==3.12
 Werkzeug==0.14.1
+-e git+git@github.com:source-data/py-smtag.git@7570666c2c467723bd28faa2ad2c934103887c11#egg=smtag

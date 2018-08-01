@@ -1,6 +1,7 @@
 import subprocess
 import abc
 import logging
+from smtag.predict.engine import SmtagEngine
 
 class PredictorImplementor(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -21,8 +22,9 @@ class PredictorImplementor(metaclass=abc.ABCMeta):
 
 
 class PythonPredictor(PredictorImplementor):
+    engine = SmtagEngine()
     def complete(self, text, format, tag):
-        return "implementation pending"
+        return self.engine.smtag(text)
     def entity(self, text, format, tag):
         return "implementation pending"
     def role(self, text, format, tag):
