@@ -4,9 +4,9 @@
 
 import unittest
 import torch
-from py_smtag.common.operations import t_replace
+from smtag.common.operations import t_replace
 from test.smtagunittest import SmtagTestCase
-from py_smtag.common.converter import Converter
+from smtag.common.converter import Converter
 
 class OperationsTest(SmtagTestCase):
 

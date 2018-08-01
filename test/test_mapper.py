@@ -5,7 +5,7 @@
 import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
-from py_smtag.common.mapper import Catalogue, Concept, Category, Entity, Role, Boundary
+from smtag.common.mapper import Catalogue, Concept, Category, Entity, Role, Boundary
 
 class MapperTest(SmtagTestCase):
 

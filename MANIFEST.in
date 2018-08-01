@@ -4,7 +4,7 @@ include *.md
 # Include the license file
 include LICENSE.txt
 
-include py_smtag/logging.yaml
+include smtag/logging.yaml
 
 # Include the data files
 recursive-include data *

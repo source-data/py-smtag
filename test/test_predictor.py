@@ -4,17 +4,17 @@
 import unittest
 import torch
 from torch import nn, optim
-from py_smtag.common.utils import tokenize
+from smtag.common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
-from py_smtag.common.converter import Converter, TString
-from py_smtag.predict.binarize import Binarized
-from py_smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from py_smtag.predict.predictor import SimplePredictor, ContextualPredictor
-from py_smtag.common.mapper import Catalogue
-from py_smtag.common.viz import Show
-from py_smtag.common.importexport import load_model
-from py_smtag.common.config import PROD_DIR, MARKING_CHAR
+from smtag.common.converter import Converter, TString
+from smtag.predict.binarize import Binarized
+from smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from smtag.predict.predictor import SimplePredictor, ContextualPredictor
+from smtag.common.mapper import Catalogue
+from smtag.common.viz import Show
+from smtag.common.importexport import load_model
+from smtag.common.config import PROD_DIR, MARKING_CHAR
 
 
 class PredictorTest(SmtagTestCase):

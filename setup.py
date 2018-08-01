@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="py_smtag",
+    name="smtag",
     version="0.0.1.dev0",
     python_requires='>=3.6',
     author="Source Data",
@@ -14,9 +14,9 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/source-data/py-smtag",
     packages=setuptools.find_packages(exclude=[
-        'py_smtag.test',
+        'smtag.test',
     ]),
-    py_modules=['py_smtag.command_line'],
+    py_modules=['smtag.command_line'],
     install_requires=[
         'tensorflow==1.4', # needed for tensorboardX visualization
         'tensorboardX==1.2',
@@ -33,10 +33,10 @@ setuptools.setup(
     include_package_data=True,
     entry_points = {
         'console_scripts': [
-            'smtag-graph2th=py_smtag.command_line:graph2th',
-            'smtag-predict=py_smtag.command_line:predict',
-            'smtag-meta=py_smtag.command_line:meta',
-            'smtag=py_smtag.command_line:about',
+            'smtag-graph2th=smtag.command_line:graph2th',
+            'smtag-predict=smtag.command_line:predict',
+            'smtag-meta=smtag.command_line:meta',
+            'smtag=smtag.command_line:about',
         ],
     },
     # keywords="",

@@ -3,11 +3,11 @@
 
 import unittest
 import torch
-from py_smtag.common.utils import tokenize
-from py_smtag.predict.binarize import Binarized
-from py_smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from py_smtag.common.utils import timer
-from py_smtag.common.mapper import Catalogue
+from smtag.common.utils import tokenize
+from smtag.predict.binarize import Binarized
+from smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from smtag.common.utils import timer
+from smtag.common.mapper import Catalogue
 
 class SerializerTest(unittest.TestCase):
 

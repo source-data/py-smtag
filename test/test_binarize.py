@@ -4,10 +4,10 @@
 
 import unittest
 import torch
-from py_smtag.common.utils import tokenize
+from smtag.common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
-from py_smtag.predict.binarize import Binarized
-from py_smtag.common.mapper import Catalogue
+from smtag.predict.binarize import Binarized
+from smtag.common.mapper import Catalogue
 
 class BinarizeTest(SmtagTestCase):
 
