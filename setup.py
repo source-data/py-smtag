@@ -32,6 +32,8 @@ setuptools.setup(
     include_package_data=True,
     entry_points = {
         'console_scripts': [
+            'smtag-graph2th=py_smtag.command_line:graph2th',
+            'smtag-predict=py_smtag.command_line:predict',
             'smtag-meta=py_smtag.command_line:meta',
             'smtag=py_smtag.command_line:about',
         ],

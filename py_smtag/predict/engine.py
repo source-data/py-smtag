@@ -233,7 +233,7 @@ class SmtagEngine:
     def panelizer(self, input_string):
         return self.__serialize(self.__panels(TString(input_string)))
 
-if __name__ == "__main__":
+def main():
     arguments = docopt(__doc__, version='0.1')
     input_string = arguments['--text']
     method = arguments['--method']
@@ -268,3 +268,6 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
         print(engine.entity(input_string))
     else:
         print("unknown method {}".format(method))
+
+if __name__ == "__main__":
+    main()

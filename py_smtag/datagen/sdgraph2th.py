@@ -143,6 +143,8 @@ class SDGraphPreparator(DataPreparator):
         raw_examples, errors = neo2leg.neo2xml(source, self.options)
         return raw_examples
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description="Generates text and tensor files from tagged text in sd-graph.")
     p = SDGraphPreparator(parser)
+if __name__ == '__main__':
+    main()
