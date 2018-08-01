@@ -14,7 +14,8 @@ from smtag.predict.predictor import SimplePredictor, ContextualPredictor
 from smtag.common.mapper import Catalogue
 from smtag.common.viz import Show
 from smtag.common.importexport import load_model
-from smtag.common.config import PROD_DIR, MARKING_CHAR
+from smtag.common.config import MARKING_CHAR
+from smtag import config
 
 
 class PredictorTest(SmtagTestCase):
@@ -70,7 +71,7 @@ class PredictorTest(SmtagTestCase):
 
     #@unittest.skip('need to be changed')
     def test_entity_predictor_3(self):
-        real_model = load_model('geneprod.zip', PROD_DIR)
+        real_model = load_model('geneprod.zip', config.prod_dir)
         #real_example = "fluorescent images of 200‐cell‐stage embryos from the indicated strains stained by both anti‐SEPA‐1 and anti‐LGG‐1 antibody"
         real_example = "stained by anti‐SEPA‐1"
         p = SimplePredictor(real_model)

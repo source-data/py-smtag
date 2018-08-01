@@ -7,11 +7,11 @@ from zipfile import ZipFile
 import json
 from datetime import datetime
 import torch
-from .config import MODEL_DIR
+from .. import config
 from ..train.builder import SmtagModel
 from .utils import cd
 
-def export_model(model, custom_name = '', model_dir = MODEL_DIR):
+def export_model(model, custom_name = '', model_dir = config.model_dir):
     model.cpu() # model.cpu().double() ?
     # extract the SmtagModel from the nn.DataParallel table, if necessary
     if isinstance(model, torch.nn.DataParallel):
@@ -46,7 +46,7 @@ def export_model(model, custom_name = '', model_dir = MODEL_DIR):
             print("saved {} (size: {})".format(info.filename, info.file_size))
         return myzip
 
-def load_model(archive_filename, model_dir=MODEL_DIR):
+def load_model(archive_filename, model_dir=config.model_dir):
     archive_path = archive_filename # os.path.join(model_dir, archive_filename)
     with cd(model_dir):
         # print("now in {}".format(os.getcwd()))

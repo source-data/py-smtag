@@ -12,7 +12,7 @@ from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
 from smtag.common.converter import Converter, TString
 from smtag.predict.predictor import SimplePredictor
-from smtag.common.config import MODEL_DIR
+from smtag import config
 from smtag.common.progress import progress
 from smtag.common.mapper import Catalogue
 from smtag.common.importexport import export_model, load_model
@@ -62,7 +62,7 @@ class ImportExportTest(SmtagTestCase):
 
     def tearDown(self):
         if self.myzip is not None:
-            os.remove(os.path.join(MODEL_DIR, self.myzip.filename))
+            os.remove(os.path.join(config.model_dir, self.myzip.filename))
 
 
 

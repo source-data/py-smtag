@@ -15,7 +15,7 @@ from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 from ..common.mapper import index2concept, Catalogue
 from ..common.converter import TString
 from ..common.utils import cd, timer
-from ..common.config import DATA_DIR
+from .. import config
 from ..common.progress import progress
 
 SPACE_ENCODED = TString(" ", dtype=torch.uint8)
@@ -227,7 +227,7 @@ class DataPreparator(object):
         Saving datasets prepared for torch to a text file with text example, a npy file for the extracted features and a provenance file that keeps track of origin of each example.
         """
 
-        with cd(DATA_DIR):
+        with cd(config.data_dir):
             for k in self.dataset4th: # 'train' | 'valid' | 'test'
                 archive_path = "{}_{}".format(filenamebase, k)
                 with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:

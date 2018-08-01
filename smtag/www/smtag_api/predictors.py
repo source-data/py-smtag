@@ -1,7 +1,10 @@
 import subprocess
 import abc
 import logging
+from smtag_api import app
+import smtag
 from smtag.predict.engine import SmtagEngine
+smtag.config.working_directory = app.config['SMTAG_PYTHON_WORKING_DIRECTORY']
 
 class PredictorImplementor(metaclass=abc.ABCMeta):
     @abc.abstractmethod

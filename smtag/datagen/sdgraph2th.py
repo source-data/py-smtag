@@ -7,6 +7,7 @@ from xml.etree.ElementTree import tostring
 from .dataprep import DataPreparator
 from .featurizer import XMLFeaturizer
 from . import neo2leg
+from .. import config
 
 
 class SDGraphPreparator(DataPreparator):
@@ -24,7 +25,7 @@ class SDGraphPreparator(DataPreparator):
         parser.add_argument('-s', '--selective', action='store_true', help='keep the roles only for the entities selected by the -y option')
         parser.add_argument('-r', '--role', default='', help='makes sure each example has entities with the specified role')
         parser.add_argument('-N', '--not_safe_mode', action='store_true', help='protects against some misformed XML in caption; set this option to False for debugging')
-
+        parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
         self.options = self.set_options(parser.parse_args())
         if self.options['verbose']: print(self.options)
         super(SDGraphPreparator, self).main()
@@ -33,6 +34,8 @@ class SDGraphPreparator(DataPreparator):
     #implements @abstractmethod
     def set_options(args):
         options = super(SDGraphPreparator, SDGraphPreparator).set_options(args)
+        if args.working_directory:
+            config.working_directory = args.working_directory
 
         tags2anonymize = args.tags2anonymize
         donotanonymize = args.donotanonymize

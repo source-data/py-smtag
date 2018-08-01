@@ -43,7 +43,7 @@ from .minibatches import Minibatches
 from .trainer import Trainer
 from .builder import SmtagModel
 from ..common.importexport import export_model, load_model
-from ..common.config import MODEL_DIR
+from .. import config
 
 def main():
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)
@@ -67,6 +67,7 @@ def main():
     parser.add_argument('-n', '--nf_table', default=[8,8,8], help='Number of features in each hidden super-layer.')
     parser.add_argument('-k', '--kernel_table', default=[6,6,6], help='Convolution kernel for each hidden layer.')
     parser.add_argument('-p', '--pool_table',  default= [2,2,2], help='Pooling for each hidden layer (use quotes if comma+space delimited).')
+    parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
 
     arguments = vars(parser.parse_args()) # to cast as dict which is what is return by docopt in case we would use it
     # map arguments to opt to decouple command line options from internal representation
@@ -82,6 +83,8 @@ def main():
     nf_table = [x for x in arguments['nf_table']] # .split(',')]
     kernel_table = [x for x in arguments['kernel_table']] # .split(',')]
     pool_table = [x for x in arguments['pool_table']] # .split(',')]
+    if arguments['working_directory']:
+        config.working_directory = arguments['working_directory']
     opt['selected_features'] = output_features
     opt['collapsed_features'] = collapsed_features
     opt['overlap_features'] = overlap_features

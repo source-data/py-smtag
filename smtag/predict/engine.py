@@ -5,13 +5,14 @@
 SmartTag semantic tagging engine.
 
 Usage:
-  engine.py [-D -d -m <str> -t <str> -f <str>]
+  engine.py [-D -d -m <str> -t <str> -f <str> -w <str>]
 
 Options:
 
   -m <str>, --method <str>                Method to call (smtag|tag|entity|panelize) [default: smtag]
   -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
+  -w <str>, --working_directory <str>    Working directory where to read cartrigdes from (i.e. path where the `rack` folder is located)
   -D, --debug                             Debug mode to see the successive processing steps in the engine.
   -d, --demo                              Demo with a long sample.
 """
@@ -30,7 +31,7 @@ from ..common.mapper import Catalogue
 from .binarize import Binarized
 from .predictor import SimplePredictor, ContextualPredictor
 from .serializer import Serializer
-from ..common.config import PROD_DIR
+from .. import config
 from ..common.viz import Show
 
 # maybe should be in buidler.py
@@ -97,23 +98,23 @@ class SmtagEngine:
             self.cartridge = {
                 # '<model-family>' : [(<model>, <features that needs to be anonimized>), ...]
                 'entity': [
-                    (load_model('small_molecule.zip', PROD_DIR), ''),
-                    (load_model('geneprod.zip', PROD_DIR), ''),
-                    (load_model('subcellular.zip', PROD_DIR), ''),
-                    (load_model('cell.zip', PROD_DIR), ''),
-                    (load_model('tissue.zip', PROD_DIR), ''),
-                    (load_model('organism.zip', PROD_DIR), ''),
-                    (load_model('exp_assay.zip', PROD_DIR), ''),
-                    (load_model('disease.zip', PROD_DIR), '')
+                    (load_model('small_molecule.zip', config.prod_dir), ''),
+                    (load_model('geneprod.zip', config.prod_dir), ''),
+                    (load_model('subcellular.zip', config.prod_dir), ''),
+                    (load_model('cell.zip', config.prod_dir), ''),
+                    (load_model('tissue.zip', config.prod_dir), ''),
+                    (load_model('organism.zip', config.prod_dir), ''),
+                    (load_model('exp_assay.zip', config.prod_dir), ''),
+                    (load_model('disease.zip', config.prod_dir), '')
                 ],
                 'only_once': [
-                    (load_model('reporter_geneprod.zip', PROD_DIR), '')
+                    (load_model('reporter_geneprod.zip', config.prod_dir), '')
                 ],
                 'context': [
-                    (load_model('causality_geneprod.zip', PROD_DIR), 'geneprod')
+                    (load_model('causality_geneprod.zip', config.prod_dir), 'geneprod')
                 ],
                 'panelizer': [
-                    (load_model('panel_start.zip', PROD_DIR), '')
+                    (load_model('panel_start.zip', config.prod_dir), '')
                 ]
             }
         self.models = {}
@@ -239,6 +240,8 @@ def main():
     method = arguments['--method']
     DEBUG = arguments['--debug']
     DEMO = arguments['--demo']
+    if arguments['--working_directory']:
+        config.working_directory = arguments['--working_directory']
     if DEMO:
         input_string = '''The indicated panel of cell lines was exposed to either normoxia (20% O2) or hypoxia (1% O2) for up to 48 h prior to RNA and protein extraction.
 
