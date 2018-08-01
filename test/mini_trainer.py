@@ -1,7 +1,7 @@
 import torch
 from torch import nn, optim
-from train.builder import SmtagModel
-from common.progress import progress
+from py_smtag.train.builder import SmtagModel
+from py_smtag.common.progress import progress
 
 def toy_model(x, y, selected_features = ['geneprod'], overlap_features = [], collapsed_features = [], threshold = 1E-02, epochs = 100):
         opt = {}
@@ -25,7 +25,7 @@ def toy_model(x, y, selected_features = ['geneprod'], overlap_features = [], col
             model = nn.DataParallel(self.model)
             model.cuda()
         # we do the training loop here instead of using smtag.trainer to avoid the need to prepare minibatches
-        loss_fn = nn.SmoothL1Loss() # nn.BCELoss() # 
+        loss_fn = nn.SmoothL1Loss() # nn.BCELoss() #
         optimizer = optim.Adam(model.parameters(), lr = opt['learning_rate'])
         optimizer.zero_grad()
         loss = 1

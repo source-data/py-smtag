@@ -4,10 +4,10 @@
 
 import unittest
 import torch
-from common.utils import tokenize
+from py_smtag.common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
-from predict.binarize import Binarized
-from common.mapper import Catalogue
+from py_smtag.predict.binarize import Binarized
+from py_smtag.common.mapper import Catalogue
 
 class BinarizeTest(SmtagTestCase):
 
@@ -28,7 +28,7 @@ class BinarizeTest(SmtagTestCase):
         expected_marks = torch.Tensor([[
                                     [0.  ,0.  ,1.   ,1.  ,0.  ,1.  ,1.  ,0. ,0.  ,0.  ,0.,  0.  ,0.  ,0.  ,0.  ,0.  ,0.  ,0.  ]
                                      ]])
-        
+
         b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
@@ -38,7 +38,7 @@ class BinarizeTest(SmtagTestCase):
         self.assertTensorEqual(expected_start, b.start)
         self.assertTensorEqual(expected_stop, b.stop)
         self.assertTensorEqual(expected_marks, b.marks)
-    
+
     def test_fuse_adjascent_1(self):
         '''
         Testing the fusion between two similarly labeled terms separated by a tab.
@@ -75,7 +75,7 @@ class BinarizeTest(SmtagTestCase):
         Testing the fusion of two terms at the end of the string.
         '''
         input_string = 'A ge ne'
-        prediction = torch.Tensor([[#A         g    e         n    e 
+        prediction = torch.Tensor([[#A         g    e         n    e
                                     [0   ,0   ,0.99,0.99,0   ,0.99,0.99]
                                   ]])
         expected_start = torch.Tensor([[

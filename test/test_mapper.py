@@ -5,7 +5,7 @@
 import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
-from common.mapper import Catalogue, Concept, Category, Entity, Role, Boundary
+from py_smtag.common.mapper import Catalogue, Concept, Category, Entity, Role, Boundary
 
 class MapperTest(SmtagTestCase):
 
@@ -13,7 +13,7 @@ class MapperTest(SmtagTestCase):
     def test_add_1(self):
         gene_protein = Catalogue.GENE + Catalogue.PROTEIN
         self.assertEqual("gene_protein", gene_protein.type)
-    
+
     def test_add_2(self):
         gene_intervention = Catalogue.GENE + Catalogue.INTERVENTION
         self.assertEqual("gene", gene_intervention.type)

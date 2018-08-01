@@ -3,11 +3,11 @@
 
 import unittest
 import torch
-from common.utils import tokenize
-from predict.binarize import Binarized
-from predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from common.utils import timer
-from common.mapper import Catalogue
+from py_smtag.common.utils import tokenize
+from py_smtag.predict.binarize import Binarized
+from py_smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from py_smtag.common.utils import timer
+from py_smtag.common.mapper import Catalogue
 
 class SerializerTest(unittest.TestCase):
 
@@ -31,12 +31,12 @@ class SerializerTest(unittest.TestCase):
         '''
         input_string = 'A gene or protein.'
         prediction = torch.Tensor([[#A         g    e    n    e         o    r         p    r    o    t    e    i    n    .
-                                    [0   ,0   ,0.99,0.99,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ], 
-                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0,   0,   0,   0   ], 
-                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ], 
+                                    [0   ,0   ,0.99,0.99,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0,   0,   0,   0   ],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
                                     [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99,0.99,0   ]
                                   ]])
-        
+
         #self, text_examples, prediction, output_semantics
         b = Binarized([input_string], prediction, Catalogue.from_list(['gene','small_molecule','tissue','protein']))
         token_list = tokenize(input_string)
@@ -50,17 +50,17 @@ class SerializerTest(unittest.TestCase):
 
     def test_serializer_2(self):
         '''
-        Testing tagging of multiple token ("ge ne" as type="gene") 
+        Testing tagging of multiple token ("ge ne" as type="gene")
         and multiple attributes for one terms ("others" as role="intervention" type="protein")
         '''
         input_string = 'A ge ne or others'
         prediction = torch.Tensor([[#A         g    e         n    e         o    r         o    t    h    e    r    s
-                                    [0   ,0   ,0.99,0.99,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ], 
-                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ], 
-                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99], 
+                                    [0   ,0   ,0.99,0.99,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99],
                                     [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99]
                                   ]])
-        
+
         #self, text_examples, prediction, output_semantics
         b = Binarized([input_string], prediction, Catalogue.from_list(['geneprod','small_molecule','intervention','protein']))
         token_list = tokenize(input_string)
@@ -79,12 +79,12 @@ class SerializerTest(unittest.TestCase):
         '''
         input_string = 'A gene or oth>rs'
         prediction = torch.Tensor([[#A         g    e    n    e         o    r         o    t    h    >    r    s
-                                    [0   ,0   ,0.99,0.99,0.99,0.99,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ], 
-                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ], 
-                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99], 
+                                    [0   ,0   ,0.99,0.99,0.99,0.99,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99],
                                     [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99]
                                   ]])
-        
+
         #self, text_examples, prediction, output_semantics
         b = Binarized([input_string], prediction, Catalogue.from_list(['geneprod','assayed','intervention','protein']))
         token_list = tokenize(input_string)

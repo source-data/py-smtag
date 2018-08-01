@@ -4,12 +4,12 @@
 
 import unittest
 import torch
-from common.operations import t_replace
+from py_smtag.common.operations import t_replace
 from test.smtagunittest import SmtagTestCase
-from common.converter import Converter
+from py_smtag.common.converter import Converter
 
 class OperationsTest(SmtagTestCase):
-    
+
 
     def test_replace(self):
         x = torch.Tensor(
@@ -28,7 +28,7 @@ class OperationsTest(SmtagTestCase):
         mask = torch.Tensor([
                              [0,1,1,0], # example 1
                              [1,0,1,0]  # example 2
-                            ] 
+                            ]
                            ) # 2 x 4
         replacement = torch.Tensor([
                                     [

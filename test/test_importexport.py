@@ -7,15 +7,15 @@ import torch
 from torch import nn, optim
 import sys
 import os
-from common.utils import tokenize
+from py_smtag.common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
-from common.converter import Converter, TString
-from predict.predictor import SimplePredictor
-from common.config import MODEL_DIR
-from common.progress import progress
-from common.mapper import Catalogue
-from common.importexport import export_model, load_model
+from py_smtag.common.converter import Converter, TString
+from py_smtag.predict.predictor import SimplePredictor
+from py_smtag.common.config import MODEL_DIR
+from py_smtag.common.progress import progress
+from py_smtag.common.mapper import Catalogue
+from py_smtag.common.importexport import export_model, load_model
 
 #maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
 
@@ -59,7 +59,7 @@ class ImportExportTest(SmtagTestCase):
         y_2 = reloaded(self.x)
         self.assertTensorEqual(y_1, y_2)
         self.assertTensorEqual(b_1.marks, b_2.marks)
-    
+
     def tearDown(self):
         if self.myzip is not None:
             os.remove(os.path.join(MODEL_DIR, self.myzip.filename))

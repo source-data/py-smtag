@@ -4,17 +4,17 @@
 import unittest
 import torch
 from torch import nn, optim
-from common.utils import tokenize
+from py_smtag.common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
-from common.converter import Converter, TString
-from predict.binarize import Binarized
-from predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from predict.predictor import SimplePredictor, ContextualPredictor
-from common.mapper import Catalogue
-from common.viz import Show
-from common.importexport import load_model
-from common.config import PROD_DIR, MARKING_CHAR
+from py_smtag.common.converter import Converter, TString
+from py_smtag.predict.binarize import Binarized
+from py_smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from py_smtag.predict.predictor import SimplePredictor, ContextualPredictor
+from py_smtag.common.mapper import Catalogue
+from py_smtag.common.viz import Show
+from py_smtag.common.importexport import load_model
+from py_smtag.common.config import PROD_DIR, MARKING_CHAR
 
 
 class PredictorTest(SmtagTestCase):
@@ -23,7 +23,7 @@ class PredictorTest(SmtagTestCase):
     def setUpClass(self): # run only once
         self.text_example = "AAAAAAA XXX AAA"
         self.x = TString(self.text_example)
-        self.y = torch.Tensor(# A A A A A A A   X X X   A A A 
+        self.y = torch.Tensor(# A A A A A A A   X X X   A A A
                              [[[0,0,0,0,0,0,0,0,1,1,1,0,0,0,0]]])
         self.selected_features = ["geneprod"]
         self.entity_model = toy_model(self.x.toTensor(), self.y)
@@ -32,7 +32,7 @@ class PredictorTest(SmtagTestCase):
         self.z = TString(self.anonymized_text_example)
         self.context_model = toy_model(self.z.toTensor(), self.y, selected_features=['intervention'])
 
-    def test_model_stability(self): 
+    def test_model_stability(self):
         '''
         Testing that test model returns the same result
         '''
@@ -40,7 +40,7 @@ class PredictorTest(SmtagTestCase):
         for i in range(iterations):
             y_1 = self.entity_model(self.x.toTensor())
             self.assertTensorEqual(self.y, y_1)
-            
+
     def test_predictor_padding(self):
         p = SimplePredictor(self.entity_model)
         test_string_200 = "a"*200
@@ -48,13 +48,13 @@ class PredictorTest(SmtagTestCase):
         padded_string_200_encoded = p.padding(test_string_200_encoded)
         expected_padded_string_200_encoded = TString(" "*10 + test_string_200 + " "*10)
         self.assertTensorEqual(expected_padded_string_200_encoded.t, padded_string_200_encoded.t)
-        
+
         test_string_20 = "a"*20
         test_string_20_encoded = TString(test_string_20)
         padded_string_20_encoded = p.padding(test_string_20_encoded)
         expected_padded_string_20_encoded = TString(" "*60 + test_string_20 + " "*60)
         self.assertTensorEqual(expected_padded_string_20_encoded.t, padded_string_20_encoded.t)
-   
+
     def test_entity_predictor_1(self):
         p = SimplePredictor(self.entity_model)
         output = p.forward(TString(self.text_example))
@@ -103,7 +103,7 @@ class PredictorTest(SmtagTestCase):
         bin_pred = Binarized([self.text_example], prediction_1, [Catalogue.GENEPROD])
         tokenized = tokenize(self.text_example)
         bin_pred.binarize_with_token([tokenized])
-        
+
         context_p = ContextualPredictor(self.context_model)
         prediction_2 = context_p.forward(TString(self.text_example), bin_pred.marks)
         Show.print_pretty_color(prediction_1, self.text_example)

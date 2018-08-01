@@ -5,13 +5,13 @@
 import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
-from common.converter import Converter, TString
-from common.utils import timer
+from py_smtag.common.converter import Converter, TString
+from py_smtag.common.utils import timer
 from timeit import timeit
 
 class ConverterTest(SmtagTestCase):
     def setUp(self):
-        self.input_string = u"😎😇" 
+        self.input_string = u"😎😇"
         code = 0x03B1 #GREEK SMALL LETTER ALPHA Unicode: U+03B1, UTF-8: CE B1
         self.single_character = chr(code) # python 2: unichr(code)
         bits = list("{0:032b}".format(code))
@@ -38,7 +38,7 @@ class ConverterTest(SmtagTestCase):
         t_ab = TString(a) + TString(b)
         self.assertEqual(ab, str(t_ab))
         self.assertTensorEqual(TString(ab).toTensor(), t_ab.toTensor())
-    
+
     def test_concat_2(self):
         a = "the "
         b = ""
@@ -46,7 +46,7 @@ class ConverterTest(SmtagTestCase):
         t_ab = TString(a) + TString(b)
         self.assertEqual(ab, str(t_ab))
         self.assertTensorEqual(TString(ab).toTensor(), t_ab.toTensor())
-    
+
     def test_concat_3(self):
         a = ""
         b = "cat"
@@ -63,7 +63,7 @@ class ConverterTest(SmtagTestCase):
         expected = TString(the)
         self.assertEqual(expected.s, the_ts.s)
         self.assertTensorEqual(expected.t, the_ts.t)
-    
+
     @timer
     def test_timing(self):
         for _ in range(100000):
@@ -88,9 +88,9 @@ class TStringTest(SmtagTestCase):
         hello_world = TString("hello world")
         concatenated = hello + world
         self.assertTensorEqual(hello_world.toTensor(), concatenated.toTensor())
-    
+
     def test_len(self):
-        
+
         x = TString("1234567890")
         l1 = len(x)
         l2 = len("1234567890")
