@@ -19,6 +19,7 @@ setuptools.setup(
     py_modules=['py_smtag.command_line'],
     install_requires=[
         'tensorflow==1.4', # needed for tensorboardX visualization
+        'tensorboardX==1.2',
         'docopt==0.6.2',
         'numpy==1.14.2',
         'Pillow==4.3.0', #5.1.0 requires Mac OS 10.12; torchvision require at least 4.1.1; GPU EC2 AMI needs >4.3.0
