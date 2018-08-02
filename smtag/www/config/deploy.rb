@@ -3,7 +3,10 @@ lock "3.10.2"
 
 set :application, "py-smtag"
 set :repo_url, "git@github.com:source-data/py-smtag.git"
-
+# set :default_env, {
+#   'LANG' => 'en_US.UTF-8',
+#   'LANGUAGE' => 'en_US:en'
+# }
 # Default branch is :master
 # ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
 # set :branch, 'master'
@@ -23,10 +26,10 @@ puts(fetch(:branch))
 # set :pty, true
 
 # Default value for :linked_files is []
-append :linked_files, "www/.env"
+append :linked_files, "smtag/www/.env"
 
 # Default value for linked_dirs is []
-append :linked_dirs, "www/log"
+append :linked_dirs, "smtag/www/log"
 
 # Default value for default_env is {}
 # set :default_env, { path: "/opt/ruby/bin:$PATH" }
@@ -41,7 +44,7 @@ namespace :python do
   desc "Install requirements.txt"
   task :install_requirements do
     on roles [:app] do
-      execute "source #{shared_path}/venv/bin/activate && pip install -r #{release_path}/www/requirements.txt"
+      execute "source #{shared_path}/venv/bin/activate && pip install -r #{release_path}/smtag/www/requirements.txt"
     end
   end
 end
