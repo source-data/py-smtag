@@ -38,10 +38,10 @@ pip install -e /Users/alejandroriera/dev/py-smtag
 
 # Read more:
 
-https://packaging.python.org/tutorials/packaging-projects/
-https://packaging.python.org/guides/distributing-packages-using-setuptools/
-http://python-packaging.readthedocs.io/en/latest/
-http://python-packaging.readthedocs.io/en/latest/command-line-scripts.html
+* https://packaging.python.org/tutorials/packaging-projects/
+* https://packaging.python.org/guides/distributing-packages-using-setuptools/
+* http://python-packaging.readthedocs.io/en/latest/
+* http://python-packaging.readthedocs.io/en/latest/command-line-scripts.html
 
 # Useful commands
 
