@@ -28,19 +28,28 @@ class PredictorTest(SmtagTestCase):
                              [[[0,0,0,0,0,0,0,0,1,1,1,0,0,0,0]]])
         self.selected_features = ["geneprod"]
         self.entity_model = toy_model(self.x.toTensor(), self.y)
-
+        self.entity_model.eval()
         self.anonymized_text_example = self.text_example.replace("X", MARKING_CHAR)
         self.z = TString(self.anonymized_text_example)
         self.context_model = toy_model(self.z.toTensor(), self.y, selected_features=['intervention'])
+        self.context_model.eval()
 
     def test_model_stability(self):
         '''
-        Testing that test model returns the same result
+        Testing that test model returns the same result for same input. 
         '''
+        self.entity_model.eval()
         iterations = 10
+        x = self.x.toTensor()
+        y_1 = self.entity_model(x)
+        print(0, "\n")
+        print(y_1)
         for i in range(iterations):
-            y_1 = self.entity_model(self.x.toTensor())
-            self.assertTensorEqual(self.y, y_1)
+            y_2 = self.entity_model(x)
+            print(i, "\n")
+            print(y_1,"\n")
+            print(y_1.sub(y_2))
+            self.assertTensorEqual(y_1, y_2)
 
     def test_predictor_padding(self):
         p = SimplePredictor(self.entity_model)
@@ -69,7 +78,7 @@ class PredictorTest(SmtagTestCase):
         expected_ml = 'AAAAAAA <sd-tag type="geneprod">XXX</sd-tag> AAA'
         self.assertEqual(expected_ml, ml[0])
 
-    #@unittest.skip('need to be changed')
+    @unittest.skip('need to be changed')
     def test_entity_predictor_3(self):
         real_model = load_model('geneprod.zip', config.prod_dir)
         #real_example = "fluorescent images of 200‐cell‐stage embryos from the indicated strains stained by both anti‐SEPA‐1 and anti‐LGG‐1 antibody"
