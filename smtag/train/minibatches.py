@@ -7,24 +7,32 @@ from math import floor
 import logging
 logger = logging.getLogger(__name__)
 
-class Minibatches(object): #Minibatches(Dataset)?
+class Minibatches(object): #Minibatches(Dataset)? 
     '''
     Chunks a Dataset of already randomized examples into an array of minibatches.
+    Incomplete minibatches are ignored.
     Minibatches is iterable and yields successively one minibatch (Dataset).
-    Usage:
-        minibatches = Minibatches(dataset, 128)
-        for minibatch in minibatches:
-            input = m.input
-            target = m.output
-            prediction = model(input)
-            loss = loss_fn(prediction, target)
-    '''
-    def __init__(self, dataset, minibatch_size):
-        '''
+        Usage:
+            minibatches = Minibatches(dataset, 128)
+            for m in minibatches:
+                input = m.input
+                target = m.output
+                prediction = model(input)
+                loss = loss_fn(prediction, target)
+
         Args:
             dataset (Dataset): the dataset to randomly split into minibatches
             minibatch_size (int): the number of examples per minibatch
-        '''
+
+        Attributes:
+            L: number of examples
+            nf_input: number of input features/channels/planes
+            nf_output: number of output features/channels/planes
+            minibatch_size: number of examples in one minibatch
+            minibatch_number: number of minibatches
+    '''
+
+    def __init__(self, dataset, minibatch_size):
 
         self.L = dataset.L
         self.nf_input = dataset.nf_input
