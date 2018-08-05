@@ -67,7 +67,12 @@ class Trainer:
             Show.example(self.validation_minibatches, self.model)
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
             precision, recall, f1 = self.evaluator.run()
-            self.plot.add_scalars("accuracy", {"precision": precision, "recall": recall, "f1": f1} , e)
+            # will not work with multiple channels
+            
+               
+
+            
+            self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
             #Log values and gradients of the parameters (histogram summary)
             #for name, param in self.model.named_parameters():
             #    name = name.replace('.', '/')
