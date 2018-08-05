@@ -8,11 +8,12 @@ MARKING_CHAR = u'\u0000' # special character used to anonymize an entity before 
 MARKING_CHAR_ORD = ord(MARKING_CHAR)
 MIN_PADDING = 20 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
 MIN_SIZE = 140 # input needs to be of minimal size to survive successive convergent convolutions; ideally, should be calculated analytically
+DEFAULT_THRESHOLD = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
 
 class Config():
     """
     Class that collects all configuration options.
-    It allows to dinamically adjust its parameters at runtime.
+    It allows to dynamically adjust its parameters at runtime.
     It should be treated as a singleton, in the sense that there will only be
     one instance of the class that is ever used. It is instantiated here, after
     the class declaration, but will be aliased at the root level of the package

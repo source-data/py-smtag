@@ -6,6 +6,7 @@ from torch import nn, optim
 from random import shuffle
 import logging
 from ..common.viz import Show, Plotter
+from .evaluator import Accuracy
 
 class Trainer:
 
@@ -28,21 +29,18 @@ class Trainer:
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
+        self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=True)
         self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() #
 
     def validate(self):
-        self.model.eval()
-        avg_loss = 0
-
+        loss = 0
         for m in self.validation_minibatches:
             input, target = m.input, m.output
+            self.model.eval()
             prediction = self.model(input)
-            loss = self.loss_fn(prediction, target)
-            avg_loss += loss
-
+            loss += self.loss_fn(prediction, target)
         self.model.train()
-        avg_loss = avg_loss / len(self.validation_minibatches)
-
+        avg_loss = loss / self.validation_minibatches.minibatch_number
         return avg_loss
 
     def train(self):
@@ -54,7 +52,6 @@ class Trainer:
             shuffle(self.minibatches) # order of minibatches is randomized at every epoch
             avg_train_loss = 0 # loss averaged over all minibatches
 
-            counter = 1
             for m in self.minibatches:
                 input, target = m.input, m.output
                 self.optimizer.zero_grad()
@@ -63,15 +60,14 @@ class Trainer:
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
-                counter += 1
 
             # Logging/plotting
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
             avg_validation_loss = self.validate() # the average loss over the validation minibatches
-            print("\n\n\nepoch {}\ttraining_loss={:5}\tvalidation loss={:5}".format(e, avg_train_loss, avg_validation_loss))
             Show.example(self.validation_minibatches, self.model)
-            #if not self.cuda_on:
-            self.plot.add_losses({'train':avg_train_loss, 'valid':avg_validation_loss}, e) # log the losses for tensorboardX
+            self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
+            precision, recall, f1 = self.evaluator.run()
+            self.plot.add_scalars("accuracy", {"precision": precision, "recall": recall, "f1": f1} , e)
             #Log values and gradients of the parameters (histogram summary)
             #for name, param in self.model.named_parameters():
             #    name = name.replace('.', '/')
