@@ -97,11 +97,11 @@ class Unet2(nn.Module):
 
         y = self.dropout(x)
         y = self.conv_down_A(y)
-        y = F.relu(self.BN_down_A(y))
+        y = F.elu(self.BN_down_A(y))
         y_size_1 = y.size()
         y, pool_1_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
         y = self.conv_down_B(y)
-        y = F.relu(self.BN_down_B(y))
+        y = F.elu(self.BN_down_B(y))
 
         if self.unet2 is not None:
             y_size_2 = y.size()
@@ -111,10 +111,10 @@ class Unet2(nn.Module):
 
         y = self.dropout(y)
         y = self.conv_up_B(y)
-        y = F.relu(self.BN_up_B(y))
+        y = F.elu(self.BN_up_B(y))
         y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_1_indices, y_size_1)
         y = self.conv_up_A(y)
-        y = F.relu(self.BN_up_A(y))
+        y = F.elu(self.BN_up_A(y))
 
         #y = x + y # this is the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
         y = self.concat((x, y)) # merge via concatanation of output layers followed by reducing from 2*nf_output to nf_output
