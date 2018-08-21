@@ -6,10 +6,11 @@ import numpy as np
 import torch
 # import logging
 import math
-from ..common.converter import Converter
+from random import shuffle
 from ..common.mapper import Catalogue, concept2index
 from ..common.progress import progress
 from ..common.viz import Show
+from ..common.utils import tokenize
 from .. import config
 
 # import logging.config
@@ -33,7 +34,8 @@ class Dataset:
         self.nf_input = nf_input
         self.nf_output = nf_output
         self.L = L
-        self.text = [None] * N
+        self.text = [None] * N # this is to allow list assignment by index
+        self.tokenized = [] # this will be filled only if add_token_lists explicitly called; slow and time consuming; used only for benchmarking
         self.provenance = [None] * N
         self.input = torch.zeros(self.N, self.nf_input, self.L)
         self.output = torch.zeros(self.N, self.nf_output, self.L)
@@ -70,6 +72,10 @@ class Dataset:
         print("{} text examples of size {}".format(self.N, self.L))
         print("{} input features (in-channels).".format(self.nf_input))
         print("{} output features (out-channels).".format(self.nf_output))
+
+    def add_token_lists(self):
+        for t in self.text:
+            self.tokenized.append(tokenize(t))
 
 
 class Loader:
@@ -119,11 +125,10 @@ class Loader:
         """
         raw_dataset = Dataset()
         raw_dataset.from_files(file_basename)
-
         N = raw_dataset.N
         L = raw_dataset.L
         nf = raw_dataset.nf_output # it already includes the last row for 'geneprod'!!
-        print("raw_dataset.nf_output nf=", nf)
+        
         assert N != 0, "zero examples!"
 
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
@@ -131,7 +136,8 @@ class Loader:
         raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , concept2index[Catalogue.GENE],  : ] + raw_dataset.output[ : ,  concept2index[Catalogue.PROTEIN], : ]
 
         print("Creating dataset with selected features {}, and shuffling {} examples.".format(self.selected_features, N))
-        shuffled_indices = torch.randperm(N) #shuffled_indices = range(N); shuffle(shuffled_indices)
+        shuffled_indices = list(range(N))
+        shuffle(shuffled_indices)
         datasets = {}
         if self.validation_fraction == 0:
             print("testset mode; for benchmarking")
@@ -144,44 +150,41 @@ class Loader:
             datasets["valid"] = {}
             datasets["train"]["first_example"] = 0
             datasets["train"]["last_example"] = math.floor(N*(1-self.validation_fraction))
-            datasets["valid"]["first_example"] = math.ceil(N*(1-self.validation_fraction+0.000001)) #--the size of the validation set is kept unchanged and not affected by fraction
+            datasets["valid"]["first_example"] = datasets["train"]["last_example"]
             datasets["valid"]["last_example"] = N
-        # N = 10 examples [0,1,2,3,4,5,6,7,8,9], validation_fraction = 0.8
+        # N = 11 examples [0,1,2,3,4,5,6,7,8,9,10], validation_fraction = 0.2
         # 8 training, 2 validation
-        # train first_example = 0
-        # train last_example = 8
+        # train_first_example = 0
+        # train_last_example = 8 = floor(11*(1-0.2)) = floor(8.8)
         # range(0,8) is 0,1,2,3,4,5,6,7
-        # valid first_example = 8
-        # valid last_example = 10
-        # range(8,10) is 8, 9
+        # example_i = 3 => index = 3  - first_example = 3
+        # valid first_example =  train_last_example = 8
+        # valid_last_example = N
+        # N_examples = N - valid_first_example = 11 - 8 = 3
+        # list(range(8,11)) = is 8,9,10
+        # example_i = 9 => index = 9 - first_example = 1
         for k in datasets: # k 'test' in testing mode otherwise 'valid' or 'train'
             first_example = datasets[k]['first_example']
             last_example = datasets[k]['last_example']
-            N_examples = last_example - first_example + 1
+            N_examples = last_example - first_example
             dataset = Dataset(N_examples, self.nf_input, self.nf_output, L)
 
             print("Generating {} set with {} examples ({}, {})".format(k, N_examples, first_example, last_example))
             print("input dataset['{}'] tensor created".format(k))
             print("output dataset['{}'] tensor created".format(k))
             for example_i in range(first_example, last_example):
-                progress(example_i - first_example, N_examples, status="loading {} examples ({} to {}) into dataset['{}']".format(N_examples, first_example, last_example, k))
                 i = shuffled_indices[example_i]
-                index = example_i - first_example + 1
-
+                index = example_i - first_example
+                progress(index, N_examples, status="loading {} examples ({} to {}) into dataset['{}'] (example_i={},index={})".format(N_examples, first_example, last_example, k, example_i, index))
                 #INPUT: TEXT SAMPLE ENCODING
                 assert len(raw_dataset.text[i]) == L, "FATAL: {} > {} with {}".format(len(raw_dataset.text[i]), L, raw_dataset.text[i])
                 dataset.text[index] = raw_dataset.text[i]
                 dataset.provenance[index] = raw_dataset.provenance[i]
-
-                #this is a bit slow! Shift to data prep!
-                #dataset.input[index, 0:32 , : ] = TString(raw_dataset.text[i]).toTensor()
                 dataset.input[index, 0:32 , : ] = raw_dataset.textcoded[i, : , : ]
 
-                j = 0
-                for f in self.features_as_input:
+                for j, f in enumerate(self.features_as_input):
                     # for example: j=0, => 32 + 0 = 32
                     dataset.input[index, 32 + j, : ] = raw_dataset.output[i, concept2index[f], : ]
-                    j += 1
 
                 #OUTPUT SELECTION AND COMBINATION OF FEATURES
                 for f in self.selected_features:

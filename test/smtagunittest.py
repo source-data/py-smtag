@@ -9,4 +9,6 @@ class SmtagTestCase(unittest.TestCase):
 
     @staticmethod
     def assertTensorEqual(a, b, tolerance=1e-4):
-        return a.sub(b).abs().max() < tolerance
+        max_diff = a.sub(b).abs().max()
+        if max_diff > tolerance:
+            raise AssertionError('Max difference {:.5f} between tensors exceeds tolerance {:.5f}.'.format(max_diff, tolerance))

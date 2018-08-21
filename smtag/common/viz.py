@@ -98,12 +98,9 @@ class Plotter(SummaryWriter):
     def __init__(self):
         super(Plotter, self).__init__()
 
-    def add_losses(self, losses, epoch):
-        print("\nepoch {}\tavg_train_loss={}\tavg_validation_loss={}".format(epoch, losses['train'], losses['valid']))
-        main_tag = "data/losses"
-        tag_scalar_dict = {'train':losses['train'], 'valid': losses['valid']}
-        global_step = epoch
-        super(Plotter, self).add_scalars(main_tag, tag_scalar_dict, global_step)
+    def add_scalars(self, series, scalar_dict, epoch):
+        print("\nepoch #{} {}: {}".format(epoch, series, ", ".join(["{}={:.5f}".format(k, float(scalar_dict[k])) for k in scalar_dict])))
+        super(Plotter, self).add_scalars("data/"+series, scalar_dict, epoch)
 
     def close(self):
         super(Plotter, self).close()

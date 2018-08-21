@@ -16,10 +16,10 @@ class ConverterTest(SmtagTestCase):
         self.single_character = chr(code) # python 2: unichr(code)
         bits = list("{0:032b}".format(code))
         bits.reverse()
-        self.tensor = torch.Tensor([int(b) for b in bits]).resize_(1,32,1,1)
+        self.tensor = torch.Tensor([int(b) for b in bits]).resize_(1,32,1)
 
     def test_encode_string_into_tensor(self):
-        converted = Converter.t_encode(self.input_string)
+        converted = Converter.t_encode(self.single_character)
         self.assertTensorEqual(self.tensor, converted)
 
     def test_decode_tensor_into_string(self):

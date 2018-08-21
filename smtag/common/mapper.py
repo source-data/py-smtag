@@ -5,12 +5,15 @@
 # a disease or if a new figure panel legends is starting, the respective features will be recognized by SmartTag.
 # For training, features are typically learned from compendia where the features were tagged, for example using xml tags.
 # At prediction stage, the recognized features can be serialized back into xml (or html).
-# So we have the back and forther conversion from XML to tensor to XML:
+# We have therefore the back and forther conversion from XML to tensor to XML:
 # XML --> train features(text) // predict features(text) --> XML rendering.
-# A feature can either be a set of longitudinal marks under each character of the word/text that possess the feature. This is the system used for entitiy recognition.
-# Or it can be a boundary that defines the begining or the end of a segment of text. This is the system used to recognize the start of a figure panel.
-# To transform xml into stacked features, specific combinations of element/attribute/value are mapped onto the index of the feature (or channel).
-# where they are represented (1 or 0 in a torch.Tensor).
+#
+# A feature can either be a set of longitudinal marks under each character of the word/text that possess the feature of interest. 
+# This is the system used for entitiy recognition.
+# Alternatively, it can be a boundary that defines the begining or the end of a segment of text. 
+# This is the system used to recognize the start of a figure panel.
+# To transform xml into stacked features (or channels), specific combinations of element/attribute/value are mapped 
+# onto the index of the feature that represents this particular feature (1 or 0 in a torch.Tensor).
 # The tensor that holds the features is 3D: N examples X nf features (or channels) x L characters (string length).
 # For example the feature "organism" will mark the word "cat" and the feature "tissue" will mark "heart" in the sentence below:
 #

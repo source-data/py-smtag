@@ -72,8 +72,8 @@ class TString: # (str) or (torch.Tensor)?
         __add__(TString): concatenates TString and returns a TString; allow operation like tstring_1 + tstring_2
         __getitem(i): gets the i-th element of the string and of the underlying tensor and returns a TString; allows to slice with tstring[start:stop]
         repeat(N): repeats the TString N time
-        toTensor(): returns the torch.Tensor representation of the encoded string
-        all the remainint methods from torch.Tensor
+        toTensor(): returns the 3D (1 x 32 x L) torch.Tensor representation of the encoded string
+        all the remaining methods from torch.Tensor
     '''
 
     def __init__(self, x='', dtype=torch.float):
@@ -125,8 +125,6 @@ class TString: # (str) or (torch.Tensor)?
 
     def __getattr__(self, attr): # class composition with tensor.Torch
         return getattr(self.t, attr)
-
-
 
 
 if __name__ == "__main__":

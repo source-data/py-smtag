@@ -11,6 +11,11 @@ class Binarized:
     '''
     Transforms a prediction in an all-or-none (0 or 1) tensor by thresholding. It can be used to binarize several examples, for example when benchmarking.
 
+    Usage:
+        bin_pred = Binarized([input_string], prediction, output_semantics)
+        token_list = tokenize(input_string)
+        bin_pred.binarize_with_token([token_list])
+
     Args:
         text_examples (list): a list of text that were used as input for the prediction.
         prediction (torch.Tensor): a N x nf x L Tensor with the predicted output of the model
@@ -26,6 +31,7 @@ class Binarized:
     Methods:
         binarize_with_token(tokenized_examples): takes tokenized example, thresholds the prediction tensor and computes start, stop, marks and scores members.
         fuse_adjascent(regex=" "): when to adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
+    
     '''
     def __init__(self, text_examples, prediction, output_semantics): # will need a concept map to set feature-specific thresholds Object Prediction with inputstring, input concept output concept and output tensor
         self.text_examples = text_examples
