@@ -12,6 +12,13 @@ import time
 def xml_escape(s):
     return escape(s)
 
+
+def cleanup(text):
+    text = re.sub('[\r\n\t]', ' ', text)
+    text = re.sub(' +', ' ', text)
+    return text
+
+
 Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer'])
 
 def tokenize(s):
@@ -135,8 +142,6 @@ def cd(newdir):
     finally:
         os.chdir(prevdir)
 
-def assertTensorEqual(a, b, tolerance=1e-4):
-    return a.sub(b).abs().max() < tolerance
 
 def timer(f):
     '''
