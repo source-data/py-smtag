@@ -34,11 +34,10 @@ class Trainer:
 
     def validate(self):
         loss = 0
-        for m in self.validation_minibatches:
-            input, target = m.input, m.output
+        for m in self.validation_minibatches: # alternatively PICK one random minibatch, probably enough
             self.model.eval()
-            prediction = self.model(input)
-            loss += self.loss_fn(prediction, target)
+            prediction = self.model(m.input)
+            loss += self.loss_fn(prediction, m.target)
         self.model.train()
         avg_loss = loss / self.validation_minibatches.minibatch_number
         return avg_loss
@@ -63,19 +62,15 @@ class Trainer:
 
             # Logging/plotting
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
-            avg_validation_loss = self.validate() # the average loss over the validation minibatches
+            avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             Show.example(self.validation_minibatches, self.model)
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
             precision, recall, f1 = self.evaluator.run()
-            # will not work with multiple channels
-            
-               
-
-            
             self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
             #Log values and gradients of the parameters (histogram summary)
             #for name, param in self.model.named_parameters():
             #    name = name.replace('.', '/')
             #    self.writer.add_histogram(name, param.clone().cpu().data.numpy(), e)
             #    self.writer.add_histogram(name+'/grad', param.grad.clone().cpu().data.numpy(), e)
+        #COMPUTE f1 and final loss on whole validation set
         self.plot.close()

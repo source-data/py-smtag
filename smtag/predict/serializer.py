@@ -134,7 +134,6 @@ class AbstractTagger(AbstractSerializer):
             start = token_start_positions[0]
             segments = []
             if len(boundaries.nonzero()) != 0: # if example i has a position where boundaries[i] is 1, we need to segment
-
                 for b in boundaries: # what if multiple kind of boundaries? this would be too complicated for the moment!!
                     if b in token_start_positions:
                         #find index of corresponding token

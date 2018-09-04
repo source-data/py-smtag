@@ -75,10 +75,10 @@ class Accuracy(object):
         Returns:
             Three 1D tensors with the number per feature of positives, true positives and false positives, respectively
         """
-        #https://en.wikipedia.org/wiki/Precision_and_recall
+        # https://en.wikipedia.org/wiki/Precision_and_recall
         nf = target.size(1)
         p = target.sum(2).sum(0) # sum over the characters on a line and sum of these over all examples of the batch
         predx = (prediction - threshold).clamp(0).ceil() # threshold prediction to binarize in 0 (no hit) or 1 (hit)
-        fp = (predx - target).clamp(0).sum(2).sum(0) # false positives when predictsion are 1 and target 0
+        fp = (predx - target).clamp(0).sum(2).sum(0) # false positives when prediction is 1 but target is 0
         tp = predx.sum(2).sum(0) - fp 
         return p.view(nf), tp.view(nf), fp.view(nf) # output as 1 dim tensor with one metric per output feature

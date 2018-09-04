@@ -21,7 +21,7 @@ class SmtagModel(nn.Module):
 
         self.pre = nn.BatchNorm1d(nf_input)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout)
-        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1)
+        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1) # TRY KERNEL 3, PADDING 1 TO GIVE A CHANCE TO INCREASE CONTRAST
         self.BN = nn.BatchNorm1d(nf_output)
 
         self.output_semantics = Catalogue.from_list(opt['selected_features'])
@@ -70,7 +70,7 @@ class Unet2(nn.Module):
         if self.kernel % 2 == 0:
            self.padding = int(self.kernel/2)
         else:
-           self.padding = floor((self.kernel-1)/2)
+           self.padding = floor((self.kernel-1)/2) # TRY WITHOUT ANY PADDING
         self.dropout_rate = dropout_rate
         self.dropout = nn.Dropout(self.dropout_rate)
 

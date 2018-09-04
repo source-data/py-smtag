@@ -45,7 +45,7 @@ class Binarized:
         self.start = torch.zeros(dim) #.byte()
         self.stop = torch.zeros(dim) #.byte()
         self.marks = torch.zeros(dim) #.byte()
-        self.score = torch.zeros(dim) #.byte()
+        self.score = torch.zeros(dim)
         self.tokenized = []
 
     def binarize_with_token(self, tokenized_examples):
