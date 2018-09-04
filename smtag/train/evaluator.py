@@ -10,7 +10,7 @@ from ..common.config import DEFAULT_THRESHOLD
 class Accuracy(object):
  
 
-    def __init__(self, model, minibatches, tokenize=False):
+    def __init__(self, model, minibatches, tokenize=True):
         self.model = model # is this just a reference? if yes, no need to pass model every time
         self.minibatches = minibatches
         self.tokenize  = tokenize

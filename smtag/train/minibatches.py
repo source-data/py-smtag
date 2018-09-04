@@ -62,6 +62,7 @@ class Minibatches(object): #Minibatches(Dataset)?
                 this_minibatch.output = this_minibatch.output.cuda()
             self.minibatches.append(this_minibatch)
 
+
     #make it iterable and shuffable
     def __iter__(self):
         return self.minibatches.__iter__()

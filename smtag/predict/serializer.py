@@ -41,7 +41,7 @@ class XMLElementSerializer(AbstractElementSerializer):
     @staticmethod
     def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL
         if action == 'open':
-            return '<{}>'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
+            return '<{}>'.format(XMLElementSerializer.map(Catalogue.PANEL_START)) # discrepancy: here via Catalogue, whereas via param tag for elements
         elif action == 'close':
             return '</{}>'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
 
@@ -254,7 +254,7 @@ class BratSerializer(AbstractSerializer):
 
 class Serializer():
 
-    def __init__(self, tag='sd-tag', format = 'xml'):
+    def __init__(self, tag, format = 'xml'):
         self.tag = tag
         self.format = format.lower()
 

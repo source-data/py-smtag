@@ -210,24 +210,24 @@ class SmtagEngine:
 
         return cumulated_output
 
-    def __serialize(self, output):
-        ml = Serializer().serialize(output)
+    def __serialize(self, output, sdtag="sd-tag"):
+        ml = Serializer(tag=sdtag).serialize(output)
         return ml[0]
 
     @timer
-    def entity(self, input_string):
-        return self.__serialize(self.__entity(TString(input_string)))
+    def entity(self, input_string, sdtag):
+        return self.__serialize(self.__entity(TString(input_string)), sdtag)
 
     @timer
-    def tag(self, input_string):
-        return self.__serialize(self.__entity_and_role(TString(input_string)))
+    def tag(self, input_string, sdtag):
+        return self.__serialize(self.__entity_and_role(TString(input_string)), sdtag)
 
     @timer
-    def smtag(self, input_string):
-        return self.__serialize(self.__all(input_string))
+    def smtag(self, input_string, sdtag):
+        return self.__serialize(self.__all(input_string), sdtag)
 
     @timer
-    def add_roles(self, input_xml):
+    def add_roles(self, input_xml, sdtag):
         pass # need to implement an xml updater
 
     @timer
