@@ -21,7 +21,7 @@ class SmtagModel(nn.Module):
 
         self.pre = nn.BatchNorm1d(nf_input)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout)
-        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1) # TRY KERNEL 3, PADDING 1 TO GIVE A CHANCE TO INCREASE CONTRAST
+        self.adapter = nn.Conv1d(nf_input, nf_output, 3, 1, 1) # TRY KERNEL 3, PADDING 1 TO GIVE A CHANCE TO INCREASE CONTRAST
         self.BN = nn.BatchNorm1d(nf_output)
 
         self.output_semantics = Catalogue.from_list(opt['selected_features'])
@@ -45,7 +45,7 @@ class SmtagModel(nn.Module):
         x = self.pre(x)
         x = self.unet(x)
         x = self.adapter(x)
-        x = self.BN(x)
+        x = self.BN(x) # necessary?
         x = F.sigmoid(x)
         return x
 

@@ -58,7 +58,7 @@ def main():
     parser.add_argument('-f', '--file', default='test_entities_train', help='Namebase of dataset to import')
     parser.add_argument('-E' , '--epochs',  default=120, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=128, help='Minibatch size.')
-    parser.add_argument('-R ', '--learning_rate', default=0.001, help='Learning rate.')
+    parser.add_argument('-R', '--learning_rate', default=0.001, type=float, help='Learning rate.')
     parser.add_argument('-V', '--validation_fraction', default=0.2, help='Fraction of the dataset that should be used as validation set during training.')
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
     parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')

@@ -124,7 +124,7 @@ class AbstractTagger(AbstractSerializer):
             boundaries = torch.Tensor()
             if panel_feature is not None:
                 # find where the panel boundaries are. Not very general but simpler than multiple hierarchical boundary types
-                boundaries = binarized.start[ i , panel_feature , :].nonzero() # carefule: nonzero() return a list of coordinates of non zero element in the Tensor.
+                boundaries = binarized.start[ i , panel_feature , :].nonzero() # careful: nonzero() return a list of coordinates of non zero element in the Tensor.
 
             token_start_positions = binarized.tokenized[i]['start_index']
             #print("token_start_positions", token_start_positions)

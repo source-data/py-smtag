@@ -30,7 +30,7 @@ class Binarized:
 
     Methods:
         binarize_with_token(tokenized_examples): takes tokenized example, thresholds the prediction tensor and computes start, stop, marks and scores members.
-        fuse_adjascent(regex=" "): when to adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
+        fuse_adjascent(regex=" "): when two adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
     
     '''
     def __init__(self, text_examples, prediction, output_semantics): # will need a concept map to set feature-specific thresholds Object Prediction with inputstring, input concept output concept and output tensor
