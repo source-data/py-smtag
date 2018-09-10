@@ -64,9 +64,9 @@ def main():
     parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')
     parser.add_argument('-a', '--overlap_features', default='', help='Features that should be combined by intersecting them (equivalent to AND operation) (use quotes if comma+space delimited).')
     parser.add_argument('-c', '--collapsed_features', default='', help='Features that should be collapsed into a single one (equivalent to OR operation) (use quotes if comma+space delimited).')
-    parser.add_argument('-n', '--nf_table', default=[8,8,8], help='Number of features in each hidden super-layer.')
-    parser.add_argument('-k', '--kernel_table', default=[6,6,6], help='Convolution kernel for each hidden layer.')
-    parser.add_argument('-p', '--pool_table',  default=[2,2,2], help='Pooling for each hidden layer (use quotes if comma+space delimited).')
+    parser.add_argument('-n', '--nf_table', default="8,8,8", help='Number of features in each hidden super-layer.')
+    parser.add_argument('-k', '--kernel_table', default="6,6,6", help='Convolution kernel for each hidden layer.')
+    parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
 
     arguments = vars(parser.parse_args()) # to cast as dict which is what is return by docopt in case we would use it
@@ -80,9 +80,9 @@ def main():
     collapsed_features = [x.strip() for x in arguments['collapsed_features'].split(',') if x.strip()]
     overlap_features = [x.strip() for x in arguments['overlap_features'].split(',') if x.strip()]
     features_as_input = [x.strip() for x in arguments['features_as_input'].split(',') if x.strip()]
-    nf_table = [x for x in arguments['nf_table']] # .split(',')]
-    kernel_table = [x for x in arguments['kernel_table']] # .split(',')]
-    pool_table = [x for x in arguments['pool_table']] # .split(',')]
+    nf_table = [int(x.strip()) for x in arguments['nf_table'].split(',')]
+    kernel_table = [int(x.strip()) for x in arguments['kernel_table'].split(',')]
+    pool_table = [int(x.strip()) for x in arguments['pool_table'].split(',')]
     if arguments['working_directory']:
         config.working_directory = arguments['working_directory']
     opt['selected_features'] = output_features
