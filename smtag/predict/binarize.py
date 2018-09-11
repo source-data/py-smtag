@@ -98,6 +98,7 @@ class Binarized:
                 # pos = 17: stop[, ,17] > 0.99 and start[,,18] > 0.99 [,,17]==" "
                 if stop_mark < self.L - 2: #
                     for k in range(self.nf):
+                        # TODO: add a test on self.marks[i, k, stop_mark+1] > threshold
                         if self.stop[i, k, stop_mark] > 0.99 and self.start[i, k, stop_mark+2] > 0.99 and re.match(test, input_string[stop_mark+1]):
                             self.stop[i, k, stop_mark] = 0 # remove the stop boundary of first term
                             self.start[i, k, stop_mark+2] = 0 # remove the start boundary of next term

@@ -45,7 +45,7 @@ class SmtagModel(nn.Module):
         x = self.pre(x)
         x = self.unet(x)
         x = self.adapter(x)
-        x = self.BN(x) # necessary?
+        x = self.BN(x)
         x = F.sigmoid(x)
         return x
 
