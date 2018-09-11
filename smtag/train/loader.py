@@ -143,7 +143,7 @@ class Loader:
             print("testset mode; for benchmarking")
             datasets["test"]= {} #--testset mode; for benchmarking
             datasets["test"]["first_example"] = 0
-            #datasets["test"]["last_example"] = math.ceil(N*self.fraction)
+            datasets["test"]["last_example"] = N
         else:
             print("normal trainset and validation set mode")
             datasets["train"] = {} #--normal trainset and validation set mode
