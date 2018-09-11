@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 import torch
+import argparse
 from .minibatches import Minibatches
 from .loader import Loader
 from ..predict.binarize import Binarized
@@ -93,19 +94,36 @@ class Benchmark():
         self.opt['validation_fraction'] = 0 # this will set the dataset mode into testset mode
         self.tokenize = tokenize
         loader = Loader(self.opt)
-        testset = loader.prepare_datasets(testset_basename)
-        testset = Minibatches(testset['test'], self.opt['minibatch_size'])
+        dataset = loader.prepare_datasets(testset_basename)
+        testset = Minibatches(dataset['test'], self.opt['minibatch_size'])
         benchmark = Accuracy(self.model, testset, tokenize=self.tokenize)
         self.precision, self.recall, self.f1 = benchmark.run()
 
     def display(self):
-        print("\n Global stats: \27[1m")
-        print("\t\27[32;1mprecision\27[0m = {}.2f".format(self.precision.mean()))
-        print("\t\27[33;1mrecall\27[0m = {}.2f".format(self.recall.mean()))
-        print("\t\27[36;1mf1\27[0m = {}.2f".format(self.f1.mean()))
+        print("\n Global stats: \033[1m")
+        print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision.mean()))
+        print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall.mean()))
+        print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1.mean()))
 
         for i, feature in enumerate(self.model.output_semantics):
-                print("\n Feature: '\27[1m{}\27[0m'\n".format(feature))
-                print("\t\27[32;1mprecision\27[0m = {}.2f".format(self.precision[i]))
-                print("\t\27[33;1mrecall\27[0m = {}.2f".format(self.recall[i]))
-                print("\t\27[36;1mf1\27[0m = {}.2f".format(self.f1[i]))
+                print("\n Feature: '\033[1m{}\033[0m'\n".format(feature))
+                print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision[i]))
+                print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall[i]))
+                print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1[i]))
+
+def main():
+    parser = argparse.ArgumentParser(description='Accuracy evaluation.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-f', '--file', default='test_entities_test', help='Namebase of the dataset to import as testset')
+    parser.add_argument('-m' , '--model',  default='entities.sddl', help='Basename of the model to benchmark.')
+    parser.add_argument('-T' , '--no_token', action='store_true', help='Flag to disable tokenization.')
+
+    arguments = parser.parse_args()
+    testset_basename = arguments.file
+    model_basename = arguments.model
+    tokenize = not arguments.no_token
+    print("model: {}, testset: {}, tokenization: {}".format(model_basename, testset_basename, tokenize))
+    b = Benchmark(model_basename, testset_basename, tokenize=tokenize)
+    b.display()
+
+if __name__ == '__main__':
+    main()
