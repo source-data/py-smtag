@@ -114,7 +114,7 @@ class SDGraphPreparator(DataPreparator):
         options['safe_mode'] = safe_mode
         options['exclusive_mode'] = exclusive_mode
         options['keep_roles_only_for_selected_tags'] = keep_roles_only_for_selected_tags
-        options['source'] = {'db': 'http://localhost:7474/db/data/', 'username': 'neo4j', 'password': getpass()}
+        options['source'] = {'db': 'http://localhost:7474/db/data/', 'username': 'neo4j', 'password': 'sourcedata'}
 
         return options
 

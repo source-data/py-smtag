@@ -78,7 +78,7 @@ class AnnPreparator(DataPreparator):
 
     def __init__(self, parser):
         super(AnnPreparator, self).__init__(parser) #hopefully parser is mutable otherwise use self.parser
-        parser.add_argument('dir', type=str, default='../data/test_brat', help='path to directory to scan')
+        parser.add_argument('dir', type=str, default='../compendium/test_brat', help='path to directory to scan')
         self.options = self.set_options(parser.parse_args())
         if self.options['verbose']: print(self.options)
         super(AnnPreparator, self).main()

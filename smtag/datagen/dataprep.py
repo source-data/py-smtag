@@ -42,7 +42,7 @@ class DataPreparator(object):
         parser.add_argument('-v', '--verbose', action='store_true', help='verbosity')
         parser.add_argument('-L', '--length', default=150, type=int, help='length of the text snippets used as example')
         parser.add_argument('-t', '--testfract', default=0.2, type=float, help='fraction of papers in testset')
-        parser.add_argument('-W', '--window', action='store_true', help='switches to the sampling fig legends using a random window instead of parsing full sentences')
+        parser.add_argument('-F', '--full_sentences', action='store_true', help='switches to the sampling fig legends using parsed full sentences instead of a random window')
         parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
         parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
         #parser.add_argument('-c', '--rand_char_padding', action='store_true', help='padding with random characters instead of white spaces')
@@ -67,12 +67,12 @@ class DataPreparator(object):
         options['verbose'] = args.verbose
         options['testset_fraction'] = args.testfract
         options['length'] = args.length
-        if args.window:
-            options['sampling_mode'] = 'window'
+        if args.full_sentences:
+            options['sampling_mode'] = 'sentence'
         elif args.start:
             options['sampling_mode'] = 'start'
         else:
-            options['sampling_mode'] = 'sentence'
+            options['sampling_mode'] = 'window'
         options['random_shifting'] = not args.disable_shifting
         # options['white_space_padding'] = not args.rand_char_padding
         options['padding'] = args.padding
