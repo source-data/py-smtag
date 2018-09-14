@@ -10,4 +10,3 @@ nltk==3.2.4
 # tensorflow==1.4 #does not work!
 #install manually tensorflow with pip3 install --upgrade https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-1.8.0-py3-none-any.whl
 tensorboardX==1.2
-jupyter==1.0.0
