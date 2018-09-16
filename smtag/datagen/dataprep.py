@@ -13,12 +13,12 @@ from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 
-from ..common.mapper import xml_map
+from ..common.mapper import Catalogue, index2concept
 from ..common.converter import TString
 from ..common.utils import cd, timer
 from .. import config
 from ..common.progress import progress
-from .featurizer import XMLEncoder, Index
+from .featurizer import XMLEncoder
 
 SPACE_ENCODED = TString(" ", dtype=torch.uint8)
 
@@ -36,34 +36,8 @@ class DataPreparator(object):
         self.examples = []
         self.errors = []
         self.dataset4th = {}
-        self.global_index = Index()
-        self.max_local_concepts = 0 # maximum number of concepts indexed locally ie in a single panel
         self.options = options
 
-    @staticmethod
-    def to_tensor(encoded, left_limit, right_limit, len_global_index, max_local_concepts): # should include only terms within the desired sample
-        """
-        Takes a dictionary with encoded entity features and transforms it into tensor format.
-
-        Returns
-            t: a dictionary of tensors, each potentially with different dimensions, representing features for a given scope
-            In this implementation:
-            t['global']: 1D tensor where entities are 1-hot encoded using the code of the global index
-            t['local']: 2D tensor where entites are 1-hot encoded using the code of the local index in first axe and the encoded feature (eg the role) 1-hot encoded on the second axe
-        """
-
-        
-        t = {}
-        t['global'] = torch.zeros((len_global_index,NUMBER_OF_ENCODED_FEATURES), dtype=torch.uint8)
-        t['local'] = torch.zeros((max_local_concepts, NUMBER_OF_ENCODED_FEATURES), dtype=torch.uint8) # MAX_ENTITIES is the maximal number of entities we can list from one snippet of text
-        for scope in ['local', 'global']:
-            for key in encoded[scope]:
-                concept = encoded[scope][key]
-                if concept['rightmost'] > left_limit and concept['leftmost'] < right_limit:
-                    for feature_code in concept['features'].codes:
-                        t[scope][key, feature_code] = 1
-        return t
-    
     @timer
     def sample(self, encoded_examples):
         """
@@ -96,7 +70,16 @@ class DataPreparator(object):
             left_padding = padding + shift
             right_padding = padding - shift
             padded_text = ' ' * left_padding + text + ' ' * right_padding
-            return padded_text
+            return padded_text, left_padding, right_padding
+
+        def to_tensor(th, features, start, stop, left_padding, right_padding): # should include only terms within the desired sample
+            for kind in features:
+                for element in features[kind]:
+                    for attribute in features[kind][element]:
+                        f = [None] * left_padding + features[kind][element][attribute][start:stop] + [None] * right_padding
+                        for pos, code in enumerate(f):
+                            if code is not None:
+                                th[code][pos] = 1
 
         def show_text_stats(length_statistics, N):
             text_avg = float(sum(length_statistics) / N)
@@ -115,8 +98,11 @@ class DataPreparator(object):
         text4th = []
         provenance4th = []
         th = {}
-        th['global'] = torch.zeros((N * iterations, len(self.global_index), NUMBER_OF_ENCODED_FEATURES), dtype=torch.uint8)
-        th['local'] = torch.zeros((N * iterations, self.max_local_concepts, NUMBER_OF_ENCODED_FEATURES), dtype=torch.uint8)
+        
+        # specific implementation
+        number_of_features = len(Catalogue.standard_channels) # includes the virtual geneprod feature
+        th = torch.zeros((N * iterations, number_of_features, length+2*min_padding), dtype = torch.uint8)
+        
         textcoded4th = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
         length_statistics = []
         total = N * iterations
@@ -134,25 +120,22 @@ class DataPreparator(object):
             for j in range(iterations): # j is index of sampling iteration
                 progress(i*iterations+j, total, "sampling")
                 fragment, start, stop = pick_fragment(text, length, mode) 
-                padded_frag = pad_and_shift(fragment, length, random_shifting, min_padding)
+                padded_frag, left_padding, right_padding = pad_and_shift(fragment, length, random_shifting, min_padding)
                 text4th.append(padded_frag)
                 textcoded4th[index] = TString(padded_frag, dtype=torch.uint8).toTensor()
                 provenance4th.append(provenance)
-                t_dict = DataPreparator.to_tensor(encoded, start, stop, len(self.global_index), self.max_local_concepts)
-                for scope in t_dict:
-                    th[scope][index] = t_dict[scope]
+                to_tensor(th[index], encoded, start, stop, left_padding, right_padding)
                 index += 1
 
         show_text_stats(length_statistics, N)
         if self.options['verbose']:
-            self.display(text4th, th['local'])
+            self.display(text4th, th)
 
         return {
             'text4th': text4th,
             'textcoded4th': textcoded4th,
             'provenance4th':provenance4th,
-            'global4th': th['global'],
-            'local4th': th['local']
+            'tensor4th': th
         }
 
 
@@ -162,11 +145,11 @@ class DataPreparator(object):
         """
 
         encoded_examples = []
-        M = 0
+        
         for id in examples:
-            local_index = Index() # index for the local scope of this document
-            encoded_features, text, L = encoder(examples[id], {'global': self.global_index, 'local':local_index})
+            text = ''.join([s for s in examples[id].itertext()])
             if text:
+                encoded_features, _, _ = encoder(examples[id])
                 example = {
                     'provenance': id, 
                     'text': text,
@@ -176,9 +159,6 @@ class DataPreparator(object):
             else:
                 print("skipping an example in document with id=", id)
                 print(str(examples[id]))
-            if len(local_index) > M:
-                M = len(local_index)
-        self.max_local_concepts = M
         return encoded_examples
 
     def run_on_dir(self, path):
@@ -214,15 +194,9 @@ class DataPreparator(object):
                 archive_path = "{}".format(filenamebase)
                 with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
                     
-                    # write local tensor
-                    tensor_filename = "{}_local.pyth".format(archive_path)
-                    torch.save(self.dataset4th['local4th'], tensor_filename)
-                    myzip.write(tensor_filename)
-                    os.remove(tensor_filename)
-
-                    # write global tensor
-                    tensor_filename = "{}_global.pyth".format(archive_path)
-                    torch.save(self.dataset4th['global4th'], tensor_filename)
+                    # write tensor
+                    tensor_filename = "{}.pyth".format(archive_path)
+                    torch.save(self.dataset4th['tensor4th'], tensor_filename)
                     myzip.write(tensor_filename)
                     os.remove(tensor_filename)
 
@@ -255,29 +229,20 @@ class DataPreparator(object):
                     print("saved {} (size: {})".format(info.filename, info.file_size))
 
 
-    def display(self, text4th, th):
+    def display(self, text4th, tensor4th):
         """
         Display text fragments and extracted features to the console.
         """
-        
-        N, R, C = th.size()
-        index2concept = [""] * NUMBER_OF_ENCODED_FEATURES
-        for e in xml_map['concepts']:
-            for a in xml_map['concepts'][e]:
-                for v in xml_map['concepts'][e][a]:
-                    code = xml_map['concepts'][e][a][v]
-                    if code is not None:
-                        index2concept[code] = v
-        legend = " ".join([str(i)+"="+label for i, label in enumerate(index2concept)])
+        N, featsize, L = tensor4th.shape
+
         for i in range(N):
-            print("\n")
+            print
             print("Text:")
             print(text4th[i])
-            print(legend)
-            print("\n")
-            print("".join([str(i%10) for i in range(C)]))
-            for row in range(R):
-                print("".join([['-','+'][x] for x in th[i, row]]))
+            for j in range(featsize):
+                feature = str(index2concept[j])
+                track = [int(tensor4th[i, j, k]) for k in range(L)]
+                print(''.join([['-','+'][x] for x in track]), feature)
 
 
 def main():

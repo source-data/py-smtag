@@ -22,7 +22,7 @@ class AnnFeaturizer(object):
                 features['marks']['ann']['type'][i] = code
         return features
 
-class XMLFeaturizer(object):
+class XMLEncoder(object):
 
     @staticmethod
     def featurize_marks(element, L, features = {}):
@@ -61,7 +61,7 @@ class XMLFeaturizer(object):
         return features
 
     @staticmethod
-    def xml2features(element):
+    def encode(element):
         features = {kind:{el:{attr:[] for attr in xml_map[kind][el]} for el in xml_map[kind]} for kind in xml_map}
 
         if element is not None:
@@ -69,16 +69,16 @@ class XMLFeaturizer(object):
             L_core = len(text_core)
             text_tail = element.tail or ''
             L_tail = len(text_tail)
-            features = XMLFeaturizer.featurize_marks(element, L_core)
+            features = XMLEncoder.featurize_marks(element, L_core)
             L_tot = L_core
 
             #add marks recursively
             for child in list(element):
-                child_core, L_child_core, L_child_tail = XMLFeaturizer.xml2features(child)
+                child_core, L_child_core, L_child_tail = XMLEncoder.encode(child)
                 L_tot = L_tot + L_child_core + L_child_tail
                 #adding to child the features inherited from parent element
-                child_core = XMLFeaturizer.featurize_marks(element, L_child_core, child_core)
-                child_tail = XMLFeaturizer.featurize_marks(element, L_child_tail)
+                child_core = XMLEncoder.featurize_marks(element, L_child_core, child_core)
+                child_tail = XMLEncoder.featurize_marks(element, L_child_tail)
 
                 for kind in features:
                     for e in features[kind]:
@@ -87,7 +87,7 @@ class XMLFeaturizer(object):
 
             #add boundaries to current element
             try:
-                features = XMLFeaturizer.featurize_boundaries(element, features, L_tot)
+                features = XMLEncoder.featurize_boundaries(element, features, L_tot)
             except Exception as e:
                 print(element.text, element.tag, element.attrib)
                 print(features)
