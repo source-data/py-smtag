@@ -194,7 +194,7 @@ class DataPreparator(object):
             archive_path = "{}".format(filenamebase)
             with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
                 
-                # write tensor
+                # write feature tensor
                 tensor_filename = "{}.pyth".format(archive_path)
                 torch.save(self.dataset4th['tensor4th'], tensor_filename)
                 myzip.write(tensor_filename)
@@ -260,9 +260,7 @@ def main():
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
 
     args = parser.parse_args()
-    if args.working_directory:
-        config.working_directory = args.working_directory
-
+    
     options = {}
     options['namebase'] = args.filenamebase
     options['iterations'] = args.iterations
@@ -277,10 +275,12 @@ def main():
         options['sampling_mode'] = 'sentence'
     options['random_shifting'] = not args.disable_shifting
     options['padding'] = args.padding
-
-    path = args.path
-    prep = DataPreparator(options)
-    prep.run_on_dir(path)
+    if args.working_directory:
+        config.working_directory = args.working_directory
+    with cd(config.working_directory):
+        path = args.path
+        prep = DataPreparator(options)
+        prep.run_on_dir(path)
 
 if __name__ == "__main__":
     main()
