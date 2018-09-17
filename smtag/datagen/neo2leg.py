@@ -10,6 +10,7 @@ from neo4jrestclient.client import GraphDatabase, Node
 from random import shuffle
 from math import floor
 import difflib
+from ..common.utils import cd
 from ..common.config import MARKING_CHAR, MARKING_CHAR_ORD  
 from .. import config
 
@@ -93,16 +94,15 @@ class NeoImport():
 
     def neo2xml(self, source):
 
-        options = self.options
-        where_clause = options['where_clause']
-        entity_type_clause = options['entity_type_clause']
-        entity_role_clause = options['entity_role_clause']
-        tags2anonmymize_clause = options['tags2anonmymize_clause']
-        donotanonymize_clause = options['donotanonymize_clause']
-        limit_clause = options['limit_clause']
-        safe_mode = options['safe_mode']
-        exclusive_mode = options['exclusive_mode']
-        keep_roles_only_for_selected_tags = options['keep_roles_only_for_selected_tags']
+        where_clause = self.options['where_clause']
+        entity_type_clause = self.options['entity_type_clause']
+        entity_role_clause = self.options['entity_role_clause']
+        tags2anonmymize_clause = self.options['tags2anonmymize_clause']
+        donotanonymize_clause = self.options['donotanonymize_clause']
+        limit_clause = self.options['limit_clause']
+        safe_mode = self.options['safe_mode']
+        exclusive_mode = self.options['exclusive_mode']
+        keep_roles_only_for_selected_tags = self.options['keep_roles_only_for_selected_tags']
 
         DB = GraphDatabase(source['db'],source['username'], source['password'])
 
@@ -199,31 +199,50 @@ class NeoImport():
         for i in range(0, end):
             doi = shuffled_doi[i]
             trainset.append(self.articles[doi])
-        for i in range(0, end):
+        for i in range(end, N):
             doi = shuffled_doi[i]
-            trainset.append(self.articles[doi])
+            testset.append(self.articles[doi])
         return trainset, testset
 
-    def save(self, split_dataset, path):
-        path = os.path.join(config.working_directory, path)
-        print("saving to: ", path)
-        ld = os.listdir(path)
-        # print("; ".join([d for d in ld]))
-        for subdir in split_dataset:
-            articles = split_dataset[subdir]
-            if not subdir in ld:
-                os.mkdir(os.path.join(path, subdir)) # should we use os.chmod(os.mkdir(os.path.join(stock, subdir), 0o777)with iopen(os.path.join(self.path, str(id)+".jpg"), 'wb') as file:
-            for i, article in enumerate(articles):
-                filename = str(i)+'.xml'
-                print('writing to {}'.format(filename))
-                with open(os.path.join(path, subdir, filename), 'wb') as f:
-                    f.write(tostring(article))
+    def save(self, split_dataset, data_dir, namebase):
+        print("current dir:", os.curdir, os.listdir(os.curdir))
+        with cd(config.data_dir):
+            print("saving to: ", data_dir)
+            if namebase in os.listdir():
+                print("data {} already exists".format(namebase))
+                raise(Exception())
+            else:
+                os.mkdir(namebase)
+                with cd(namebase):
+                    for subdir in split_dataset:
+                        articles = split_dataset[subdir]
+                        os.mkdir(subdir) # should we use os.chmod(os.mkdir(os.path.join(stock, subdir), 0o777)with iopen(os.path.join(self.path, str(id)+".jpg"), 'wb') as file:
+                        for i, article in enumerate(articles):
+                            filename = str(i)+'.xml'
+                            print('writing to {}'.format(filename))
+                            with open(os.path.join(subdir, filename), 'wb') as f:
+                                f.write(tostring(article))
+
+    def log_errors(self, errors):
+        """
+        Errors that are detected during feature extraction are kept and logged into a log file.
+        """
+        for e in errors:
+            if errors[e]:
+                print("####################################################")
+                print(" Writing {} {} errors to errors_{}.log".format(len(errors[e]), e, e))
+                print("####################################################" )
+            #write log file anyway, even if zero errors, to remove old copy
+            with open('errors_{}.log'.format(e), 'w') as f:
+                for line in errors[e]:
+                    ids, err = line
+                    f.write(u"\nerror:\t{}\t{}\n".format('\t'.join(ids), err))
+            f.close()
 
 def main():
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--dir', default='test_dir', help='path to directory where files will be saved.')
-    parser.add_argument('-f', '--filename', default='test.xml', help='Name of the xml file to which the dataset will be saved.')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode.')
+    parser.add_argument('-f', '--namebase', default='test_data', help='The name of the dataset')
     parser.add_argument('-A', '--tags2anonymize', default='', help='tag type to anonymise')
     parser.add_argument('-AA','--donotanonymize', default='', help='role of tags that should NOT be anonymized')
     parser.add_argument('-l', '--limit', default=10, type=int, help='limit number of papers scanned, mainly for testing')
@@ -239,10 +258,6 @@ def main():
     parser.add_argument('-t', '--testfract', default=0.2, type=float, help='fraction of papers in testset')
 
     args = parser.parse_args()
-
-    if args.working_directory:
-        config.working_directory = args.working_directory
-    print("working dir: ", config.working_directory)
 
     tags2anonymize = args.tags2anonymize
     donotanonymize = args.donotanonymize
@@ -313,8 +328,7 @@ def main():
 
     options = {}
     options['verbose'] = args.verbose
-    options['filename'] = args.filename
-    options['dir'] = args.dir
+    options['namebase'] = args.namebase
     options['testset_fraction'] = args.testfract
     options['where_clause'] = where_clause
     options['entity_type_clause'] = entity_type_clause
@@ -328,11 +342,15 @@ def main():
     options['source'] = {'db': 'http://localhost:7474/db/data/', 'username': 'neo4j', 'password': 'sourcedata'} #getpass()}
     
     if options['verbose']: print(options)
+    if args.working_directory:
+        config.working_directory = args.working_directory
 
-    G = NeoImport(options)
-    G.neo2xml(options['source'])
-    trainset, testset = G.split_dataset(options['testset_fraction'])
-    G.save({'trainset': trainset, 'testset': testset}, options['dir'], )
+    with cd(config.working_directory):
+        G = NeoImport(options)
+        errors = G.neo2xml(options['source'])
+        G.log_errors(errors)
+        trainset, testset = G.split_dataset(options['testset_fraction'])
+        G.save({'trainset': trainset, 'testset': testset}, config.data_dir, options['namebase'])
 
 if __name__ == "__main__":
     main()

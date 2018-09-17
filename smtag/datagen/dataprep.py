@@ -191,42 +191,42 @@ class DataPreparator(object):
         """
 
         with cd(config.data_dir):
-                archive_path = "{}".format(filenamebase)
-                with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
-                    
-                    # write tensor
-                    tensor_filename = "{}.pyth".format(archive_path)
-                    torch.save(self.dataset4th['tensor4th'], tensor_filename)
-                    myzip.write(tensor_filename)
-                    os.remove(tensor_filename)
+            archive_path = "{}".format(filenamebase)
+            with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
+                
+                # write tensor
+                tensor_filename = "{}.pyth".format(archive_path)
+                torch.save(self.dataset4th['tensor4th'], tensor_filename)
+                myzip.write(tensor_filename)
+                os.remove(tensor_filename)
 
-                    # write encoded text tensor
-                    textcoded_filename = "{}_textcoded.pyth".format(archive_path)
-                    torch.save(self.dataset4th['textcoded4th'], textcoded_filename)
-                    myzip.write(textcoded_filename)
-                    os.remove(textcoded_filename)
+                # write encoded text tensor
+                textcoded_filename = "{}_textcoded.pyth".format(archive_path)
+                torch.save(self.dataset4th['textcoded4th'], textcoded_filename)
+                myzip.write(textcoded_filename)
+                os.remove(textcoded_filename)
 
-                    # write text examples into text file
-                    text_filename = "{}.txt".format(archive_path)
-                    with open(text_filename, 'w') as f:
-                        for line in self.dataset4th['text4th']:
-                            f.write("{}\n".format(line))
-                    myzip.write(text_filename)
-                    os.remove(text_filename)
+                # write text examples into text file
+                text_filename = "{}.txt".format(archive_path)
+                with open(text_filename, 'w') as f:
+                    for line in self.dataset4th['text4th']:
+                        f.write("{}\n".format(line))
+                myzip.write(text_filename)
+                os.remove(text_filename)
 
-                    # write provenenance of each example into text file
-                    provenance_filename = "{}.prov".format(archive_path)
-                    with open(provenance_filename, 'w') as f:
-                        for line in self.dataset4th['provenance4th']:
-                            f.write(line)
-                            #f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
-                    myzip.write(provenance_filename)
-                    os.remove(provenance_filename)
+                # write provenenance of each example into text file
+                provenance_filename = "{}.prov".format(archive_path)
+                with open(provenance_filename, 'w') as f:
+                    for line in self.dataset4th['provenance4th']:
+                        f.write(line)
+                        #f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
+                myzip.write(provenance_filename)
+                os.remove(provenance_filename)
 
-                    myzip.close()
+                myzip.close()
 
-                for info in myzip.infolist():
-                    print("saved {} (size: {})".format(info.filename, info.file_size))
+            for info in myzip.infolist():
+                print("saved {} (size: {})".format(info.filename, info.file_size))
 
 
     def display(self, text4th, tensor4th):
