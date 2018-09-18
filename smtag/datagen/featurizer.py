@@ -18,7 +18,8 @@ class BratEncoder(object):
             stop = a['stop']
             type = a['type']
             code = brat_map[type]
-            features['marks']['ann']['type'][start:stop] = code
+            for pos in range(start, stop):
+                features['marks']['ann']['type'][pos] = code
         return features
 
 class XMLEncoder(object):

@@ -355,7 +355,7 @@ def main():
         errors = G.neo2xml(options['source'])
         G.log_errors(errors)
         trainset, testset = G.split_dataset(options['testset_fraction'])
-        G.save({'trainset': trainset, 'testset': testset}, config.data_dir, options['namebase'])
+        G.save({'train': trainset, 'test': testset}, config.data_dir, options['namebase'])
 
 if __name__ == "__main__":
     main()

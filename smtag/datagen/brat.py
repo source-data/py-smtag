@@ -64,10 +64,10 @@ class BratImport():
     @staticmethod
     def from_dir(mypath):
         raw_examples = []
-        filenames = select_files(mypath)
+        filenames = BratImport.select_files(mypath)
         N = len(filenames)
         for i, b in enumerate(filenames):
             progress(i, N, status='loading examples')
-            raw_examples.append(example_from_file(mypath, b))
+            raw_examples.append(BratImport.example_from_file(mypath, b))
         return raw_examples
 

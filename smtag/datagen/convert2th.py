@@ -85,11 +85,11 @@ class Sampler():
                             th[index][code][pos] = 1
 
     @staticmethod
-    def show_text_stats(length_statistics, N):
-        text_avg = float(sum(length_statistics) / N)
-        text_std = float(torch.Tensor(length_statistics).std())
-        text_max = max(length_statistics)
-        text_min = min(length_statistics)
+    def show_stats(stats, N):
+        text_avg = floor(float(sum(stats) / N))
+        text_std = floor(float(torch.Tensor(stats).std()))
+        text_max = max(stats)
+        text_min = min(stats)
         print("\nlength of the {} examples selected:".format(N))
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_std, text_min, text_max))
 
@@ -124,7 +124,7 @@ class Sampler():
         text4th = []
         provenance4th = []
         textcoded4th, features4th = self.create_tensors(self.N, iterations, self.number_of_features, self.length, self.min_padding)
-        length_statistics = []
+        length_stats = []
         total = self.N * iterations
         index = 0
         # looping through the examples
@@ -133,22 +133,20 @@ class Sampler():
             encoded = self.encoded_examples[i]['encoded']
             provenance = self.encoded_examples[i]['provenance']
             L = len(text)
-            length_statistics.append(L)
+            length_stats.append(L)
 
             # randomly sampling each example
             for j in range(iterations): # j is index of sampling iteration
                 progress(i*iterations+j, total, "sampling")
                 fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode) 
                 padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
-                print("len(text), len(fragment), start, stop, len(padded_frag), left_padding, right_padding")
-                print(len(text), len(fragment), start, stop, len(padded_frag), left_padding, right_padding)
                 text4th.append(padded_frag)
                 textcoded4th[index] = TString(padded_frag, dtype=torch.uint8).toTensor()
                 provenance4th.append(provenance)
                 Sampler.to_tensor(features4th, index, encoded, start, stop, left_padding, right_padding)
                 index += 1
 
-        Sampler.show_text_stats(length_statistics, self.N)
+        Sampler.show_stats(length_stats, self.N)
         if self.verbose:
             Sampler.display(text4th, features4th)
 
@@ -174,6 +172,7 @@ class DataPreparator(object):
         self.min_padding = options['padding'] 
         self.verbose = options['verbose']
         self.iterations = options['iterations']
+        self.path_compendium = ''
         self.namebase = options['namebase']
         self.train_or_test_dir = options['train_or_test_dir']
         self.dataset4th = {}
@@ -207,16 +206,19 @@ class DataPreparator(object):
         Import xml documents from dir. In each document, extracts examples using XPath.
         """
 
-        path = os.path.join(config.data_dir, path, self.train_or_test_dir)
-        print("loading from:", path)
-        filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
-        examples = {}
-        for filename in filenames:
-            xml = parse(os.path.join(path, filename))
-            for i, e in enumerate(xml.findall(XPath_to_examples)):
-                id = filename + "-" + str(i) # unique id provided filename is unique (hence limiting to single allowed file extension)
-                examples[id] = e
-            print("found {} examples in {}".format(i, filename))
+        with cd(config.data_dir):
+            self.path_compendium = path + "_" + self.train_or_test_dir
+            path = os.path.join(path, self.train_or_test_dir)
+            print("loading from:", path)
+            filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
+            print(filenames)
+            examples = {}
+            for filename in filenames:
+                xml = parse(os.path.join(path, filename))
+                for i, e in enumerate(xml.findall(XPath_to_examples)):
+                    id = filename + "-" + str(i) # unique id provided filename is unique (hence limiting to single allowed file extension)
+                    examples[id] = e
+                print("found {} examples in {}".format(i, filename))
         return examples
 
 
@@ -224,6 +226,9 @@ class DataPreparator(object):
         """
         Saving datasets prepared for torch to a text file with text example, a npy file for the extracted features and a provenance file that keeps track of origin of each example.
         """
+
+        if not filenamebase:
+            filenamebase = self.path_compendium
 
         with cd(config.data4th_dir):
             archive_path = "{}".format(filenamebase)
@@ -276,8 +281,11 @@ class BratDataPreparator(DataPreparator):
     def __init__(self, options):
         super(BratDataPreparator, self).__init__(options)
 
-    def import_files(self, mypath):
-        brat_examples = BratImport.from_dir(mypath)
+    def import_files(self, path):
+        self.path_compendium = path + "_" + self.train_or_test_dir
+        with cd(config.data_dir):
+            path = os.path.join(path, self.train_or_test_dir)
+            brat_examples = BratImport.from_dir(path)
         return brat_examples
 
     def encode_examples(self, examples):
@@ -299,7 +307,7 @@ def main():
     parser = argparse.ArgumentParser(description='Reads xml and transform into tensor format.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     args = []
     parser.add_argument('-c', '--path', default='test_dir/trainset', help='path to the source compendium of xml files')
-    parser.add_argument('-f', '--filenamebase', default='test', help='namebase to save converted trainset and features set files')
+    parser.add_argument('-f', '--filenamebase', default='', help='namebase to save converted trainset and features set files')
     parser.add_argument('-T', '--testset', action='store_true', help='use the testset instead of the trainset')
     parser.add_argument('-b', '--brat', action='store_true', help='Use brat files instead of xml files')
     parser.add_argument('-X', '--iterations', default=5, type=int, help='number of times each example is sampled')
@@ -319,7 +327,7 @@ def main():
     options['verbose'] = args.verbose
     options['length'] = args.length
     options['path'] = args.path
-    options['train_or_test_dir'] = 'testset' if args.testset else 'trainset'
+    options['train_or_test_dir'] = 'test' if args.testset else 'train'
     if args.window:
         options['sampling_mode'] = 'window'
     elif args.start:
@@ -332,12 +340,11 @@ def main():
     if args.working_directory:
         config.working_directory = args.working_directory
     with cd(config.working_directory):
-        path = args.path
         if args.brat:
             prep = BratDataPreparator(options)
         else:
             prep = DataPreparator(options)
-        prep.run_on_dir(path)
+        prep.run_on_dir(options['path'])
 
 if __name__ == "__main__":
     main()
