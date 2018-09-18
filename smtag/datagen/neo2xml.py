@@ -232,17 +232,18 @@ class NeoImport():
         """
         Errors that are detected during feature extraction are kept and logged into a log file.
         """
-        for e in errors:
-            if errors[e]:
-                print("####################################################")
-                print(" Writing {} {} errors to errors_{}.log".format(len(errors[e]), e, e))
-                print("####################################################" )
-            #write log file anyway, even if zero errors, to remove old copy
-            with open('errors_{}.log'.format(e), 'w') as f:
-                for line in errors[e]:
-                    ids, err = line
-                    f.write(u"\nerror:\t{}\t{}\n".format('\t'.join(ids), err))
-            f.close()
+        with cd(config.log_dir):
+            for e in errors:
+                if errors[e]:
+                    print("####################################################")
+                    print(" Writing {} {} errors to errors_{}.log".format(len(errors[e]), e, e))
+                    print("####################################################" )
+                #write log file anyway, even if zero errors, to remove old copy
+                with open('errors_{}.log'.format(e), 'w') as f:
+                    for line in errors[e]:
+                        ids, err = line
+                        f.write(u"\nerror:\t{}\t{}\n".format('\t'.join(ids), err))
+                f.close()
 
 def main():
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -359,7 +360,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 

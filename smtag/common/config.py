@@ -23,7 +23,7 @@ class Config():
     _data4th_dir_name  = "data4th"
     _model_dir_name    = "models"
     _prod_dir_name     = "rack"
-    _runs_log_dir_name = "runs"
+    _log_dir_name      = "log"
     def __init__(self):
         self.working_directory = "."
 
@@ -42,5 +42,8 @@ class Config():
     @property
     def runs_log_dir(self):
         return os.path.join(self.working_directory, self._runs_log_dir_name)
+    @property
+    def log_dir(self):
+        return os.path.join(self.working_directory, self._log_dir_name)
 
 config = Config()
