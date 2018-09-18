@@ -42,6 +42,7 @@ from .loader import Loader
 from .minibatches import Minibatches
 from .trainer import Trainer
 from .builder import SmtagModel
+from ..common.utils import cd
 from ..common.importexport import export_model, load_model
 from .. import config
 
@@ -70,7 +71,6 @@ def main():
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
 
     arguments = vars(parser.parse_args()) # to cast as dict which is what is return by docopt in case we would use it
-    # map arguments to opt to decouple command line options from internal representation
     opt = {}
     opt['namebase'] = arguments['file']
     opt['learning_rate'] = float(arguments['learning_rate'])
@@ -96,21 +96,24 @@ def main():
     opt['validation_fraction'] = float(arguments['validation_fraction'])
     print("\n".join(["opt[{}]={}".format(o,opt[o]) for o in opt]))
 
-    #LOAD DATA
-    ldr = Loader(opt)
-    datasets = ldr.prepare_datasets(opt['namebase'])
-    training_minibatches = Minibatches(datasets['train'], opt['minibatch_size'])
-    validation_minibatches = Minibatches(datasets['valid'], opt['minibatch_size'])
-    opt['nf_input'] = datasets['train'].nf_input
-    opt['nf_output'] =  datasets['train'].nf_output
-    print("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
+    if arguments['working_directory']:
+        config.working_directory = arguments['working_directory']
+    with cd(config.working_directory): 
+        #LOAD DATA
+        ldr = Loader(opt)
+        datasets = ldr.prepare_datasets(opt['namebase'])
+        training_minibatches = Minibatches(datasets['train'], opt['minibatch_size'])
+        validation_minibatches = Minibatches(datasets['valid'], opt['minibatch_size'])
+        opt['nf_input'] = datasets['train'].nf_input
+        opt['nf_output'] =  datasets['train'].nf_output
+        print("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
 
-    #TRAIN MODEL
-    model = SmtagModel(opt)
-    Trainer(training_minibatches, validation_minibatches, model).train()
+        #TRAIN MODEL
+        model = SmtagModel(opt)
+        Trainer(training_minibatches, validation_minibatches, model).train()
 
-    #SAVE MODEL
-    export_model(model)
+        #SAVE MODEL
+        export_model(model)
 
 if __name__ == '__main__':
     main()

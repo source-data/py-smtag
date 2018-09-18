@@ -258,7 +258,7 @@ class DataPreparator(object):
                 provenance_filename = "{}.prov".format(archive_path)
                 with open(provenance_filename, 'w') as f:
                     for line in self.dataset4th['provenance4th']:
-                        f.write(line)
+                        f.write(line+"\n")
                         #f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
                 myzip.write(provenance_filename)
                 os.remove(provenance_filename)

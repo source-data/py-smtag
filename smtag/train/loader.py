@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-from ..common.config import NBITS
 import numpy as np
 import torch
 # import logging
 import math
+import os
 from random import shuffle
+from ..common.config import NBITS
 from ..common.mapper import Catalogue, concept2index
 from ..common.progress import progress
 from ..common.viz import Show
@@ -41,10 +42,10 @@ class Dataset:
         self.output = torch.zeros(self.N, self.nf_output, self.L)
 
     def from_files(self, basename):
-        features_filename = "{}/{}.pyth".format(config.data_dir, basename)
-        text_filename = '{}/{}.txt'.format(config.data_dir, basename)
-        textcoded_filename = "{}/{}_textcoded.pyth".format(config.data_dir, basename)
-        provenance_filename = '{}/{}.prov'.format(config.data_dir, basename)
+        features_filename = os.path.join(config.data4th_dir, basename+".pyth")
+        text_filename = os.path.join(config.data4th_dir, basename+".txt")
+        textcoded_filename = os.path.join(config.data4th_dir, basename+"_textcoded.pyth")
+        provenance_filename = os.path.join(config.data4th_dir, basename+".prov")
 
         print("Loading {} as features for the dataset.".format(features_filename))
         self.output = torch.load(features_filename).float()
