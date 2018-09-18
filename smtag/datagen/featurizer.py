@@ -6,10 +6,10 @@ from ..common.mapper import brat_map, xml_map
 #features should be instance of Features()
 #define abstract Featurizer class that takes Example and returns Features
 
-class AnnFeaturizer(object):
+class BratEncoder(object):
 
     @staticmethod
-    def ann2features(example):
+    def encode(example):
         L = len(example['text'])
         annot = example['annot']
         features = {'marks':{'ann':{'type':[None] * L}}}
@@ -18,8 +18,7 @@ class AnnFeaturizer(object):
             stop = a['stop']
             type = a['type']
             code = brat_map[type]
-            for i in range(start, stop):
-                features['marks']['ann']['type'][i] = code
+            features['marks']['ann']['type'][start:stop] = code
         return features
 
 class XMLEncoder(object):

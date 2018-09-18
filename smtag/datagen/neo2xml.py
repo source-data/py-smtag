@@ -26,10 +26,15 @@ class NeoImport():
     @staticmethod
     def caption_text2xml(panel_caption, tags, tags2anonym, safe_mode = True, exclusive_mode = False, keep_roles_only_for_selected_tags = False):
         def anonymize_sdtags(panel_xml, tags_neo):
+            # mini_index = [] #keeps an index of terms that are the same; will be anonymized by respective 'marker' characters
             for t in tags_neo:
                 tag_xml = panel_xml.find('.//sd-tag[@id="sdTag{}"]'.format(t['data']['id']))
                 if tag_xml is not None:
                     if tag_xml.text:
+                        # tag_text_lo = tag_xml.text.lower()
+                        # if tag_text_lo not in mini_index: mini_index.append(tag_text_lo)
+                        # mark = unichr(MARKING_CHAR_ORD + mini_index.index(tag_text_lo))
+                        # tag_xml.text = mark * len(tag_xml.text)
                         tag_xml.text = MARKING_CHAR * len(tag_xml.text)
             return panel_xml
         

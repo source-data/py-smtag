@@ -20,6 +20,7 @@ class Config():
     (ie in smtag/__init__.py)
     """
     _data_dir_name     = "data"
+    _data4th_dir_name  = "data4th"
     _model_dir_name    = "models"
     _prod_dir_name     = "rack"
     _runs_log_dir_name = "runs"
@@ -29,6 +30,9 @@ class Config():
     @property
     def data_dir(self):
         return os.path.join(self.working_directory, self._data_dir_name)
+    @property
+    def data4th_dir(self):
+        return os.path.join(self.working_directory, self._data4th_dir_name)
     @property
     def model_dir(self):
         return os.path.join(self.working_directory, self._model_dir_name)
