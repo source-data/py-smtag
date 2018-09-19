@@ -10,7 +10,7 @@ from .predict import engine     as predict_engine
 def meta():
     return train_meta.main()
 
-def graph2th():
+def neo2xml():
     return datagen_neo2xml.main()
 
 def convert2th():
@@ -26,6 +26,7 @@ Available commands:
 
     - smtag: this help command
     - smtag-meta: Training of new models is managed via `meta`. Run the help command to get a list of options.
-    - smtag-train
-    - smtag-graph2th
+    - smtag-neo2xml: generates xml files from sd-graph
+    - smtag-convert2th: encode and sample examples provided as xml files or brat files
+    - smtag-predict: command line interface to the SmartTag taggin engine
     """
