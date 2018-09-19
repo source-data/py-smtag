@@ -56,9 +56,9 @@ def main():
     # READ COMMAND LINE ARGUMENTS
     #arguments = docopt(__doc__, version='0.1')
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-f', '--file', default='test_entities_train', help='Namebase of dataset to import')
-    parser.add_argument('-E' , '--epochs',  default=120, help='Number of training epochs.')
-    parser.add_argument('-Z', '--minibatch_size', default=128, help='Minibatch size.')
+    parser.add_argument('-f', '--file', default='demo_xml_train', help='Namebase of dataset to import')
+    parser.add_argument('-E' , '--epochs',  default=2, help='Number of training epochs.')
+    parser.add_argument('-Z', '--minibatch_size', default=2, help='Minibatch size.')
     parser.add_argument('-R', '--learning_rate', default=0.001, type=float, help='Learning rate.')
     parser.add_argument('-V', '--validation_fraction', default=0.2, help='Fraction of the dataset that should be used as validation set during training.')
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
@@ -83,8 +83,6 @@ def main():
     nf_table = [int(x.strip()) for x in arguments['nf_table'].split(',')]
     kernel_table = [int(x.strip()) for x in arguments['kernel_table'].split(',')]
     pool_table = [int(x.strip()) for x in arguments['pool_table'].split(',')]
-    if arguments['working_directory']:
-        config.working_directory = arguments['working_directory']
     opt['selected_features'] = output_features
     opt['collapsed_features'] = collapsed_features
     opt['overlap_features'] = overlap_features

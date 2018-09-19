@@ -248,7 +248,7 @@ class NeoImport():
 def main():
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode.')
-    parser.add_argument('-f', '--namebase', default='test_data', help='The name of the dataset')
+    parser.add_argument('-f', '--namebase', default='demo_xml', help='The name of the dataset')
     parser.add_argument('-A', '--tags2anonymize', default='', help='tag type to anonymise')
     parser.add_argument('-AA','--donotanonymize', default='', help='role of tags that should NOT be anonymized')
     parser.add_argument('-l', '--limit', default=10, type=int, help='limit number of papers scanned, mainly for testing')
