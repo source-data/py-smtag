@@ -5,19 +5,20 @@
 SmartTag semantic tagging engine.
 
 Usage:
-  engine.py [-D -d -m <str> -t <str> -f <str> -w <str>]
+  engine.py [-D -d -m <str> -t <str> -f <str> -w <str> -g <str>]
 
 Options:
 
   -m <str>, --method <str>                Method to call (smtag|tag|entity|panelize) [default: smtag]
   -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
-  -w <str>, --working_directory <str>    Working directory where to read cartrigdes from (i.e. path where the `rack` folder is located)
+  -w <str>, --working_directory <str>     Working directory where to read cartrigdes from (i.e. path where the `rack` folder is located)
   -D, --debug                             Debug mode to see the successive processing steps in the engine.
+  -g <str>, --tag <str>                   XML tag to use when tagging concepts [default: sd-tag]
   -d, --demo                              Demo with a long sample.
 """
 
-#-g <str>, --tag <str>                   XML tag to update when using the role prediction method [default: sd-tag]
+
 
 import re
 from torch import nn
@@ -240,6 +241,7 @@ def main():
     method = arguments['--method']
     DEBUG = arguments['--debug']
     DEMO = arguments['--demo']
+    sdtag = arguments['--tag']
     if arguments['--working_directory']:
         config.working_directory = arguments['--working_directory']
     if DEMO:
@@ -262,13 +264,13 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
     engine.DEBUG = DEBUG
 
     if method == 'smtag':
-        print(engine.smtag(input_string))
+        print(engine.smtag(input_string, sdtag))
     elif method == 'panelize':
-        print(engine.panelizer(input_string))
+        print(engine.panelizer(input_string, sdtag))
     elif method == 'tag':
-        print(engine.tag(input_string))
+        print(engine.tag(input_string, sdtag))
     elif method == 'entity':
-        print(engine.entity(input_string))
+        print(engine.entity(input_string, sdtag))
     else:
         print("unknown method {}".format(method))
 
