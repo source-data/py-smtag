@@ -74,7 +74,7 @@ class NeoImport():
         if tags_not_found:
             print("WARNING, tag(s) not found: ", tags_not_found)
             print(panel_caption)
-            tag_errors.append(tags_not_found)
+            tag_errors.append(list(tags_not_found))
 
         #keep attributes only for the selected tags and clear the rest
         if exclusive_mode:
@@ -131,7 +131,7 @@ class NeoImport():
             if doi == '': doi = a_id
             if doi in self.articles:
                 print('WARNING! {} ALREADY EXISTS'.format(doi))
-                paper_errors.append({a_id, doi})
+                paper_errors.append([a_id, doi])
             else:
                 q_figures = '''
                     MATCH (a:Article )-->(f:Figure)
@@ -192,7 +192,7 @@ class NeoImport():
                 print("number of figures in ", a_id, doi, len(self.articles[doi].getchildren()))
                 print("counted {} panels.".format(counter))
 
-        return {'paper_level':paper_errors, 'caption_level': caption_errors, 'tag_level': tag_level_errors} #figure_captions_text
+        return {'paper_level':paper_errors, 'caption_level': caption_errors, 'tag_level': tag_level_errors}
 
     def split_dataset(self, testfrac):
         shuffled_doi = list(self.articles.keys())
@@ -240,9 +240,8 @@ class NeoImport():
                     print("####################################################" )
                 #write log file anyway, even if zero errors, to remove old copy
                 with open('errors_{}.log'.format(e), 'w') as f:
-                    for line in errors[e]:
-                        ids, err = line
-                        f.write(u"\nerror:\t{}\t{}\n".format('\t'.join(ids), err))
+                    for row in errors[e]:
+                        f.write(u"\t".join([str(x) for x in row]))
                 f.close()
 
 def main():
