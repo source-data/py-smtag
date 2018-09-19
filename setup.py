@@ -33,10 +33,11 @@ setuptools.setup(
     include_package_data=True,
     entry_points = {
         'console_scripts': [
-            'smtag-graph2th=smtag.command_line:graph2th',
-            'smtag-predict=smtag.command_line:predict',
+            'smtag-neo2xml=smtag.command_line:neo2xml',
+            'smtag-convert2th=smtag.command_line:convert2th',
             'smtag-meta=smtag.command_line:meta',
-            'smtag=smtag.command_line:about',
+            'smtag-predict=smtag.command_line:predict',
+            'smtag=smtag.command_line:about'
         ],
     },
     # keywords="",

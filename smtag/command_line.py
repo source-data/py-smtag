@@ -3,14 +3,18 @@
 # http://python-packaging.readthedocs.io/en/latest/command-line-scripts.html
 
 from .train   import meta       as train_meta
-from .datagen import sdgraph2th as datagen_sdgraph2th
+from .datagen import neo2xml    as datagen_neo2xml
+from .datagen import convert2th as datagen_convert2th
 from .predict import engine     as predict_engine
 
 def meta():
     return train_meta.main()
 
 def graph2th():
-    return datagen_sdgraph2th.main()
+    return datagen_neo2xml.main()
+
+def convert2th():
+    return datagen_convert2th.main()
 
 def predict():
     return predict_engine.main()
