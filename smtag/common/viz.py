@@ -7,28 +7,62 @@ from .converter import Converter
 from .config import MARKING_CHAR
 from tensorboardX import SummaryWriter
 
-#for code in {1..256}; do printf "\e[38;5;${code}m'$code'\e[0m";echo; done
+#for code in {1..256}; do printf "\e[38;5;${code}m"$code"\e[0m";echo; done
 #for i = 1, 32 do COLORS[i] = "\27[38;5;"..(8*i-7).."m" end
 #printf "\e[30;1mTesting color\e[0m"
 #for i in range(25,50): print(f"\033[{i};1mTesting color {i}\033[0m")
-COLORS = ["\033[30;1m", #grey
-          "\033[34;1m", #blue first since often assayed
-          "\033[31;1m", #red
-          "\033[33;1m", #yellow
-          "\033[32;1m", #green
-          "\033[35;1m", #pink
-          "\033[36;1m", #turquoise
-          "\033[41;37;1m", #red back
-          "\033[42;37;1m", #green back
-          "\033[43;37;1m", #yellow back
-          "\033[44;37;1m", #blue back
-          "\033[45;37;1m"] #turquoise back
-CLOSE_COLOR = "\033[0m"
 
 class Show():
+    COLORS = {
+        "console": [
+            "\033[30;1m", #grey
+            "\033[34;1m", #blue first since often assayed
+            "\033[31;1m", #red
+            "\033[33;1m", #yellow
+            "\033[32;1m", #green
+            "\033[35;1m", #pink
+            "\033[36;1m", #turquoise
+            "\033[41;37;1m", #red back
+            "\033[42;37;1m", #green back
+            "\033[43;37;1m", #yellow back
+            "\033[44;37;1m", #blue back
+            "\033[45;37;1m" #turquoise back
+        ],
+        "html": [
+            "<span style='color:grey'>",
+            "<span style='color:blue'>",
+            "<span style='color:red'>",
+            "<span style='color:yellow'>",
+            "<span style='color:green'>",
+            "<span style='color:pink'>",
+            "<span style='background-color:red;color:white'>",
+            "<span style='background-color:green; color:white'>",
+            "<span style='background-color:blue; color:white'>",
+            "<span style='background-color:turquoise; color:white'>"
+        ],
+        "markdown": [""] * 8
+    }
 
-    @staticmethod
-    def example(minibatches, model = None):
+    CLOSE_COLOR = {
+        "console": "\033[0m",
+        "html": "</span>",
+        "markdown": ""
+    }
+
+    BR = {
+        "console": "\n",
+        "html": "<br/>",
+        "markdown": "\n"
+    }
+
+    def __init__(self, format="markdown"):
+        self.format = format
+        self.col = Show.COLORS[format]
+        self.close =  Show.CLOSE_COLOR[format]
+        self.nl =  Show.BR[format]
+
+    def example(self, minibatches, model = None):
+        out = ""
         M = len(minibatches) # M minibatches
         N = minibatches[0].N # N examples per minibatch
         #select random j-th example in i-th minibatch
@@ -47,33 +81,36 @@ class Show():
 
         text = Converter.t_decode(input[[0], 0:31, : ]) #sometimes input has more than 32 features if feature2input option was chosen
         if nf_input > 32:
-            print("\nAdditional input features:")
-            Show.print_pretty(input[[0], 32:nf_input, : ])
+            out += "Additional input features:"+self.nl+self.nl
+            out += "    "+self.print_pretty(input[[0], 32:nf_input, : ]) + self.nl + self.nl
 
-        print("\nExpected:")
-        Show.print_pretty_color(target, text) # visualize anonymized characters with a symbol
-        Show.print_pretty(target)
+        out+= "__Expected:__" + self.nl + self.nl
+        out += "    "+self.print_pretty_color(target, text) + self.nl + self.nl# visualize anonymized characters with a symbol
+        out +="    "+ self.print_pretty(target) + self.nl + self.nl
 
         if model is not None:
-            print("\nPredicted:")
-            Show.print_pretty_color(prediction, text)
-            Show.print_pretty(prediction)
+            out += "__Predicted:__" + self.nl + self.nl
+            out += "    "+self.print_pretty_color(prediction, text) + self.nl + self.nl
+            out+= "    "+self.print_pretty(prediction) + self.nl + self.nl
+        out += ""
+        return out
+    
+    SYMBOLS = ["_",".",":","^","|"] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1
 
-    symbols = ['_','.',':','^','|'] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1
-
-    @staticmethod
-    def print_pretty(features):
-        N = len(Show.symbols) # = 5
+    def print_pretty(self, features):
+        out = ""
+        N = len(Show.SYMBOLS) # = 5
         for i in range(features.size(1)):
             track = ""
             for j in range(features.size(2)):
                 k = min(N-1, math.floor(N*features[0, i, j]))
-                track += Show.symbols[k]
-            print("Tagging track {}".format(i))
-            print(track)
+                track += Show.SYMBOLS[k]
+            out += "Tagging track {}".format(i) + self.nl + self.nl
+            out += "    " + track
+        return out
 
-    @staticmethod
-    def print_pretty_color(features, text):
+    def print_pretty_color(self, features, text):
+        out = ""
         text = text.replace(MARKING_CHAR, "◇")
         nf = features.size(1)
         colored_track = ""
@@ -87,11 +124,12 @@ class Show():
                      max = score
                      max_f = f
             if text:
-                colored_track += "{}{}{}".format(COLORS[max_f + 1], c, CLOSE_COLOR)
+                colored_track += "{}{}{}".format(self.col[max_f + 1], c, self.close)
             else:
-                colored_track += "{}{}{}".format(COLORS[max_f + 1], Show.symbols[max+1], CLOSE_COLOR)
+                colored_track += "{}{}{}".format(self.col[max_f + 1], Show.symbols[max+1], self.close)
             pos = pos + 1
-        print(colored_track)
+        out += colored_track
+        return out
 
 class Plotter(SummaryWriter):
 
@@ -99,8 +137,16 @@ class Plotter(SummaryWriter):
         super(Plotter, self).__init__()
 
     def add_scalars(self, series, scalar_dict, epoch):
-        print("\nepoch #{} {}: {}".format(epoch, series, ", ".join(["{}={:.5f}".format(k, float(scalar_dict[k])) for k in scalar_dict])))
         super(Plotter, self).add_scalars("data/"+series, scalar_dict, epoch)
+
+    def add_example(self, tag, example, epoch=None):
+        super(Plotter, self).add_text(tag, example, epoch)
+
+    def add_progress(self, tag, loss, f1, labels, epoch):
+        render_f1 = "; ".join(["{}={:.2f}".format(str(concept), f1[i]) for i, concept in enumerate(labels)])
+        render_loss = "{:.4f}".format(loss)
+        text = "epoch {}\n\n    loss={}, f1: {}".format(epoch, render_loss, render_f1)
+        super(Plotter, self).add_text(tag, text)
 
     def close(self):
         super(Plotter, self).close()

@@ -6,6 +6,7 @@ from torch import nn, optim
 from random import shuffle
 import logging
 from ..common.viz import Show, Plotter
+from ..common.progress import progress
 from .evaluator import Accuracy
 
 class Trainer:
@@ -29,8 +30,9 @@ class Trainer:
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
-        self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=True)
+        self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
         self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() #
+        self.show = Show('markdown')
 
     def validate(self):
         loss = 0
@@ -46,12 +48,13 @@ class Trainer:
         self.learning_rate = self.opt['learning_rate']
         self.epochs = self.opt['epochs']
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
-
+        self.plot.add_text('parameters', "; ".join([o+"="+str(self.opt[o]) for o in self.opt]))
         for e in range(self.epochs):
             shuffle(self.minibatches) # order of minibatches is randomized at every epoch
             avg_train_loss = 0 # loss averaged over all minibatches
 
-            for m in self.minibatches:
+            for i, m in enumerate(self.minibatches):
+                progress(i, len(self.minibatches), "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
                 prediction = self.model(m.input)
                 loss = self.loss_fn(prediction, m.output)
@@ -62,10 +65,11 @@ class Trainer:
             # Logging/plotting
             avg_train_loss = avg_train_loss / self.minibatches.minibatch_number
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
-            Show.example(self.validation_minibatches, self.model)
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
             _, _, f1 = self.evaluator.run()
             self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
+            self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
+            self.plot.add_example("examples", self.show.example(self.validation_minibatches, self.model), e)
 
         #COMPUTE f1 and final loss on whole validation set
         self.plot.close()
