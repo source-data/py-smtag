@@ -211,7 +211,6 @@ class DataPreparator(object):
             path = os.path.join(path, self.train_or_test_dir)
             print("loading from:", path)
             filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
-            print(filenames)
             examples = {}
             for filename in filenames:
                 xml = parse(os.path.join(path, filename))
