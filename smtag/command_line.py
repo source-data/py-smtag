@@ -3,6 +3,7 @@
 # http://python-packaging.readthedocs.io/en/latest/command-line-scripts.html
 
 from .train   import meta       as train_meta
+from .train   import evaluator  as train_eval
 from .datagen import neo2xml    as datagen_neo2xml
 from .datagen import convert2th as datagen_convert2th
 from .predict import engine     as predict_engine
@@ -18,6 +19,9 @@ def convert2th():
 
 def predict():
     return predict_engine.main()
+
+def eval():
+    return train_eval.main()
 
 def about():
     return """

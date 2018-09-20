@@ -5,7 +5,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 
 setuptools.setup(
     name="smtag",
-    version="0.0.2.dev0",
+    version="0.0.2.dev2",
     python_requires='>=3.6',
     author="Source Data",
     author_email="source_data@embo.org",
@@ -19,7 +19,7 @@ setuptools.setup(
     py_modules=['smtag.command_line'],
     install_requires=[
         #'tensorflow==1.4', # needed for tensorboardX visualization
-        'tensorboardX==1.2',
+        'tensorboardX==1.4',
         'docopt==0.6.2',
         'numpy==1.14.2',
         'Pillow==4.3.0', #5.1.0 requires Mac OS 10.12; torchvision require at least 4.1.1; GPU EC2 AMI needs >4.3.0
@@ -29,6 +29,8 @@ setuptools.setup(
         'torchvision==0.2.0',
         'neo4jrestclient==2.1.1',
         'nltk==3.2.4',
+        'jupyter==1.0.0',
+        'bash_kernel==0.7.1'
     ],
     include_package_data=True,
     entry_points = {
@@ -36,6 +38,7 @@ setuptools.setup(
             'smtag-neo2xml=smtag.command_line:neo2xml',
             'smtag-convert2th=smtag.command_line:convert2th',
             'smtag-meta=smtag.command_line:meta',
+            'smtag-eval=smtag.command_line:eval',
             'smtag-predict=smtag.command_line:predict',
             'smtag=smtag.command_line:about',
         ],
