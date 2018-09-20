@@ -30,7 +30,8 @@ setuptools.setup(
         'neo4jrestclient==2.1.1',
         'nltk==3.2.4',
         'jupyter==1.0.0',
-        'bash_kernel==0.7.1'
+        'bash_kernel==0.7.1',
+        'IPython==6.5.0'
     ],
     include_package_data=True,
     entry_points = {
