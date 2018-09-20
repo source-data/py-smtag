@@ -23,7 +23,6 @@ class Accuracy(object):
                 m.add_token_lists()
         if torch.cuda.device_count() > 0: # or torch.cuda.is_available() ?
             self.cuda_on = True
-            print("{} GPUs available!".format(torch.cuda.device_count()))
         else:
             self.cuda_on = False
 
