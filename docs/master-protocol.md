@@ -4,7 +4,6 @@ Building the SmartTag models
 
 # Initial checks
 
-
     source .venv/bin/activate
     neo4j start
     neo4j status
@@ -18,138 +17,81 @@ Building the SmartTag models
     tensorboard --logdir runs &
     ps -a | grep tensoboard
 
-
-# A. Data generation
+# Data generation
 
 ## Small molecules
 
-Generate the data with `-5X` sampling of each example of length `-L1200` characters with a random window method.
+Enrich examples for small molecules. Generate the data with `-5X` sampling of each example of length `-L1200` characters.
 
-    python -m smtag.datagen.sdgraph2th -l1000 -L1200 -X5 -y molecule -f 5X_L1200_small_molecule
+    smtag-neo2xml -l1000 -y molecule -f small_molecule
+    smtag-convert2th -X5 -L1200 -X5 -f 5X_L1200_small_molecule
 
+# Gene and proteins
 
-## Gene and proteins
+    smtag-neo2xml -l1000 -y gene,protein -f gene_protein
+    smtag-convert2th -X5 -L1200 -X5 -c gene_protein -f 5X_L1200_gene_protein
+    smtag-meta -Z128 -E150 -R0.001 -f 5X_L1200_gene_protein_train
 
-```
-    python -m smtag.datagen.sdgraph2th -l1000 -L1200 -X5 -y protein,gene -f 5X_L1200_protein_gene 
-```
-
-## Cellular components
-
-
-```
-    python -m smtag.datagen.sdgraph2th -l1000 -L1200 -X10 -y subcellular -f 10X_L1200_subcell
-```
-
-## Cells
+# Cellular components
 
 
-```
-    python -m smtag.datagen.sdgraph2th -l1000 -L1200 -X5 -y cell -f 5X_L1200_cell
-```
-
-## Tissue & Organs
+# Cells
 
 
-```bash
-python -m smtag.datagen.sdgraph2th -l1000 -L1200 -X5 -y tissue -f 5X_L1200_tissue
-```
-
-## Organisms
+# Tissue & Organs
 
 
-```bash
-python -m smtag.datagen.sdgraph2th -l1000 -L1200 -X5 -y organism -f 5X_L1200_organism
-```
-
-## Experimental assays
+# Organisms
 
 
-```bash
-python -m smtag.datagen.sdgraph2th -l1000 -L1200 -X5 -y exp_assay -f 5X_L1200_exp_assay
-```
-
-## Diseases
-Using a corpus in the brat format. Note that we need to use the module `ann2th`.
+# Experimental assays
 
 
-```bash
-python -m smtag.datagen.ann2th -L1200 -X5 -f 5X_L1200_disease compendium/ncbi_disease/train
-```
+# Diseases
+
+Using a corpus in the brat format (`-b`) instead of the xml format.
+
+    smtag-convert2th -L1200 -X5 -c 
+
+# Intervention and measurements on geneproducts given reporter
+
+Anonymize gene and proteins (-`A`) but do not anonymize reporters (`-AA`). Keep roles only for genes and proteins (`-s`).
+
+    smtag-neo2xml -l1000 -y gene,protein -A gene,protein -AA reporter -s
+
+# Intervention and measurements on small molecules
+
+# Report on geneproducts
+
+Select enrich for protein and genes (`-y`) and reporters (`-r`). Remove all tags except genes and proteins (`-e`).
+
+    smtag-neo2xml -l1000 -y gene,protein -r reporter -e
+
 
 # B. Moving training data to Amazon EFS
 
+    cd ../cloud
+    scp -i basicLinuxAMI.pem 5X_L1200_small_molecule_train.zip ec2-user@smtag-web:/efs/smtag/data/
+    scp -i basicLinuxAMI.pem 5X_L1200_gene_protein_train.zip ec2-user@smtag-web:/efs/smtag/data/
+    scp -i basicLinuxAMI.pem 5X_L1200_subcell_train.zip ec2-user@smtag-web:/efs/smtag/data/
+    scp -i basicLinuxAMI.pem 5X_L1200_cell_train.zip ec2-user@smtag-web:/efs/smtag/data/
+    scp -i basicLinuxAMI.pem 5X_L1200_tissue_train.zip ec2-user@smtag-web:/efs/smtag/data/
+    scp -i basicLinuxAMI.pem 5X_L1200_organism_train.zip ec2-user@smtag-web:/efs/smtag/data/
+    scp -i basicLinuxAMI.pem 5X_L1200_exp_assay_train.zip ec2-user@smtag-web:/efs/smtag/data/
+    scp -i basicLinuxAMI.pem 5X_L1200_disease_train.zip ec2-user@smtag-web:/efs/smtag/data/
 
-```bash
-cd ../cloud
-```
-
-
-```bash
-scp -i basicLinuxAMI.pem 5X_L1200_small_molecule_train.zip ec2-user@smtag-web:/efs/smtag/data/
-```
-
-
-```bash
-scp -i basicLinuxAMI.pem 5X_L1200_gene_protein_train.zip ec2-user@smtag-web:/efs/smtag/data/
-```
-
-
-```bash
-scp -i basicLinuxAMI.pem 5X_L1200_subcell_train.zip ec2-user@smtag-web:/efs/smtag/data/
-```
-
-
-```bash
-scp -i basicLinuxAMI.pem 5X_L1200_cell_train.zip ec2-user@smtag-web:/efs/smtag/data/
-```
-
-
-```bash
-scp -i basicLinuxAMI.pem 5X_L1200_tissue_train.zip ec2-user@smtag-web:/efs/smtag/data/
-```
-
-
-```bash
-scp -i basicLinuxAMI.pem 5X_L1200_organism_train.zip ec2-user@smtag-web:/efs/smtag/data/
-```
-
-
-```bash
-scp -i basicLinuxAMI.pem 5X_L1200_exp_assay_train.zip ec2-user@smtag-web:/efs/smtag/data/
-```
-
-
-```bash
-scp -i basicLinuxAMI.pem 5X_L1200_disease_train.zip ec2-user@smtag-web:/efs/smtag/data/
-```
 
 # C. Training models
 
-## Entity models
+# Entity models
 
 ### Small molecule model
-120 epoch with learning rate 0.01 and batch size 128
+150 epoch with learning rate 0.001 and batch size 128
 
-
-```bash
-python meta -E120 -Z128 -R0.01 -o small_molecule -f 5X_L1200_small_molecule_train
-```
+    smtag-meta -Z128 -E150 -R0.001 -f 5X_L1200_small_molecule_train
 
 ### Gene product model
 
-
-    cd data
-    unzip 5X_L1200_protein_gene_train.zip
-    cd
-    bash: cd: data: No such file or directory
-    Archive:  5X_L1200_protein_gene_train.zip
-    replace 5X_L1200_protein_gene_train.pyth? [y]es, [n]o, [A]ll, [N]one, [r]ename: 
-
-
-```bash
-python -m smtag.train.meta -f 5X_L1200_protein_gene_train -E120 -Z128 -R 0.01 -o geneprod
-```
 
 ### Cellular component model
 
