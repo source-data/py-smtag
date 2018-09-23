@@ -5,6 +5,7 @@
 import argparse
 import torch
 import os.path
+import sys
 from string import ascii_letters
 from math import floor
 from xml.etree.ElementTree  import XML, XMLParser, parse
@@ -18,14 +19,17 @@ from ..common.converter import TString
 from ..common.utils import cd, timer
 from .. import config
 from ..common.progress import progress
-from .featurizer import XMLEncoder, BratEncoder
+from .encoder import XMLEncoder, BratEncoder
 from .brat import BratImport
 
 # FIX THIS IN mapper
-NUMBER_OF_ENCODED_FEATURES = 22 
+NUMBER_OF_ENCODED_FEATURES = 22
 
 
 class Sampler():
+    """
+    A class to sample fragment from text examples, padd and shift the fragments and encode the corresponding text and features into Tensor format.
+    """
 
     def __init__(self, encoded_examples, length, sampling_mode, random_shifting, min_padding, verbose):
         self.encoded_examples = encoded_examples
@@ -36,8 +40,9 @@ class Sampler():
         self.N = len(encoded_examples)
         self.length = length # desired length of snippet
         self.number_of_features = len(Catalogue.standard_channels) # includes the virtual geneprod feature
-        print("{} examples; desired length:{}".format(self.N, self.length))
-        
+        print("\n{} examples; desired length:{}\n".format(self.N, self.length))
+        sys.stdout.flush()
+
 
     @staticmethod
     def pick_fragment(text, desired_length, mode='random'):
@@ -76,6 +81,21 @@ class Sampler():
 
     @staticmethod
     def to_tensor(th, index, features, start, stop, left_padding, right_padding): # should include only terms within the desired sample
+        """
+        Reads the encoded features corresponding to a text fragment being processed.
+        Populates the tensor slice with the appropriate features of the desired fragment and padded accordingly.
+        The tensor is assumed to be initialized (ususally with zeros) and of appropriate dimension.
+
+        Args:
+            th: 3D Tensor (Examples x features x length)
+            index: the index of the example in the tensor
+            features: diactionary with encoded features
+            start,  stop: position of the start and end of the text fragment being processed
+            left_padding, right_padding: padding to add on the left and right of the fragment to fit the desired length
+
+        Returns:
+            Nothing since the tensor modified in place by setting required positions to 1.
+        """
         for kind in features:
             for element in features[kind]:
                 for attribute in features[kind][element]:
@@ -95,7 +115,25 @@ class Sampler():
 
     @staticmethod
     def create_tensors(N, iterations, number_of_features, length, min_padding):
-        # implementation specific to longitudinal feature encoding
+        """
+        Creates and initializes the tensors needed  to encode text and features.
+        Allows to abstract away the specificity of the encoding. This implementation is for longitudinal features.
+        But some other implementation could need several encoding tensors.
+        The text is encoded in a 32 feature tensor using the binary representation of the unicode code of each character (see smtag.common.TString)
+
+        Args:
+            N: the number of examples
+            iterations: the number of times each example is sampled
+            number_of_features: number of features for the encoded feature tensor
+            length: the desired length of the encoded fragments
+            min_padding: the minimum amount of padding put on each side of the fragment
+
+        Returns:
+            (textcoded4th, features) where
+                textcoded4th: 3D zero-initialized ByteTensor, N*iterations x 32 x full_length, where full_length=length+(2*min_padding)
+                features: 3D zero-initialized ByteTensor, N*iterations x number_of_features x full_length, where full_length=length+(2*min_padding)
+        """
+
         textcoded4th = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
         features4th = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
         return textcoded4th, features4th
@@ -114,12 +152,26 @@ class Sampler():
             for j in range(featsize):
                 feature = str(index2concept[j])
                 track = [int(tensor4th[i, j, k]) for k in range(L)]
-                print(''.join([['-','+'][x] for x in track]), feature)    
+                print(''.join([['-','+'][x] for x in track]), feature)
 
     @timer
     def run(self, iterations):
         """
         Each example will be sampled multiple (=iterations) times, sliced, shifted and padded.
+
+        Args:
+            iterations: number of times each example is sampled.
+
+        Returns:
+            {'text4th': text4th,
+             'textcoded4th': textcoded4th,
+             'provenance4th':provenance4th,
+             'tensor4th': features4th}
+            where:
+            text4th: a list with a copy of the padded text of the sample
+            textcoded4th: a 3D Tensor (samples x 32 x full length) with the fragment text encoded
+            provenance4th: an array with the ids of the example from which the sample was taken
+            tensor4th: a 3D Tensor with the encoded features corresponding to the fragment
         """
         text4th = []
         provenance4th = []
@@ -127,6 +179,7 @@ class Sampler():
         length_stats = []
         total = self.N * iterations
         index = 0
+
         # looping through the examples
         for i in range(self.N):
             text = self.encoded_examples[i]['text']
@@ -137,13 +190,26 @@ class Sampler():
 
             # randomly sampling each example
             for j in range(iterations): # j is index of sampling iteration
-                progress(i*iterations+j, total, "sampling")
-                fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode) 
+                progress(i*iterations+j, total, "sampling example {}".format(i))
+
+                # a text fragment is picked randomly from the text example
+                fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
+
+                # it is randomly shifted and padded to fit the desired length
                 padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
+
+                # the final fragment is added to the list of samples
                 text4th.append(padded_frag)
+
+                # the text is encoded using the 32 bit unicode encoding provided by TString
                 textcoded4th[index] = TString(padded_frag, dtype=torch.uint8).toTensor()
+
+                # the provenance of the fragment needs to be recorded for later reference and possible debugging
                 provenance4th.append(provenance)
+
+                # the encoded features of the fragment are added to the feature tensor
                 Sampler.to_tensor(features4th, index, encoded, start, stop, left_padding, right_padding)
+
                 index += 1
 
         Sampler.show_stats(length_stats, self.N)
@@ -160,21 +226,19 @@ class Sampler():
 
 class DataPreparator(object):
     """
-    An  class to prepare examples as dataset that can be imported in smtag
+    An  class to prepare examples as dataset that can be imported in smtag.
     """
 
     def __init__(self, options):
-        """
-        """
-        self.length = options['length'] 
+        self.length = options['length']
         self.sampling_mode = options['sampling_mode']
         self.random_shifting = options['random_shifting']
-        self.min_padding = options['padding'] 
+        self.min_padding = options['padding']
         self.verbose = options['verbose']
         self.iterations = options['iterations']
         self.path_compendium = ''
         self.namebase = options['namebase']
-        self.train_or_test_dir = options['train_or_test_dir']
+        self.train_or_test = options['train_or_test']
         self.dataset4th = {}
 
     @staticmethod
@@ -190,7 +254,7 @@ class DataPreparator(object):
             if text:
                 encoded_features, _, _ = XMLEncoder.encode(examples[id])
                 example = {
-                    'provenance': id, 
+                    'provenance': id,
                     'text': text,
                     'encoded': encoded_features
                 }
@@ -207,17 +271,17 @@ class DataPreparator(object):
         """
 
         with cd(config.data_dir):
-            self.path_compendium = path + "_" + self.train_or_test_dir
-            path = os.path.join(path, self.train_or_test_dir)
-            print("loading from:", path)
+            self.path_compendium = path + "_" + self.train_or_test
+            path = os.path.join(path, self.train_or_test)
+            print("\nloading from:", path)
             filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
             examples = {}
-            for filename in filenames:
+            for i, filename in enumerate(filenames):
                 xml = parse(os.path.join(path, filename))
-                for i, e in enumerate(xml.findall(XPath_to_examples)):
+                for j, e in enumerate(xml.findall(XPath_to_examples)):
                     id = filename + "-" + str(i) # unique id provided filename is unique (hence limiting to single allowed file extension)
                     examples[id] = e
-                print("found {} examples in {}".format(i, filename))
+                progress(i, len(filenames), "loaded {}".format(filename))
         return examples
 
 
@@ -230,9 +294,10 @@ class DataPreparator(object):
             filenamebase = self.path_compendium
 
         with cd(config.data4th_dir):
-            archive_path = "{}".format(filenamebase)
+            archive_path = "{}_{}".format(filenamebase, self.train_or_test)
+            print("saving to {}".format(archive_path))
             with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
-                
+
                 # write feature tensor
                 tensor_filename = "{}.pyth".format(archive_path)
                 torch.save(self.dataset4th['tensor4th'], tensor_filename)
@@ -281,9 +346,9 @@ class BratDataPreparator(DataPreparator):
         super(BratDataPreparator, self).__init__(options)
 
     def import_files(self, path):
-        self.path_compendium = path + "_" + self.train_or_test_dir
+        self.path_compendium = path + "_" + self.train_or_test
         with cd(config.data_dir):
-            path = os.path.join(path, self.train_or_test_dir)
+            path = os.path.join(path, self.train_or_test)
             brat_examples = BratImport.from_dir(path)
         return brat_examples
 
@@ -294,8 +359,8 @@ class BratDataPreparator(DataPreparator):
         for ex in examples:
             encoded_features = BratEncoder.encode(ex)
             encoded_examples.append({
-                'provenance': ex['provenance'], 
-                'text': ex['text'], 
+                'provenance': ex['provenance'],
+                'text': ex['text'],
                 'encoded': encoded_features
             })
         return encoded_examples
@@ -319,14 +384,14 @@ def main():
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
 
     args = parser.parse_args()
-    
+
     options = {}
     options['namebase'] = args.filenamebase
     options['iterations'] = args.iterations
     options['verbose'] = args.verbose
     options['length'] = args.length
     options['path'] = args.path
-    options['train_or_test_dir'] = 'test' if args.testset else 'train'
+    options['train_or_test'] = 'test' if args.testset else 'train'
     if args.window:
         options['sampling_mode'] = 'window'
     elif args.start:
@@ -335,7 +400,7 @@ def main():
         options['sampling_mode'] = 'sentence'
     options['random_shifting'] = not args.disable_shifting
     options['padding'] = args.padding
-    
+
     if args.working_directory:
         config.working_directory = args.working_directory
     with cd(config.working_directory):
