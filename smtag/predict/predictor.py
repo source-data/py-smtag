@@ -8,7 +8,6 @@ from ..common.converter import TString
 from .binarize import Binarized
 from .serializer import Serializer
 from ..common.utils import tokenize, timer
-# from common.operations import t_replace # obsolete
 from ..common.config import MIN_PADDING,  MIN_SIZE, MARKING_CHAR
 
 

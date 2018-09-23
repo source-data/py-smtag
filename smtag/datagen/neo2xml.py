@@ -158,7 +158,7 @@ class NeoImport():
 
                     '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
                     results_panels = DB.query(q_panel)
-                    print((u"{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi)).encode('utf-8'))
+                    print((u"\r{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi)).encode('utf-8'), end="", flush=True)
 
                     if results_panels:
                         figure_xml_element = Element('figure-caption')
