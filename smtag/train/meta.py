@@ -41,10 +41,54 @@ import torch
 from .loader import Loader
 from .minibatches import Minibatches
 from .trainer import Trainer
+from .scanner import HyperScan
 from .builder import SmtagModel
 from ..common.utils import cd
 from ..common.importexport import export_model, load_model
 from .. import config
+
+
+class Meta():
+
+    def __init__(self, opt):
+        self.opt = opt
+        self.training_minibatches = None
+        self.validation_minibatches = None
+
+    def _load_data(self):
+        ldr = Loader(self.opt)
+        datasets = ldr.prepare_datasets(self.opt['namebase'])
+        self.training_minibatches = Minibatches(datasets['train'], self.opt['minibatch_size'])
+        self.validation_minibatches = Minibatches(datasets['valid'], self.opt['minibatch_size'])
+        self.opt['nf_input'] = datasets['train'].nf_input
+        self.opt['nf_output'] =  datasets['train'].nf_output
+        print("input, output sizes: {}, {}".format(self.training_minibatches[0].output.size(), self.training_minibatches[0].output.size()))
+        return self.training_minibatches, self.validation_minibatches
+
+    def _train(self, training_minibatches, validation_minibatches, opt):
+        model = SmtagModel(opt)
+        precision, recall, f1 = Trainer(training_minibatches, validation_minibatches, model).train()
+        return model, (precision, recall, f1)
+
+    def _save(self, model):
+        export_model(model)
+
+    def simple_training(self):
+        self._load_data()
+        model, perf = self._train(self.simple_training, self.validation_minibatches, self.opt)
+        print("final accuracy (precision, recall, f1):", "\t".join(["{:.2}".format(x) for x in perf]))
+        self._save(model)
+
+    def hyper_scan(self, iterations, hyperparams, scan_path):
+        self._load_data()
+        scan = HyperScan(self.opt, scan_path)
+        for i in range(iterations):
+            randopt = scan.randopt(hyperparams)
+            model, perf = self._train(self.training_minibatches, self.validation_minibatches, randopt) # (precision, recall, f1)
+            scan.append(model, perf, i)
+            print("; ".join(["{}={}".format(o, randopt[o]) for o in randopt]), perf)
+        #scan.csv(basename)
+        return scan
 
 def main():
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)
@@ -57,7 +101,7 @@ def main():
     #arguments = docopt(__doc__, version='0.1')
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--file', default='demo_xml_train', help='Namebase of dataset to import')
-    parser.add_argument('-E' , '--epochs',  default=2, help='Number of training epochs.')
+    parser.add_argument('-E' , '--epochs',  default=10, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=2, help='Minibatch size.')
     parser.add_argument('-R', '--learning_rate', default=0.001, type=float, help='Learning rate.')
     parser.add_argument('-V', '--validation_fraction', default=0.2, help='Fraction of the dataset that should be used as validation set during training.')
@@ -69,20 +113,24 @@ def main():
     parser.add_argument('-k', '--kernel_table', default="6,6,6", help='Convolution kernel for each hidden layer.')
     parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
+    parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
+    parser.add_argument('-I', '--iterations', default=81, help='Number of iterations for the hyperparameters scanning.')
 
-    arguments = vars(parser.parse_args()) # to cast as dict which is what is return by docopt in case we would use it
+    arguments = parser.parse_args()
+    hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
+    iterations = int(arguments.iterations)
     opt = {}
-    opt['namebase'] = arguments['file']
-    opt['learning_rate'] = float(arguments['learning_rate'])
-    opt['epochs'] = int(arguments['epochs'])
-    opt['minibatch_size'] = int(arguments['minibatch_size'])
-    output_features = [x.strip() for x in arguments['output_features'].split(',') if x.strip()]
-    collapsed_features = [x.strip() for x in arguments['collapsed_features'].split(',') if x.strip()]
-    overlap_features = [x.strip() for x in arguments['overlap_features'].split(',') if x.strip()]
-    features_as_input = [x.strip() for x in arguments['features_as_input'].split(',') if x.strip()]
-    nf_table = [int(x.strip()) for x in arguments['nf_table'].split(',')]
-    kernel_table = [int(x.strip()) for x in arguments['kernel_table'].split(',')]
-    pool_table = [int(x.strip()) for x in arguments['pool_table'].split(',')]
+    opt['namebase'] = arguments.file
+    opt['learning_rate'] = float(arguments.learning_rate)
+    opt['epochs'] = int(arguments.epochs)
+    opt['minibatch_size'] = int(arguments.minibatch_size)
+    output_features = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
+    collapsed_features = [x.strip() for x in arguments.collapsed_features.split(',') if x.strip()]
+    overlap_features = [x.strip() for x in arguments.overlap_features.split(',') if x.strip()]
+    features_as_input = [x.strip() for x in arguments.features_as_input.split(',') if x.strip()]
+    nf_table = [int(x.strip()) for x in arguments.nf_table.split(',')]
+    kernel_table = [int(x.strip()) for x in arguments.kernel_table.split(',')]
+    pool_table = [int(x.strip()) for x in arguments.pool_table.split(',')]
     opt['selected_features'] = output_features
     opt['collapsed_features'] = collapsed_features
     opt['overlap_features'] = overlap_features
@@ -91,27 +139,17 @@ def main():
     opt['pool_table'] = pool_table
     opt['kernel_table'] = kernel_table
     opt['dropout'] = 0.1
-    opt['validation_fraction'] = float(arguments['validation_fraction'])
+    opt['validation_fraction'] = float(arguments.validation_fraction)
     print("\n".join(["opt[{}]={}".format(o,opt[o]) for o in opt]))
 
-    if arguments['working_directory']:
-        config.working_directory = arguments['working_directory']
-    with cd(config.working_directory): 
-        #LOAD DATA
-        ldr = Loader(opt)
-        datasets = ldr.prepare_datasets(opt['namebase'])
-        training_minibatches = Minibatches(datasets['train'], opt['minibatch_size'])
-        validation_minibatches = Minibatches(datasets['valid'], opt['minibatch_size'])
-        opt['nf_input'] = datasets['train'].nf_input
-        opt['nf_output'] =  datasets['train'].nf_output
-        print("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
-
-        #TRAIN MODEL
-        model = SmtagModel(opt)
-        Trainer(training_minibatches, validation_minibatches, model).train()
-
-        #SAVE MODEL
-        export_model(model)
+    if arguments.working_directory:
+        config.working_directory = arguments.working_directory
+    with cd(config.working_directory):
+        metatrainer = Meta(opt)
+        if not hyperparams:
+            metatrainer.simple_training()
+        else:
+            metatrainer.hyper_scan(iterations, hyperparams, 'scans')
 
 if __name__ == '__main__':
     main()
