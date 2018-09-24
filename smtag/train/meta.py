@@ -68,7 +68,7 @@ class Meta():
     def _train(self, training_minibatches, validation_minibatches, opt):
         model = SmtagModel(opt)
         precision, recall, f1 = Trainer(training_minibatches, validation_minibatches, model).train()
-        return model, (precision, recall, f1)
+        return model, {'precision':precision, 'recall':recall, 'f1':f1}
 
     def _save(self, model):
         export_model(model)
@@ -79,15 +79,14 @@ class Meta():
         print("final accuracy (precision, recall, f1):", "\t".join(["{:.2}".format(x) for x in perf]))
         self._save(model)
 
-    def hyper_scan(self, iterations, hyperparams, scan_path):
+    def hyper_scan(self, iterations, hyperparams, name):
         self._load_data()
-        scan = HyperScan(self.opt, scan_path)
-        for i in range(iterations):
-            randopt = scan.randopt(hyperparams)
-            model, perf = self._train(self.training_minibatches, self.validation_minibatches, randopt) # (precision, recall, f1)
-            scan.append(model, perf, i)
-            print("; ".join(["{}={}".format(o, randopt[o]) for o in randopt]), perf)
-        #scan.csv(basename)
+        with cd(config.scans_dir):
+            scan = HyperScan(self.opt, name)
+            for i in range(iterations):
+                randopt = scan.randopt(hyperparams)
+                model, perf = self._train(self.training_minibatches, self.validation_minibatches, randopt) # (precision, recall, f1)
+                scan.append(model, perf, randopt, i)
         return scan
 
 def main():
@@ -149,7 +148,10 @@ def main():
         if not hyperparams:
             metatrainer.simple_training()
         else:
-            metatrainer.hyper_scan(iterations, hyperparams, 'scans')
+            scan_name = 'scan'
+            scan_name += "_".join([k for k in hyperparams])
+            scan_name += "_X"+str(iterations)
+            metatrainer.hyper_scan(iterations, hyperparams, scan_name)
 
 if __name__ == '__main__':
     main()
