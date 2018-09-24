@@ -13,7 +13,7 @@ from ..common.importexport import load_model
 class Accuracy(object):
  
 
-    def __init__(self, model, minibatches, tokenize=True):
+    def __init__(self, model, minibatches, tokenize=False):
         self.model = model # is this just a reference? if yes, no need to pass model every time
         self.minibatches = minibatches
         self.tokenize  = tokenize
@@ -109,6 +109,7 @@ class Benchmark():
                 print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision[i]))
                 print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall[i]))
                 print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1[i]))
+
 
 def main():
     parser = argparse.ArgumentParser(description='Accuracy evaluation.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
