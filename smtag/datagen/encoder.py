@@ -3,8 +3,9 @@
 
 from ..common.mapper import brat_map, xml_map
 
-#features should be instance of Features()
-#define abstract Featurizer class that takes Example and returns Features
+# WIP
+# features should actually be instance of EncodedFeatures()
+# define abstract Encoder class that takes Example and returns EncodedFeatures
 
 class BratEncoder(object):
 

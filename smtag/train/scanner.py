@@ -26,7 +26,7 @@ class HyperScan():
                     ...
                 scanned_perf.scv
         """
-        
+
         self._metrics = []
         self.opt = opt
         timestamp = datetime.now().isoformat("-",timespec='minutes').replace(":", "-") # dir to save scan results
@@ -38,7 +38,6 @@ class HyperScan():
             if not os.path.isdir('models'):
                 os.mkdir('models')
         self.scanned_models_path = os.path.join(self.dir_name, 'models')
-
 
 
     def append(self, model, perf, opt, id):
@@ -57,7 +56,8 @@ class HyperScan():
         else:
             mode = 'w' # create and write to file for the first time
         with open(mypath, mode) as f:
-            if mode == 'w':
+            if mode == 'w': 
+                # write a header line when writing for the first time to the file
                 header_params = SEP.join([k for k in opt])
                 header_results = SEP.join([k for k in row])
                 header = SEP.join([header_params, header_results])
