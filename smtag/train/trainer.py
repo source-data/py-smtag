@@ -73,5 +73,5 @@ class Trainer:
 
         self.plot.close()
         print("\n")
-        return precision, recall, f1
+        return avg_train_loss, avg_validation_loss, precision, recall, f1
 

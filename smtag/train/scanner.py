@@ -44,6 +44,8 @@ class HyperScan():
         perf['precision'] = perf['precision'].mean()
         perf['recall'] = perf['recall'].mean()
         perf['f1'] = perf['f1'].mean()
+        perf['train_loss'] = perf['train_loss'].mean()
+        perf['valid_loss'] = perf['valid_loss'].mean()
         self._metrics.append(perf)
         model_filename = 'scanned_model_' + str(id)
         export_model(model, model_filename, model_dir = self.scanned_models_path)
@@ -103,7 +105,7 @@ class HyperScan():
         for h in selected_hyperparam: 
             hparam[h] = randparam[h]
         self.opt['learning_rate'] = 10 ** hparam['log_lr']
-        self.opt['minibatch_size'] =  2 ** hparam['log_batch_size']
+        self.opt['minibatch_size'] =  int(2 ** hparam['log_batch_size'])
         nf_table = []
         kernel_table = []
         pool_table =[]

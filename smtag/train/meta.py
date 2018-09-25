@@ -67,8 +67,8 @@ class Meta():
 
     def _train(self, training_minibatches, validation_minibatches, opt):
         model = SmtagModel(opt)
-        precision, recall, f1 = Trainer(training_minibatches, validation_minibatches, model).train()
-        return model, {'precision':precision, 'recall':recall, 'f1':f1}
+        train_loss, valid_loss, precision, recall, f1 = Trainer(training_minibatches, validation_minibatches, model).train()
+        return model, {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
 
     def _save(self, model):
         export_model(model)
@@ -76,7 +76,7 @@ class Meta():
     def simple_training(self):
         self._load_data()
         model, perf = self._train(self.simple_training, self.validation_minibatches, self.opt)
-        print("final accuracy (precision, recall, f1):", "\t".join(["{:.2}".format(x) for x in perf]))
+        print("final perf ({}):".format("\t".join([x for x in perf])), "\t".join(["{:.2}".format(x) for x in perf]))
         self._save(model)
 
     def hyper_scan(self, iterations, hyperparams, name):

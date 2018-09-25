@@ -141,10 +141,10 @@ class Loader:
         shuffle(shuffled_indices)
         datasets = {}
         if self.validation_fraction == 0:
-            print("testset mode; for benchmarking")
-            datasets["test"]= {} #--testset mode; for benchmarking
-            datasets["test"]["first_example"] = 0
-            datasets["test"]["last_example"] = N
+            print("single dataset mode, no validation; for benchmarking")
+            datasets["single"]= {} #--testset mode; for benchmarking
+            datasets["single"]["first_example"] = 0
+            datasets["single"]["last_example"] = N
         else:
             print("normal trainset and validation set mode")
             datasets["train"] = {} #--normal trainset and validation set mode
