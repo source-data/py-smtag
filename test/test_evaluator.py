@@ -69,6 +69,20 @@ class EvaluatorTest(SmtagTestCase):
         self.assertTensorEqual(tp, tp_expected)
         self.assertTensorEqual(fp, fp_expected)
 
+        pred = (pred + 0.1).clamp(0,1)
+        p, tp, fp = Accuracy.tpfp(pred, target, 0)
+        print(p, tp, fp)
+        precision = tp / (tp + fp)
+        recall = tp / p
+        f1 = 2 * recall * precision / (recall + precision)
+        print(precision, recall, f1)
+        p, tp, fp = Accuracy.tpfp(pred, target, 1.0)
+        print(p, tp, fp)
+        precision = tp / (tp + fp)
+        recall = tp / p
+        f1 = 2 * recall * precision / (recall + precision)
+        print(precision, recall, f1)
+
     def test_accuracy(self):
         validation = Minibatches(self.dataset, 1)
         a = Accuracy(self.model, validation)

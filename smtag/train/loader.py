@@ -75,8 +75,9 @@ class Dataset:
         print("{} output features (out-channels).".format(self.nf_output))
 
     def add_token_lists(self):
-        for t in self.text:
-            self.tokenized.append(tokenize(t))
+        if not self.tokenized: # don't retokenize
+            for t in self.text:
+                self.tokenized.append(tokenize(t))
 
 
 class Loader:
@@ -136,7 +137,7 @@ class Loader:
         #THIS HAS TO GO! BELONGS TO DATAPREP!!! Probably in Featurizer
         raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , concept2index[Catalogue.GENE],  : ] + raw_dataset.output[ : ,  concept2index[Catalogue.PROTEIN], : ]
 
-        print("Creating dataset with selected features {}, and shuffling {} examples.".format(self.selected_features, N))
+        print("Creating dataset with selected features {}, and shuffling {} examples.".format(", ".join([str(f) for f in self.selected_features]), N))
         shuffled_indices = list(range(N))
         shuffle(shuffled_indices)
         datasets = {}

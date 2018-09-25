@@ -16,52 +16,50 @@ class Accuracy(object):
     def __init__(self, model, minibatches, tokenize=False):
         self.model = model # is this just a reference? if yes, no need to pass model every time
         self.minibatches = minibatches
+        self.nf = self.minibatches.nf_output
         self.tokenize  = tokenize
+        self.bin_target_start = []
         if self.tokenize:
             for i, m in enumerate(self.minibatches):
                 progress(i, self.minibatches.minibatch_number, "tokenizing minibatch {}".format(i))
                 m.add_token_lists()
+                b = Binarized(m.text, m.output, self.model.output_semantics)
+                b.binarize_with_token(m.tokenized)
+                self.bin_target_start.append(b.start)
+        epsilon = 1e-12
+        self.p_sum = torch.Tensor(self.nf).fill_(epsilon)
+        self.tp_sum = torch.Tensor(self.nf).fill_(epsilon)
+        self.fp_sum = torch.Tensor(self.nf).fill_(epsilon)
+        thresh = [concept.threshold for concept in self.model.output_semantics]
+        self.thresholds = torch.Tensor(thresh).resize_(1, self.nf , 1 )
         if torch.cuda.device_count() > 0: # or torch.cuda.is_available() ?
             self.cuda_on = True
+            self.p_sum = self.p_sum.cuda()
+            self.tp_sum = self.tp_sum.cuda()
+            self.fp_sum = self.fp_sum.cuda()
+            self.thresholds = self.thresholds.cuda()
+            self.bin_target_start = [b.cuda() for b in self.bin_target_start]
         else:
             self.cuda_on = False
 
     def run(self):
-
-        nf = self.minibatches.nf_output
-        epsilon = 1e-12
-        p_sum = torch.Tensor(nf).fill_(epsilon)
-        tp_sum = torch.Tensor(nf).fill_(epsilon)
-        fp_sum = torch.Tensor(nf).fill_(epsilon)
-
-        if self.cuda_on:
-            p_sum = p_sum.cuda()
-            tp_sum = tp_sum.cuda()
-            fp_sum = fp_sum.cuda()
-
-        output_semantics = self.model.output_semantics
-
-        for m in self.minibatches:
+        for i, m in enumerate(self.minibatches):
             self.model.eval()
             prediction = self.model(m.input)
             if self.tokenize: 
-                bin_pred = Binarized(m.text, prediction, output_semantics)
+                bin_pred = Binarized(m.text, prediction, self.model.output_semantics)
                 bin_pred.binarize_with_token(m.tokenized)
-                bin_target = Binarized(m.text, m.output, output_semantics)
-                bin_target.binarize_with_token(m.tokenized)
-                p, tp, fp = self.tpfp(bin_pred.start, bin_target.start, 0.99)
+                p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i], 0.99)
             else:
-                thresholds = [concept.threshold for concept in output_semantics]
-                thresholds = torch.Tensor(thresholds).resize_(1, nf , 1 )
-                p, tp, fp = self.tpfp(prediction, m.output, thresholds) # DEFAULT_THRESHOLD)
+                p, tp, fp = self.tpfp(prediction, m.output, self.thresholds) # DEFAULT_THRESHOLD)
 
-            p_sum += p
-            tp_sum += tp
-            fp_sum += fp
+            self.p_sum += p
+            self.tp_sum += tp
+            self.fp_sum += fp
 
         self.model.train()
-        precision = tp_sum / (tp_sum + fp_sum)
-        recall = tp_sum / p_sum
+        precision = self.tp_sum / (self.tp_sum + self.fp_sum)
+        recall = self.tp_sum / self.p_sum
         f1 = 2 * recall * precision / (recall + precision)
 
         return precision, recall, f1
@@ -117,22 +115,23 @@ class ScanThreshold():
     def __init__(self, model_basename, dataset_basename, tokenize):
         self.model = load_model(model_basename)
         self.opt = self.model.opt
-        self.opt['validation_fraction'] = 0 # single data set mode, no validation
-        print("opt from model", self.opt)
+        self.opt['validation_fraction'] = 0.3 # single data set mode, no validation
+        print("opt from model", "; ".join(["{}={}".format(k, str(self.opt[k])) for k in self.opt]))
         self.tokenize = tokenize
         loader = Loader(self.opt) # validation_fraction == 0 ==> dataset['single'] is loaded
         dataset = loader.prepare_datasets(dataset_basename)
-        minibatches = Minibatches(dataset['single'], int(self.opt['minibatch_size']))
-        self.evaluator = Accuracy(self.model, minibatches, tokenize=self.tokenize)
+        self.minibatches = Minibatches(dataset['train'], int(self.opt['minibatch_size']))
+        
 
-    def run(self, n=10):
+    def run(self, n=11):
         old_thresholds = [concept.threshold for concept in self.model.output_semantics]
         for threshold in np.linspace(0, 1, n):
             for i, _ in enumerate(self.model.output_semantics):
                 self.model.output_semantics[i].threshold = threshold
-            precision, recall, f1 = self.evaluator.run()
+            evaluator = Accuracy(self.model, self.minibatches, tokenize=self.tokenize) # evaluator needs to be redone because thresholds need to be reassigned
+            precision, recall, f1 = evaluator.run()
             self.show(precision, recall, f1)
-        for i, _ in enumerate(self.model.output_semantics[i]):
+        for i, _ in enumerate(self.model.output_semantics):
                 self.model.output_semantics[i].threshold = old_thresholds[i]
 
     def show(self, precision, recall, f1):
