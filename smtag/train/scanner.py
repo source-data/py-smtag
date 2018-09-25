@@ -118,14 +118,3 @@ class HyperScan():
         self.opt['pool_table'] = pool_table
 
         return self.opt
-
-
-    def thresholds(self, model):
-        """
-        scanning thresholds for binarization of output
-        """
-        pass
-        #WIP
-        # #model_basename
-        #benchmark = Accuracy(self.model, testset, tokenize=self.tokenize)
-        #precision, recall, f1 = benchmark.run()
