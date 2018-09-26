@@ -42,10 +42,15 @@ class Trainer:
     def validate(self):
         loss = 0
         for m in self.validation_minibatches: # alternatively PICK one random minibatch, probably enough
+            m_input = m.input
+            m_output = m.output
+            if self.cuda_on:
+                m_input = m_input.cuda()
+                m_output = m_output.cuda()
             self.model.eval()
             with torch.no_grad():
-                prediction = self.model(m.input)
-                loss += self.loss_fn(prediction, m.output)
+                prediction = self.model(m_input)
+                loss += self.loss_fn(prediction, m_output)
         self.model.train()
         avg_loss = loss / self.validation_minibatches.minibatch_number
         return avg_loss
@@ -75,7 +80,6 @@ class Trainer:
                 self.optimizer.step()
 
             # Logging/plotting
-            print("epoch", e)
             avg_train_loss = avg_train_loss / N
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
