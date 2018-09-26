@@ -47,12 +47,12 @@ class HyperScan():
         perf['train_loss'] = perf['train_loss'].mean()
         perf['valid_loss'] = perf['valid_loss'].mean()
         self._metrics.append(perf)
+        self.append_to_csv(perf, opt, self.perf_path)
         model_filename = 'scanned_model_' + str(id)
         export_model(model, model_filename, model_dir = self.scanned_models_path)
-        self.save(perf, opt, self.perf_path)
 
     @staticmethod
-    def save(row, opt, mypath):
+    def append_to_csv(row, opt, mypath):
         if os.path.isfile(mypath):
             mode = 'a' # append row at the end of the file
         else:
@@ -85,7 +85,7 @@ class HyperScan():
 
         # default hyperparam
         hparam = {
-            'log_lr': 0.001,
+            'log_lr': -3,
             'log_batch_size': 5,
             'depth': 3,
             'nf': 8,
