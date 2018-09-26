@@ -75,7 +75,7 @@ class Meta():
 
     def simple_training(self):
         self._load_data()
-        model, perf = self._train(self.simple_training, self.validation_minibatches, self.opt)
+        model, perf = self._train(self.training_minibatches, self.validation_minibatches, self.opt)
         print("final perf ({}):".format("\t".join([x for x in perf])), "\t".join(["{:.2}".format(x) for x in perf]))
         self._save(model)
 
