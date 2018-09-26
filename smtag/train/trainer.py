@@ -24,13 +24,14 @@ class Trainer:
         model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
         print(model_descriptor)
         # wrap model into nn.DataParallel if we are on a GPU machine
-        self.cuda_on = False
-        if torch.cuda.device_count() > 1:
+        if torch.cuda.device_count() > 0:
             print(torch.cuda.device_count(), "GPUs available.")
-            self.model = nn.DataParallel(self.model)
+            self.model = nn.DataParallel(self.model,)
             self.model.cuda()
             #self.model.output_semantics = self.output_semantics
             self.cuda_on = True
+        else:
+            self.cuda_on = False
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
@@ -61,7 +62,7 @@ class Trainer:
 
             i = 1
             for m in self.minibatches:
-                #progress(i, N, "\ttraining epoch {}".format(e))
+                progress(i, N, "\ttraining epoch {}".format(e))
                 input = m.input
                 output = m.output
                 if self.cuda_on:
@@ -71,9 +72,8 @@ class Trainer:
                 prediction = self.model(input)
                 loss = self.loss_fn(prediction, output)
                 loss.backward()
-                #avg_train_loss += loss
+                avg_train_loss += loss
                 self.optimizer.step()
-                print("\r.",end="",flush=True)
                 i += 1
 
             # Logging/plotting
