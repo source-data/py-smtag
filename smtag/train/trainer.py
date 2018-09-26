@@ -29,7 +29,7 @@ class Trainer:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
             self.model.cuda()
-            self.model.output_semantics = self.output_semantics
+            #self.model.output_semantics = self.output_semantics
             self.cuda_on = True
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
