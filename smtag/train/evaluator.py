@@ -50,6 +50,7 @@ class Accuracy(object):
         for i, m in enumerate(self.minibatches):
             self.model.eval()
             m_input = m.input
+            m_output = m.output
             if self.cuda_on:
                 m_input = m_input.cuda()
             with torch.no_grad():
@@ -59,7 +60,7 @@ class Accuracy(object):
                 bin_pred.binarize_with_token(m.tokenized)
                 p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i], 0.99)
             else:
-                p, tp, fp = self.tpfp(prediction, m.output, self.thresholds) # DEFAULT_THRESHOLD)
+                p, tp, fp = self.tpfp(prediction, m_output, self.thresholds) # DEFAULT_THRESHOLD)
 
             self.p_sum += p
             self.tp_sum += tp
