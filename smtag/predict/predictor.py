@@ -45,9 +45,10 @@ class Predictor: #(nn.Module?)
         input = self.combine_with_input_features(padded, additional_input_features)
 
         #PREDICTION
-        self.model.eval()
-        prediction = self.model(input.toTensor()) #.float()
-        self.model.train()
+        with torch.no_grad():
+            self.model.eval()
+            prediction = self.model(input.toTensor()) #.float()
+            self.model.train()
 
         #remove safety padding
         prediction = prediction[ : , : , padding_length : L-padding_length]

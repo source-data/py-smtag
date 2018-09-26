@@ -19,11 +19,18 @@ class Accuracy(object):
         self.nf = self.minibatches.nf_output
         self.tokenize  = tokenize
         self.bin_target_start = []
+        if torch.cuda.device_count() > 0: # or torch.cuda.is_available() ?
+            self.cuda_on = True
+        else:
+            self.cuda_on = False
         if self.tokenize:
             for i, m in enumerate(self.minibatches):
+                m_output = m.output
+                if self.cuda_on:
+                    m_output = m_output.cuda()
                 progress(i, self.minibatches.minibatch_number, "tokenizing minibatch {}".format(i))
                 m.add_token_lists()
-                b = Binarized(m.text, m.output, self.model.output_semantics)
+                b = Binarized(m.text, m_output, self.model.output_semantics)
                 b.binarize_with_token(m.tokenized)
                 self.bin_target_start.append(b.start)
         epsilon = 1e-12
@@ -32,20 +39,21 @@ class Accuracy(object):
         self.fp_sum = torch.Tensor(self.nf).fill_(epsilon)
         thresh = [concept.threshold for concept in self.model.output_semantics]
         self.thresholds = torch.Tensor(thresh).resize_(1, self.nf , 1 )
-        if torch.cuda.device_count() > 0: # or torch.cuda.is_available() ?
-            self.cuda_on = True
+        if self.cuda_on:
             self.p_sum = self.p_sum.cuda()
             self.tp_sum = self.tp_sum.cuda()
             self.fp_sum = self.fp_sum.cuda()
             self.thresholds = self.thresholds.cuda()
             self.bin_target_start = [b.cuda() for b in self.bin_target_start]
-        else:
-            self.cuda_on = False
 
     def run(self):
         for i, m in enumerate(self.minibatches):
             self.model.eval()
-            prediction = self.model(m.input)
+            m_input = m.input
+            if self.cuda_on:
+                m_input = m_input.cuda()
+            with torch.no_grad():
+                prediction = self.model(m_input)
             if self.tokenize: 
                 bin_pred = Binarized(m.text, prediction, self.model.output_semantics)
                 bin_pred.binarize_with_token(m.tokenized)
