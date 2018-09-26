@@ -62,9 +62,14 @@ class Trainer:
             i = 1
             for m in self.minibatches:
                 progress(i, N, "\ttraining epoch {}".format(e))
+                input = m.input
+                output = m.output
+                if self.cuda_on:
+                    input = input.cuda()
+                    output = output.cuda()
                 self.optimizer.zero_grad()
-                prediction = self.model(m.input)
-                loss = self.loss_fn(prediction, m.output)
+                prediction = self.model(input)
+                loss = self.loss_fn(prediction, output)
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
