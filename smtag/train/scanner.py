@@ -46,7 +46,7 @@ class HyperScan():
         perf['f1'] = perf['f1'].mean()
         perf['train_loss'] = perf['train_loss'].mean()
         perf['valid_loss'] = perf['valid_loss'].mean()
-        self._metrics.append(perf)
+        # self._metrics.append(perf)
         self.append_to_csv(perf, opt, self.perf_path)
         model_filename = 'scanned_model_' + str(id)
         export_model(model, model_filename, model_dir = self.scanned_models_path)

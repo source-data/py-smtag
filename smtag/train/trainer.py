@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
+import sys
+import resource
+import gc
 import torch
 from torch import nn, optim
 from random import shuffle
@@ -38,8 +41,9 @@ class Trainer:
         loss = 0
         for m in self.validation_minibatches: # alternatively PICK one random minibatch, probably enough
             self.model.eval()
-            prediction = self.model(m.input)
-            loss += self.loss_fn(prediction, m.output)
+            with torch.no_grad():
+                prediction = self.model(m.input)
+                loss += self.loss_fn(prediction, m.output)
         self.model.train()
         avg_loss = loss / self.validation_minibatches.minibatch_number
         return avg_loss
@@ -70,6 +74,9 @@ class Trainer:
             self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
             self.plot.add_example("examples", self.show.example(self.validation_minibatches, self.model), e)
+
+            # trying to fight memory problems when iterating with training
+            # gc.collect()
 
         self.plot.close()
         print("\n")
