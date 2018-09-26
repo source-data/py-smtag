@@ -60,7 +60,7 @@ class Trainer:
             avg_train_loss = 0 # loss averaged over all minibatches
 
             for i, m in enumerate(self.minibatches):
-                progress(i, N, "\ttraining epoch {}".format(e))
+                # progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
                 prediction = self.model(m.input)
                 loss = self.loss_fn(prediction, m.output)
