@@ -54,12 +54,13 @@ class Trainer:
         self.epochs = self.opt['epochs']
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
         self.plot.add_text('parameters', "; ".join([o+"="+str(self.opt[o]) for o in self.opt]))
+        N = len(self.minibatches)
         for e in range(self.epochs):
             shuffle(self.minibatches) # order of minibatches is randomized at every epoch
             avg_train_loss = 0 # loss averaged over all minibatches
 
             for i, m in enumerate(self.minibatches):
-                progress(i, len(self.minibatches), "\ttraining epoch {}".format(e))
+                progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
                 prediction = self.model(m.input)
                 loss = self.loss_fn(prediction, m.output)
