@@ -85,7 +85,7 @@ class HyperScan():
 
         # default hyperparam
         hparam = {
-            'log_lr': -3,
+            'log_lr': 0.001,
             'log_batch_size': 5,
             'depth': 3,
             'nf': 8,
