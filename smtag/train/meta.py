@@ -106,7 +106,7 @@ def main():
     parser.add_argument('-f', '--file', default='demo_xml_train', help='Namebase of dataset to import')
     parser.add_argument('-E' , '--epochs',  default=10, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=2, help='Minibatch size.')
-    parser.add_argument('-R', '--learning_rate', default=0.001, type=float, help='Learning rate.')
+    parser.add_argument('-R', '--learning_rate', default=0.01, type=float, help='Learning rate.')
     parser.add_argument('-V', '--validation_fraction', default=0.2, help='Fraction of the dataset that should be used as validation set during training.')
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
     parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')
@@ -117,7 +117,7 @@ def main():
     parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
-    parser.add_argument('-I', '--iterations', default=81, help='Number of iterations for the hyperparameters scanning.')
+    parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
 
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
