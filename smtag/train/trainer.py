@@ -25,7 +25,7 @@ class Trainer:
         print(model_descriptor)
         # wrap model into nn.DataParallel if we are on a GPU machine
         self.cuda_on = False
-        if False: #torch.cuda.device_count() > 1:
+        if torch.cuda.device_count() > 1:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
             self.model.cuda()
@@ -54,19 +54,25 @@ class Trainer:
         self.epochs = self.opt['epochs']
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
         self.plot.add_text('parameters', "; ".join([o+"="+str(self.opt[o]) for o in self.opt]))
-        N = len(self.minibatches)
+        N = self.minibatches.minibatch_number
         for e in range(self.epochs):
             shuffle(self.minibatches) # order of minibatches is randomized at every epoch
             avg_train_loss = 0 # loss averaged over all minibatches
 
             i = 1
             for m in self.minibatches:
-                progress(i, N, "\ttraining epoch {}".format(e))
+                #progress(i, N, "\ttraining epoch {}".format(e))
+                input = m.input
+                output = m.output
+                if self.cuda_on:
+                    input = input.cuda()
+                    output = output.cuda()
+                    print(type(input))
                 self.optimizer.zero_grad()
-                prediction = self.model(m.input)
-                loss = self.loss_fn(prediction, m.output)
+                prediction = self.model(input)
+                loss = self.loss_fn(prediction, output)
                 loss.backward()
-                avg_train_loss += loss
+                #avg_train_loss += loss
                 self.optimizer.step()
                 i += 1
 

@@ -40,12 +40,6 @@ class Minibatches(object): #Minibatches(Dataset)?
         self.minibatch_size = minibatch_size
         self.minibatch_number = floor(dataset.N / self.minibatch_size) #the rest of the examples will be ignored
         self.minibatches = []
-        # test if we are on a GPU machine
-        if torch.cuda.device_count() > 0: # or torch.cuda.is_available() ?
-            cuda_on = True
-            print("{} GPUs available!".format(torch.cuda.device_count()))
-        else:
-            cuda_on = False
 
         for i in range(self.minibatch_number):
             this_minibatch = Dataset(self.minibatch_size, self.nf_input, self.nf_output, self.L)
@@ -56,12 +50,7 @@ class Minibatches(object): #Minibatches(Dataset)?
             this_minibatch.output = dataset.output[start:stop, : , : ]
             this_minibatch.text = dataset.text[start:stop]
             this_minibatch.provenance = dataset.provenance[start:stop]
-            #make them CUDA if necessary
-            if False:#cuda_on:
-                this_minibatch.input = this_minibatch.input.cuda()
-                this_minibatch.output = this_minibatch.output.cuda()
             self.minibatches.append(this_minibatch)
-
 
     #make it iterable and shuffable
     def __iter__(self):
