@@ -34,7 +34,7 @@ class Trainer:
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
-        self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
+        # self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
         self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() #
         self.show = Show('markdown')
 
