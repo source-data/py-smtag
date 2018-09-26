@@ -65,12 +65,11 @@ class Trainer:
                 prediction = self.model(m.input)
                 loss = self.loss_fn(prediction, m.output)
                 loss.backward()
-                avg_train_loss += loss.item()
+                avg_train_loss += loss
                 self.optimizer.step()
 
             # Logging/plotting
             avg_train_loss = avg_train_loss / N
-            print(e, avg_train_loss)
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
             precision, recall, f1 = self.evaluator.run()
