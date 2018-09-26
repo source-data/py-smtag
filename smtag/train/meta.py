@@ -63,7 +63,6 @@ class Meta():
         self.opt['nf_input'] = datasets['train'].nf_input
         self.opt['nf_output'] =  datasets['train'].nf_output
         print("input, output sizes: {}, {}".format(self.training_minibatches[0].output.size(), self.training_minibatches[0].output.size()))
-        return self.training_minibatches, self.validation_minibatches
 
     def _train(self, training_minibatches, validation_minibatches, opt):
         model = SmtagModel(opt)
@@ -83,10 +82,11 @@ class Meta():
         self._load_data()
         with cd(config.scans_dir):
             scan = HyperScan(self.opt, name)
-            for i in range(iterations):
-                randopt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
-                model, perf = self._train(self.training_minibatches, self.validation_minibatches, randopt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
-                scan.append(model, perf, randopt, i)
+            #for i in range(iterations):
+            randopt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
+            model, perf = self._train(self.training_minibatches, self.validation_minibatches, randopt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
+            scan.append(model, perf, randopt, i)
+
 
 def main():
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)
