@@ -73,7 +73,7 @@ class Trainer:
                 loss.backward()
                 #avg_train_loss += loss
                 self.optimizer.step()
-                print("\r.",end="")
+                print("\r.",end="",flush=True)
                 i += 1
 
             # Logging/plotting
