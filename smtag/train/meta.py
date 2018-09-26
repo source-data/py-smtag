@@ -84,10 +84,9 @@ class Meta():
         with cd(config.scans_dir):
             scan = HyperScan(self.opt, name)
             for i in range(iterations):
-                randopt = scan.randopt(hyperparams)
-                model, perf = self._train(self.training_minibatches, self.validation_minibatches, randopt) # (precision, recall, f1)
+                randopt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
+                model, perf = self._train(self.training_minibatches, self.validation_minibatches, randopt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
                 scan.append(model, perf, randopt, i)
-        return scan
 
 def main():
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)
