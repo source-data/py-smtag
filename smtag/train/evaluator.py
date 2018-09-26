@@ -53,6 +53,7 @@ class Accuracy(object):
             m_output = m.output
             if self.cuda_on:
                 m_input = m_input.cuda()
+                m_output = m_output.cuda()
             with torch.no_grad():
                 prediction = self.model(m_input)
             if self.tokenize: 
