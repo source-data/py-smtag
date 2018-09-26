@@ -25,7 +25,7 @@ class Trainer:
         print(model_descriptor)
         # wrap model into nn.DataParallel if we are on a GPU machine
         self.cuda_on = False
-        if torch.cuda.device_count() > 1:
+        if False: #torch.cuda.device_count() > 1:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
             self.model.cuda()
@@ -62,14 +62,9 @@ class Trainer:
             i = 1
             for m in self.minibatches:
                 progress(i, N, "\ttraining epoch {}".format(e))
-                input = m.input
-                output = m.output
-                if self.cuda_on:
-                    input = input.cuda()
-                    output = output.cuda()
                 self.optimizer.zero_grad()
-                prediction = self.model(input)
-                loss = self.loss_fn(prediction, output)
+                prediction = self.model(m.input)
+                loss = self.loss_fn(prediction, m.output)
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
