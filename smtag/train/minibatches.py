@@ -57,7 +57,7 @@ class Minibatches(object): #Minibatches(Dataset)?
             this_minibatch.text = dataset.text[start:stop]
             this_minibatch.provenance = dataset.provenance[start:stop]
             #make them CUDA if necessary
-            if cuda_on:
+            if False:#cuda_on:
                 this_minibatch.input = this_minibatch.input.cuda()
                 this_minibatch.output = this_minibatch.output.cuda()
             self.minibatches.append(this_minibatch)
