@@ -42,9 +42,9 @@ class Trainer:
         loss = 0
         for m in self.validation_minibatches: # alternatively PICK one random minibatch, probably enough
             self.model.eval()
-            # with torch.no_grad():
-            prediction = self.model(m.input)
-            loss += self.loss_fn(prediction, m.output)
+            with torch.no_grad():
+                prediction = self.model(m.input)
+                loss += self.loss_fn(prediction, m.output)
         self.model.train()
         avg_loss = loss / self.validation_minibatches.minibatch_number
         return avg_loss
@@ -59,7 +59,8 @@ class Trainer:
             shuffle(self.minibatches) # order of minibatches is randomized at every epoch
             avg_train_loss = 0 # loss averaged over all minibatches
 
-            for i, m in enumerate(self.minibatches):
+            i = 1
+            for m in self.minibatches:
                 progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
                 prediction = self.model(m.input)
@@ -67,8 +68,10 @@ class Trainer:
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
+                i += 1
 
             # Logging/plotting
+            print("epoch", e)
             avg_train_loss = avg_train_loss / N
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
