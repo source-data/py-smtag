@@ -58,11 +58,15 @@ class Meta():
     def _load_data(self):
         ldr = Loader(self.opt)
         datasets = ldr.prepare_datasets(self.opt['namebase'])
-        self.training_minibatches = Minibatches(datasets['train'], self.opt['minibatch_size'])
-        self.validation_minibatches = Minibatches(datasets['valid'], self.opt['minibatch_size'])
+        return datasets
+
+    def _prep_minibatches(self, datasets):
+        training_minibatches = Minibatches(datasets['train'], self.opt['minibatch_size'])
+        validation_minibatches = Minibatches(datasets['valid'], self.opt['minibatch_size'])
         self.opt['nf_input'] = datasets['train'].nf_input
         self.opt['nf_output'] =  datasets['train'].nf_output
-        print("input, output sizes: {}, {}".format(self.training_minibatches[0].output.size(), self.training_minibatches[0].output.size()))
+        print("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
+        return training_minibatches, validation_minibatches
 
     def _train(self, training_minibatches, validation_minibatches, opt):
         model = SmtagModel(opt)
@@ -73,20 +77,21 @@ class Meta():
         export_model(model)
 
     def simple_training(self):
-        self._load_data()
-        model, perf = self._train(self.training_minibatches, self.validation_minibatches, self.opt)
+        datasets = self._load_data()
+        training_minibatches, validation_minibatches = self._prep_minibatches(datasets)
+        model, perf = self._train(training_minibatches, validation_minibatches, self.opt)
         print("final perf ({}):".format("\t".join([x for x in perf])), "\t".join(["{:.2}".format(x) for x in perf]))
         self._save(model)
 
     def hyper_scan(self, iterations, hyperparams, name):
-        self._load_data()
+        datasets = self._load_data()
         with cd(config.scans_dir):
             scan = HyperScan(self.opt, name)
             for i in range(iterations):
-                randopt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
-                model, perf = self._train(self.training_minibatches, self.validation_minibatches, randopt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
-                scan.append(model, perf, randopt, i)
-
+                self.opt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
+                training_minibatches, validation_minibatches = self._prep_minibatches(datasets)
+                model, perf = self._train(training_minibatches, validation_minibatches, self.opt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
+                scan.append(model, perf, self.opt, i)
 
 def main():
     # logging.basicConfig(filename='myapp.log', level=logging.INFO)

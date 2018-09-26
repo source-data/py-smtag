@@ -28,14 +28,14 @@ class Trainer:
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model,)
             self.model.cuda()
-            #self.model.output_semantics = self.output_semantics
+            self.model.output_semantics = self.output_semantics
             self.cuda_on = True
         else:
             self.cuda_on = False
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
-        # self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
+        self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
         self.loss_fn = nn.BCELoss() # nn.SmoothL1Loss() #
         self.show = Show('markdown')
 
@@ -60,31 +60,29 @@ class Trainer:
             shuffle(self.minibatches) # order of minibatches is randomized at every epoch
             avg_train_loss = 0 # loss averaged over all minibatches
 
-            i = 1
-            for m in self.minibatches:
+            for i, m in enumerate(self.minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
-                input = m.input
-                output = m.output
+                m_input = m.input
+                m_output = m.output
                 if self.cuda_on:
-                    input = input.cuda()
-                    output = output.cuda()
+                    m_input = m_input.cuda()
+                    m_output = m_output.cuda()
                 self.optimizer.zero_grad()
-                prediction = self.model(input)
-                loss = self.loss_fn(prediction, output)
+                prediction = self.model(m_input)
+                loss = self.loss_fn(prediction, m_output)
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
-                i += 1
 
             # Logging/plotting
             print("epoch", e)
-            #avg_train_loss = avg_train_loss / N
-            #avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
-            #self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
-            # precision, recall, f1 = self.evaluator.run()
-            # self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
-            # self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
-            # self.plot.add_example("examples", self.show.example(self.validation_minibatches, self.model), e)
+            avg_train_loss = avg_train_loss / N
+            avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
+            self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
+            precision, recall, f1 = self.evaluator.run()
+            self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
+            self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
+            self.plot.add_example("examples", self.show.example(self.validation_minibatches, self.model), e)
 
         self.plot.close()
         print("\n")
