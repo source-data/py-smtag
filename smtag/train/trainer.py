@@ -67,7 +67,6 @@ class Trainer:
                 if self.cuda_on:
                     input = input.cuda()
                     output = output.cuda()
-                    print(type(input))
                 self.optimizer.zero_grad()
                 prediction = self.model(input)
                 loss = self.loss_fn(prediction, output)
