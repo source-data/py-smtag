@@ -5,7 +5,7 @@ import re
 import os
 import argparse
 from getpass import getpass
-from xml.etree.ElementTree import fromstring, Element, SubElement, tostring
+from xml.etree.ElementTree import fromstring, Element, ElementTree, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node
 from random import shuffle
 from math import floor
@@ -39,7 +39,7 @@ class NeoImport():
             return panel_xml
         
         tag_errors = []
-        panel_caption = panel_caption#.encode('utf-8')
+        #panel_caption = panel_caption.encode('utf-8')
         if safe_mode:
             #need protection agains missing spaces
 
@@ -155,10 +155,9 @@ class NeoImport():
                     {} //AND t.role = some role OR some role
                     WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, COLLECT(DISTINCT t) AS tags
                     RETURN formatted_caption, label, panel_id, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
-
                     '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
                     results_panels = DB.query(q_panel)
-                    print((u"\r{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi)).encode('utf-8'), end="", flush=True)
+                    print("{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi))
 
                     if results_panels:
                         figure_xml_element = Element('figure-caption')
@@ -182,7 +181,7 @@ class NeoImport():
                             except Exception as e:
                                 panel_id = results_labeled[p]['panel_id']
                                 fig_label = results_labeled[p]['fig_label']
-                                print((u"problem parsing fig {} panel {} (panel_id:{}) in article {}".format(fig_label, p, panel_id, doi)).encode('utf-8'))
+                                print("problem parsing fig {} panel {} (panel_id:{}) in article {}".format(fig_label, p, panel_id, doi))
                                 print(panel_caption.encode('utf-8'))
                                 print(" ==> error: ", e, "\n")
                                 caption_errors.append([doi, fig_label, p, panel_id, e, panel_caption])
@@ -225,8 +224,7 @@ class NeoImport():
                         for i, article in enumerate(articles):
                             filename = str(i)+'.xml'
                             print('writing to {}'.format(filename))
-                            with open(os.path.join(subdir, filename), 'wb') as f:
-                                f.write(tostring(article))
+                            ElementTree(article).write(os.path.join(subdir, filename), encoding='utf-8', xml_declaration=True)
 
     def log_errors(self, errors):
         """
@@ -353,9 +351,9 @@ def main():
     with cd(config.working_directory):
         G = NeoImport(options)
         errors = G.neo2xml(options['source'])
-        G.log_errors(errors)
         trainset, testset = G.split_dataset(options['testset_fraction'])
         G.save({'train': trainset, 'test': testset}, config.data_dir, options['namebase'])
+        G.log_errors(errors)
 
 if __name__ == "__main__":
     main()

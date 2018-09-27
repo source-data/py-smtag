@@ -8,7 +8,7 @@ import os.path
 import sys
 from string import ascii_letters
 from math import floor
-from xml.etree.ElementTree  import XML, XMLParser, parse
+from xml.etree.ElementTree  import XML, parse
 
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
@@ -277,10 +277,16 @@ class DataPreparator(object):
             filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
             examples = {}
             for i, filename in enumerate(filenames):
-                xml = parse(os.path.join(path, filename))
-                for j, e in enumerate(xml.findall(XPath_to_examples)):
-                    id = filename + "-" + str(i) # unique id provided filename is unique (hence limiting to single allowed file extension)
-                    examples[id] = e
+                try:
+                    with open(os.path.join(path, filename)) as f: 
+                        xml = parse(f)
+                    xml = xml.getroot()
+                    for j, e in enumerate(xml.findall(XPath_to_examples)):
+                        id = filename + "-" + str(i) # unique id provided filename is unique (hence limiting to single allowed file extension)
+                        examples[id] = e
+                except Exception as e:
+                    print("problem parsing", os.path.join(path, filename))
+                    print(e)
                 progress(i, len(filenames), "loaded {}".format(filename))
         return examples
 
