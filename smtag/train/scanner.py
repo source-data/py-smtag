@@ -4,6 +4,7 @@
 import os
 import math
 from random import randint, uniform
+from copy import copy
 from datetime import datetime
 from ..common.importexport import export_model
 from ..common.utils import cd
@@ -97,7 +98,7 @@ class HyperScan():
             dict where selected hyperparameters where randomly sampled
         """
 
-        hparam = copy(self.defaults)
+        hparam = copy(self.default)
         #randomly sampling hyperparameters
         randparam = {
             'log_lr': uniform(-4, -1),
