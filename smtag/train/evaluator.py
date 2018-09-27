@@ -25,9 +25,6 @@ class Accuracy(object):
             self.cuda_on = False
         if self.tokenize:
             for i, m in enumerate(self.minibatches):
-                m_output = m.output
-                if self.cuda_on:
-                    m_output = m_output.cuda()
                 progress(i, self.minibatches.minibatch_number, "tokenizing minibatch {}".format(i))
                 m.add_token_lists()
                 b = Binarized(m.text, m_output, self.model.output_semantics)

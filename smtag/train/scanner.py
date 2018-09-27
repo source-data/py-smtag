@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 import os
+import math
 from random import randint, uniform
 from datetime import datetime
 from ..common.importexport import export_model
@@ -14,29 +15,41 @@ class HyperScan():
 
     def __init__(self, opt, dir_name):
         """
-        scans
-            todays_scan
-                models
+        Hyperscan will create the following dir hierarchy:
+        scans/
+            scan_<scan_name_1>/
+                models/
                     scanned_model_1.zip
                     scanned_model_2.zip
                     ...
                 scanned_perf.csv
-            yesterds_scan
-                models
+            scan_<scan_name_1>/
+                models/
                     ...
                 scanned_perf.scv
         """
 
+        # default hyperparam
+        self.default = {
+            'log_lr': math.log(opt['learning_rate']),
+            'log_batch_size': math.log(opt['minibatch_size'], 2),
+            'depth': len(opt['kernel_table']),
+            'nf': opt['nf_table'][0],
+            'kernel': opt['kernel_table'][0],
+            'pooling': opt['pool_table'][0]
+        }
         self._metrics = []
         self.opt = opt
         timestamp = datetime.now().isoformat("-",timespec='minutes').replace(":", "-") # dir to save scan results
         self.dir_name = dir_name + "_" + timestamp 
         if not os.path.isdir(self.dir_name):
             os.mkdir(self.dir_name)
+            os.chmod(self.dir_name, mode=0o777)
         self.perf_path = os.path.join(self.dir_name, 'scanned_perf.csv')
         with cd(self.dir_name):
             if not os.path.isdir('models'):
                 os.mkdir('models')
+                os.chmod('models', mode=0o777)
         self.scanned_models_path = os.path.join(self.dir_name, 'models')
 
 
@@ -70,6 +83,7 @@ class HyperScan():
             line = SEP.join([line_params, line_results])
             f.write(line+NL)
             print(line)
+        os.chmod(mypath, mode=0o777)
 
 
     def randopt(self, selected_hyperparam = {'log_lr'}):
@@ -83,15 +97,7 @@ class HyperScan():
             dict where selected hyperparameters where randomly sampled
         """
 
-        # default hyperparam
-        hparam = {
-            'log_lr': -2,
-            'log_batch_size': 5,
-            'depth': 3,
-            'nf': 8,
-            'kernel': 6,
-            'pooling': 2
-        }
+        hparam = copy(self.defaults)
         #randomly sampling hyperparameters
         randparam = {
             'log_lr': uniform(-4, -1),

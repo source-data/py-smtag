@@ -104,17 +104,17 @@ def main():
     #arguments = docopt(__doc__, version='0.1')
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--file', default='demo_xml_train', help='Namebase of dataset to import')
-    parser.add_argument('-E' , '--epochs',  default=10, help='Number of training epochs.')
-    parser.add_argument('-Z', '--minibatch_size', default=2, help='Minibatch size.')
+    parser.add_argument('-E' , '--epochs',  default=200, help='Number of training epochs.')
+    parser.add_argument('-Z', '--minibatch_size', default=32, help='Minibatch size.')
     parser.add_argument('-R', '--learning_rate', default=0.01, type=float, help='Learning rate.')
     parser.add_argument('-V', '--validation_fraction', default=0.2, help='Fraction of the dataset that should be used as validation set during training.')
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
     parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')
     parser.add_argument('-a', '--overlap_features', default='', help='Features that should be combined by intersecting them (equivalent to AND operation) (use quotes if comma+space delimited).')
     parser.add_argument('-c', '--collapsed_features', default='', help='Features that should be collapsed into a single one (equivalent to OR operation) (use quotes if comma+space delimited).')
-    parser.add_argument('-n', '--nf_table', default="8,8,8", help='Number of features in each hidden super-layer.')
-    parser.add_argument('-k', '--kernel_table', default="6,6,6", help='Convolution kernel for each hidden layer.')
-    parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
+    parser.add_argument('-n', '--nf_table', default="8,8", help='Number of features in each hidden super-layer.')
+    parser.add_argument('-k', '--kernel_table', default="9,9", help='Convolution kernel for each hidden layer.')
+    parser.add_argument('-p', '--pool_table',  default="2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
     parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
@@ -152,7 +152,7 @@ def main():
         if not hyperparams:
             metatrainer.simple_training()
         else:
-            scan_name = 'scan'
+            scan_name = 'scan_'
             scan_name += "_".join([k for k in hyperparams])
             scan_name += "_X"+str(iterations)
             metatrainer.hyper_scan(iterations, hyperparams, scan_name)
