@@ -32,7 +32,7 @@ class HyperScan():
 
         # default hyperparam
         self.default = {
-            'log_lr': math.log(opt['learning_rate']),
+            'log_lr': math.log(opt['learning_rate'], 10),
             'log_batch_size': math.log(opt['minibatch_size'], 2),
             'depth': len(opt['kernel_table']),
             'nf': opt['nf_table'][0],

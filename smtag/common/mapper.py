@@ -109,8 +109,8 @@ class Boundary(Concept):
 class Catalogue():
 
     SMALL_MOLECULE = Entity('small_molecule', [('type', 'small_molecule')], 0.5)
-    GENE = Entity('gene', [('type', 'gene')], 0.5)
-    PROTEIN = Entity('protein', [('type', 'protein')], 0.5)
+    GENE = Entity('gene', [('type', 'gene')], 0.4)
+    PROTEIN = Entity('protein', [('type', 'protein')], 0.4)
     SUBCELLULAR = Entity('subcellular', [('type', 'subcellular')], 0.5)
     CELL = Entity('cell', [('type', 'cell')], 0.5)
     TISSUE = Entity('tissue', [('type', 'tissue')], 0.5)
@@ -129,7 +129,7 @@ class Catalogue():
     DISEASE = Category('disease', [('category', 'disease')], 0.8)
     PANEL_START = Boundary('panel_start','sd-panel',  0.5)
     PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
-    GENEPROD = Entity('geneprod', [('type', 'geneprod')], 0.5)
+    GENEPROD = Entity('geneprod', [('type', 'geneprod')], 0.4)
 
     # the order of the Concepts in the catalogue matters and determines the order in which these concepts are expected in datasets used for training
     standard_channels = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,

@@ -140,7 +140,7 @@ class Plotter(SummaryWriter):
         super(Plotter, self).add_scalars("data/"+series, scalar_dict, epoch)
 
     def add_example(self, tag, example, epoch=None):
-        super(Plotter, self).add_text(tag, example, epoch)
+        super(Plotter, self).add_text(tag, example, epoch) # add niter=epoch? https://github.com/lanpa/tensorboardX/issues/6
 
     def add_progress(self, tag, loss, f1, labels, epoch):
         render_f1 = "; ".join(["{}={:.2f}".format(str(concept), f1[i]) for i, concept in enumerate(labels)])

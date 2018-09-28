@@ -26,6 +26,9 @@ class Accuracy(object):
         if self.tokenize:
             for i, m in enumerate(self.minibatches):
                 progress(i, self.minibatches.minibatch_number, "tokenizing minibatch {}".format(i))
+                m_output = m.output
+                if self.cuda_on:
+                    m_output = m_output.cuda()
                 m.add_token_lists()
                 b = Binarized(m.text, m_output, self.model.output_semantics)
                 b.binarize_with_token(m.tokenized)
@@ -112,10 +115,10 @@ class Benchmark():
         print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1.mean()))
 
         for i, feature in enumerate(self.model.output_semantics):
-                print("\n Feature: '\033[1m{}\033[0m'\n".format(feature))
-                print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision[i]))
-                print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall[i]))
-                print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1[i]))
+            print("\n Feature: '\033[1m{}\033[0m'\n".format(feature))
+            print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision[i]))
+            print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall[i]))
+            print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1[i]))
 
 class ScanThreshold():
 

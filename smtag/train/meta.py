@@ -2,29 +2,6 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-"""Top level module to manage training..
-
-Usage:
-  meta.py [-f <file> -E <int> -Z <int> -R <float> -V <float> -o <str> -i <str> -a <str> -c <str> -n <str> -k <str> -p <str>]
-
-Options:
-  -f <file>, --file <file>                Namebase of dataset to import [default: test_train]
-  -E <int>, --epochs <int>                Number of training epochs [default: 120]
-  -Z <int>, --minibatch_size <int>        Minibatch size [default: 128]
-  -R <float>, --learning_rate <float>     Learning rate [default: 0.001]
-  -V <float>, --validation_fraction <float>    Fraction of the dataset that should be used as validation set during training [default: 0.2]
-  -o <str>, --output_features <str>       Selected output features (use quotes if comma+space delimited) [default: geneprod]
-  -i <str>, --features_as_input <str>     Features that should be added to the input (use quotes if comma+space delimited) [default: ]
-  -a <str>, --overlap_features <str>      Features that should be combined by intersecting them (equivalent to AND operation) (use quotes if comma+space delimited) [default: ]
-  -c <str>, --collapsed_features <str>    Features that should be collapsed into a single one (equivalent to OR operation) (use quotes if comma+space delimited) [default: ]
-  -n <str>, --nf_table <str>              Number of features for each hidden layer (use quotes if comma+space delimited) [default: 8,8,8]
-  -k <str>, --kernel_table <str>          Convolution kernel for each hidden layer (use quotes if comma+space delimited) [default: 6,6,6]
-  -p <str>, --pool_table <str>            Pooling for each hidden layer (use quotes if comma+space delimited) [default: 2,2,2]
-
-  -h --help     Show this screen.
-  --version     Show version.
-"""
-#from docopt import docopt
 import os
 #import yaml
 #import logging
