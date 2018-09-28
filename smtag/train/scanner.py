@@ -105,7 +105,7 @@ class HyperScan():
             'log_batch_size': uniform(4, 8),
             'depth': randint(2,4),
             'nf': randint(4,16),
-            'kernel': randint(3,10),
+            'kernel': randint(3,14),
             'pooling': randint(1,3),
         }
 
