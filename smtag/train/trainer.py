@@ -88,7 +88,7 @@ class Trainer:
             self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
             self.plot.add_example("examples", self.show.example(self.validation_minibatches, self.model), e)
-            export_model(self.model, custom_name = 'most_recently_saved'+self.model.opt['namebase'])
+            export_model(self.model, custom_name = 'most_recently_saved'+self.opt['namebase'])
         self.plot.close()
         print("\n")
         return avg_train_loss, avg_validation_loss, precision, recall, f1
