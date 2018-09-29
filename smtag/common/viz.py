@@ -106,7 +106,7 @@ class Show():
                 k = min(N-1, math.floor(N*features[0, i, j]))
                 track += Show.SYMBOLS[k]
             out += "Tagging track {}".format(i) + self.nl + self.nl
-            out += "    " + track
+            out += "    " + track + self.nl
         return out
 
     def print_pretty_color(self, features, text):
