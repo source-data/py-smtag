@@ -109,7 +109,7 @@ class Benchmark():
         self.precision, self.recall, self.f1 = benchmark.run()
 
     def display(self):
-        print("\n Global stats: \033[1m")
+        print("\n Global stats: \033[1m\n")
         print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision.mean()))
         print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall.mean()))
         print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1.mean()))
