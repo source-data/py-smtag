@@ -280,7 +280,6 @@ class DataPreparator(object):
                 try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
-                    xml = xml.getroot()
                     for j, e in enumerate(xml.findall(XPath_to_examples)):
                         id = filename + "-" + str(i) # unique id provided filename is unique (hence limiting to single allowed file extension)
                         examples[id] = e

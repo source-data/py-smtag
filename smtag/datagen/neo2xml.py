@@ -148,6 +148,7 @@ class NeoImport():
                     f_id = f[0]
                     fig_label = f[1]
 
+                    # ADD: url of image
                     q_panel = '''
                     MATCH (f:Figure)-->(p:Panel)-->(t:Tag)
                     WHERE id(f) = {} AND t.in_caption = true
@@ -159,6 +160,7 @@ class NeoImport():
                     results_panels = DB.query(q_panel)
                     print("{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi))
 
+                    # for text-image do NOT fuse panels
                     if results_panels:
                         figure_xml_element = Element('figure-caption')
                         #panels not in the proper order, need resorting via label
@@ -209,7 +211,6 @@ class NeoImport():
         return trainset, testset
 
     def save(self, split_dataset, data_dir, namebase):
-        print("current dir:", os.curdir, os.listdir(os.curdir))
         with cd(config.data_dir):
             print("saving to: ", data_dir)
             if namebase in os.listdir():
@@ -349,11 +350,15 @@ def main():
         config.working_directory = args.working_directory
 
     with cd(config.working_directory):
-        G = NeoImport(options)
-        errors = G.neo2xml(options['source'])
-        trainset, testset = G.split_dataset(options['testset_fraction'])
-        G.save({'train': trainset, 'test': testset}, config.data_dir, options['namebase'])
-        G.log_errors(errors)
+        # check first that options['namebase']
+        if os.path.isdir(os.path.join(config.data_dir, options['namebase'])):
+            print("data {} already exists. Will not do anything.".format(options['namebase']))
+        else:
+            G = NeoImport(options)
+            errors = G.neo2xml(options['source'])
+            trainset, testset = G.split_dataset(options['testset_fraction'])
+            G.save({'train': trainset, 'test': testset}, config.data_dir, options['namebase'])
+            G.log_errors(errors)
 
 if __name__ == "__main__":
     main()
