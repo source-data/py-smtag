@@ -37,8 +37,9 @@ class Trainer:
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
         self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
-        self.loss_fn = nn.SmoothL1Loss() # nn.BCELoss() # 
-        self.show = Show('markdown')
+        self.loss_fn = nn.BCELoss()
+        self.markdown = Show('markdown')
+        self.console = Show('console')
 
     def validate(self):
         loss = 0
@@ -87,7 +88,8 @@ class Trainer:
             precision, recall, f1 = self.evaluator.run()
             self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
-            self.plot.add_example("examples", self.show.example(self.validation_minibatches, self.model), e)
+            print(self.console.example(self.validation_minibatches, self.model))
+            # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
             # export_model(self.model, custom_name = 'most_recently_saved'+self.opt['namebase'])
         self.plot.close()
         print("\n")

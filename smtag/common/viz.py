@@ -85,13 +85,13 @@ class Show():
             out += "    "+self.print_pretty(input[[0], 32:nf_input, : ]) + self.nl + self.nl
 
         out+= "__Expected:__" + self.nl + self.nl
-        out += "    "+self.print_pretty_color(target, text) + self.nl + self.nl# visualize anonymized characters with a symbol
-        out +="    "+ self.print_pretty(target) + self.nl + self.nl
+        out += self.print_pretty_color(target, text) + self.nl + self.nl# visualize anonymized characters with a symbol
+        out += self.print_pretty(target) + self.nl + self.nl
 
         if model is not None:
             out += "__Predicted:__" + self.nl + self.nl
-            out += "    "+self.print_pretty_color(prediction, text) + self.nl + self.nl
-            out+= "    "+self.print_pretty(prediction) + self.nl + self.nl
+            out += self.print_pretty_color(prediction, text) + self.nl + self.nl
+            out+= self.print_pretty(prediction) + self.nl + self.nl
         out += ""
         return out
     
@@ -106,14 +106,13 @@ class Show():
                 k = min(N-1, math.floor(N*features[0, i, j]))
                 track += Show.SYMBOLS[k]
             out += "Tagging track {}".format(i) + self.nl + self.nl
-            out += "    " + track + self.nl
+            out += "    " + track + self.nl + self.nl
         return out
 
     def print_pretty_color(self, features, text):
-        out = ""
         text = text.replace(MARKING_CHAR, "◇")
         nf = features.size(1)
-        colored_track = ""
+        colored_track = "    "# markdown fixeed font
         pos = 0
         for c in text:
             max  = 1
@@ -125,11 +124,8 @@ class Show():
                      max_f = f
             if text:
                 colored_track += "{}{}{}".format(self.col[max_f + 1], c, self.close)
-            else:
-                colored_track += "{}{}{}".format(self.col[max_f + 1], Show.symbols[max+1], self.close)
             pos = pos + 1
-        out += colored_track
-        return out
+        return colored_track
 
 class Plotter(SummaryWriter):
 
