@@ -117,7 +117,7 @@ class Catalogue():
     ORGANISM = Entity('organism', [('type', 'organism')], 0.5)
     UNDEFINED = Entity('undefined', [('type', 'undefined')], 0.5)
     INTERVENTION = Role('intervention', [('role', 'intervention')], 0.4)
-    MEASUREMENT = Role('assayed', [('role', 'assayed')], 0.2)
+    MEASUREMENT = Role('assayed', [('role', 'assayed')], 0.4)
     NORMALIZING = Role('normalizing', [('role', 'normalizing')], 0.5)
     REPORTER = Role('reporter', [('role', 'reporter')], 0.5)
     EXP_VAR = Role('experiment', [('role', 'experiment')], 0.5)
