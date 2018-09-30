@@ -40,7 +40,7 @@ class Show():
             "<span style='background-color:blue; color:white'>",
             "<span style='background-color:turquoise; color:white'>"
         ],
-        "markdown": [""] * 8
+        "markdown": [""] * 12
     }
 
     CLOSE_COLOR = {
@@ -72,7 +72,7 @@ class Show():
         target = minibatches[rand_i].output[[rand_j], : , : ]
 
         # original_text =  minibatches[rand_i].text[rand_j]
-        # provenance = minibatches[rand_i].provenance[rand_j]
+        provenance = minibatches[rand_i].provenance[rand_j]
         nf_input = input.size(1)
         if model is not None:
             model.eval()
@@ -84,14 +84,15 @@ class Show():
             out += "Additional input features:"+self.nl+self.nl
             out += "    "+self.print_pretty(input[[0], 32:nf_input, : ]) + self.nl + self.nl
 
-        out+= "__Expected:__" + self.nl + self.nl
+        out+= "__Expected:__" + "({})".format(provenance.strip()) + self.nl + self.nl
+        # out += self.print_pretty_color(target, original_text) + self.nl + self.nl# visualize anonymized characters with a symbol
         out += self.print_pretty_color(target, text) + self.nl + self.nl# visualize anonymized characters with a symbol
         out += self.print_pretty(target) + self.nl + self.nl
 
         if model is not None:
             out += "__Predicted:__" + self.nl + self.nl
             out += self.print_pretty_color(prediction, text) + self.nl + self.nl
-            out+= self.print_pretty(prediction) + self.nl + self.nl
+            out += self.print_pretty(prediction) + self.nl + self.nl
         out += ""
         return out
     
@@ -103,14 +104,14 @@ class Show():
         for i in range(features.size(1)):
             track = ""
             for j in range(features.size(2)):
-                k = min(N-1, math.floor(N*features[0, i, j]))
+                k = min(N-1, math.floor(N*features[0, i, j])) # 0 -> 0; 0.2 -> 1; 0.4 -> 2; 0.6 -> 3; 0.8 -> 4; 1.0 -> 4
                 track += Show.SYMBOLS[k]
             out += "Tagging track {}".format(i) + self.nl + self.nl
             out += "    " + track + self.nl + self.nl
         return out
 
     def print_pretty_color(self, features, text):
-        text = text.replace(MARKING_CHAR, "◇")
+        text = text.replace(MARKING_CHAR, '#')
         nf = features.size(1)
         colored_track = "    "# markdown fixeed font
         pos = 0

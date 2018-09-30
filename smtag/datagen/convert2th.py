@@ -107,7 +107,11 @@ class Sampler():
     @staticmethod
     def show_stats(stats, N):
         text_avg = floor(float(sum(stats) / N))
-        text_std = floor(float(torch.Tensor(stats).std()))
+        text_std = torch.Tensor(stats).std()
+        if N > 1:
+            text_std = floor(float(text_std))
+        else:
+            text_std = 0
         text_max = max(stats)
         text_min = min(stats)
         print("\nlength of the {} examples selected:".format(N))
