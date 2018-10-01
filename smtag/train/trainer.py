@@ -90,7 +90,7 @@ class Trainer:
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
             print(self.console.example(self.validation_minibatches, self.model))
             # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
-            # export_model(self.model, custom_name = 'most_recently_saved'+self.opt['namebase'])
+            export_model(self.model, custom_name = self.opt['namebase']+'_last_saved')
         self.plot.close()
         print("\n")
         return avg_train_loss, avg_validation_loss, precision, recall, f1

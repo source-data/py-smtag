@@ -4,19 +4,24 @@
 
 import os
 from zipfile import ZipFile
+from copy import deepcopy
 import json
 from datetime import datetime
 import torch
 from .. import config
 from ..train.builder import SmtagModel
-from .utils import cd
+from .utils import cd, timer
 
+@timer
 def export_model(model, custom_name = '', model_dir = config.model_dir):
-    model.cpu() # model.cpu().double() ?
+    # make copy of model first for continuous saving; need to leave model on GPU!
     # extract the SmtagModel from the nn.DataParallel table, if necessary
     if isinstance(model, torch.nn.DataParallel):
-        #print("getting SmtagModel")
-        model = [m for m in model.children if isinstance(m, SmtagModel)][0]
+        model_copy = deepcopy([m for m in model.children if isinstance(m, SmtagModel)][0])
+    else:
+        model_copy = deepcopy(model)
+    model_copy.cpu() # move the copy to the CPU
+    state_dict = model_copy.state_dict() # the parameters to be saved
     opt = model.opt
     if custom_name:
         name = custom_name
@@ -29,13 +34,12 @@ def export_model(model, custom_name = '', model_dir = config.model_dir):
         suffix = "_".join(filter(None,suffixes))
         name = "{}_{}".format(opt['namebase'], suffix)
     model_path = "{}.sddl".format(name)
-    #torch.save(model, model_filename) # does not work
     archive_path = "{}.zip".format(name)
     option_path = "{}.json".format(name)
     os.makedirs(model_dir, exist_ok=True)
     with cd(model_dir):
         with ZipFile(archive_path, 'w') as myzip:
-            torch.save(model.state_dict(), model_path)
+            torch.save(state_dict, model_path)
             myzip.write(model_path)
             os.remove(model_path)
             with open(option_path, 'w') as jsonfile:
