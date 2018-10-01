@@ -46,7 +46,11 @@ class Meta():
         return training_minibatches, validation_minibatches
 
     def _train(self, training_minibatches, validation_minibatches, opt):
-        model = SmtagModel(opt)
+        # check if previous model specified and load it with importmodel
+        if opt['modelname']:
+            model = load_model(opt['modelname'])
+        else:
+            model = SmtagModel(opt)
         train_loss, valid_loss, precision, recall, f1 = Trainer(training_minibatches, validation_minibatches, model).train()
         return model, {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
 
@@ -95,12 +99,14 @@ def main():
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
     parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
+    parser.add_argument('-m', '--model', default='', help='Load pre-trained model and continue training.')
 
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
     iterations = int(arguments.iterations)
     opt = {}
     opt['namebase'] = arguments.file
+    opt['modelname'] = arguments.model
     opt['learning_rate'] = float(arguments.learning_rate)
     opt['epochs'] = int(arguments.epochs)
     opt['minibatch_size'] = int(arguments.minibatch_size)

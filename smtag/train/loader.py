@@ -135,7 +135,9 @@ class Loader:
 
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
         #THIS HAS TO GO! BELONGS TO DATAPREP!!! Probably in Featurizer
-        raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , concept2index[Catalogue.GENE],  : ] + raw_dataset.output[ : ,  concept2index[Catalogue.PROTEIN], : ]
+        # test if raw_dataset.output[ : , nf-1,  : ].nonzero()  is empty
+        if len(raw_dataset.output[ : , nf-1,  : ].nonzero()) == 0:
+            raw_dataset.output[ : , nf-1,  : ] = raw_dataset.output[ : , concept2index[Catalogue.GENE],  : ] + raw_dataset.output[ : ,  concept2index[Catalogue.PROTEIN], : ]
 
         print("Creating dataset with selected features {}, and shuffling {} examples.".format(", ".join([str(f) for f in self.selected_features]), N))
         shuffled_indices = list(range(N))
