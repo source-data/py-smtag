@@ -68,6 +68,10 @@ class BratImport():
         N = len(filenames)
         for i, b in enumerate(filenames):
             progress(i, N, status='loading examples')
-            raw_examples.append(BratImport.example_from_file(mypath, b))
+            example = BratImport.example_from_file(mypath, b)
+            if example['annot']:
+                raw_examples.append(example)
+            else:
+                print("\n skipping {}: no annotations.".format(b))
         return raw_examples
 
