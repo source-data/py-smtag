@@ -17,7 +17,7 @@ def export_model(model, custom_name = '', model_dir = config.model_dir):
     # make copy of model first for continuous saving; need to leave model on GPU!
     # extract the SmtagModel from the nn.DataParallel table, if necessary
     if isinstance(model, torch.nn.DataParallel):
-        internal_model = [m for m in model.children if isinstance(m, SmtagModel)][0]
+        internal_model = [m for m in model.children() if isinstance(m, SmtagModel)][0]
         model_copy = deepcopy(internal_model)
     else:
         model_copy = deepcopy(model)
