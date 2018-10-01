@@ -23,7 +23,7 @@ def export_model(model, custom_name = '', model_dir = config.model_dir):
         model_copy = deepcopy(model)
     model_copy.cpu() # move the copy to the CPU
     state_dict = model_copy.state_dict() # the parameters to be saved
-    opt = model.opt
+    opt = model_copy.opt
     if custom_name:
         name = custom_name
     else:
