@@ -108,10 +108,10 @@ class Boundary(Concept):
 
 class Catalogue():
 
-    SMALL_MOLECULE = Entity('small_molecule', [('type', 'small_molecule')], 0.5)
+    SMALL_MOLECULE = Entity('small_molecule', [('type', 'small_molecule')], 0.3)
     GENE = Entity('gene', [('type', 'gene')], 0.4)
     PROTEIN = Entity('protein', [('type', 'protein')], 0.4)
-    SUBCELLULAR = Entity('subcellular', [('type', 'subcellular')], 0.5)
+    SUBCELLULAR = Entity('subcellular', [('type', 'subcellular')], 0.4)
     CELL = Entity('cell', [('type', 'cell')], 0.5)
     TISSUE = Entity('tissue', [('type', 'tissue')], 0.5)
     ORGANISM = Entity('organism', [('type', 'organism')], 0.5)
