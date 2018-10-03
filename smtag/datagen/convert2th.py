@@ -194,7 +194,7 @@ class Sampler():
 
             # randomly sampling each example
             for j in range(iterations): # j is index of sampling iteration
-                progress(i*iterations+j, total, "sampling example {}".format(i))
+                progress(i*iterations+j, total, "sampling example {}".format(i+1))
 
                 # a text fragment is picked randomly from the text example
                 fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
@@ -240,9 +240,9 @@ class DataPreparator(object):
         self.min_padding = options['padding']
         self.verbose = options['verbose']
         self.iterations = options['iterations']
-        self.path_compendium = ''
+        self.path_compendium = '' # delete
         self.namebase = options['namebase']
-        self.train_or_test = options['train_or_test']
+        self.train_or_test = options['train_or_test'] # delete
         self.dataset4th = {}
 
     @staticmethod
@@ -269,14 +269,13 @@ class DataPreparator(object):
         return encoded_examples
 
 
-    def import_files(self, path, XPath_to_examples='.//figure-caption'):
+    def import_files(self, path, train_valid_test, XPath_to_examples='.//figure-caption'):
         """
         Import xml documents from dir. In each document, extracts examples using XPath.
         """
 
         with cd(config.data_dir):
-            self.path_compendium = path + "_" + self.train_or_test
-            path = os.path.join(path, self.train_or_test)
+            path = os.path.join(path, train_valid_test)
             print("\nloading from:", path)
             filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
             examples = {}
@@ -294,17 +293,14 @@ class DataPreparator(object):
         return examples
 
 
-    def save(self, filenamebase):
+    def save(self, filenamebase, train_valid_test):
         """
         Saving datasets prepared for torch to a text file with text example, a npy file for the extracted features and a provenance file that keeps track of origin of each example.
         """
 
-        if not filenamebase:
-            filenamebase = self.path_compendium
-
         with cd(config.data4th_dir):
-            archive_path = "{}_{}".format(filenamebase, self.train_or_test)
-            print("saving to {}".format(archive_path))
+            archive_path = "{}_{}".format(filenamebase, train_valid_test)
+            print("saving to {}.zip".format(archive_path))
             with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
 
                 # write feature tensor
@@ -341,23 +337,25 @@ class DataPreparator(object):
             for info in myzip.infolist():
                 print("saved {} (size: {})".format(info.filename, info.file_size))
 
-    def run_on_dir(self, path):
-        examples = self.import_files(path)
+    def run_on_dir(self, path, train_valid_test):
+        examples = self.import_files(path, train_valid_test)
         encoded_examples = self.encode_examples(examples) # xml elements, attributes and value are encoded into numbered features
         sampler = Sampler(encoded_examples, self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         self.dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
-        self.save(self.namebase) # save the tensors
-        # save self.global_index and self.rev_globale_index
+        self.save(self.namebase, train_valid_test) # save the tensors
+
+    def run_on_compendium(self, path, subsets={'train', 'valid', 'test'}):
+        for train_valid_test in subsets:
+            self.run_on_dir(path, train_valid_test)
 
 
 class BratDataPreparator(DataPreparator):
     def __init__(self, options):
         super(BratDataPreparator, self).__init__(options)
 
-    def import_files(self, path):
-        self.path_compendium = path + "_" + self.train_or_test
+    def import_files(self, path, train_valid_test):
         with cd(config.data_dir):
-            path = os.path.join(path, self.train_or_test)
+            path = os.path.join(path, train_valid_test)
             brat_examples = BratImport.from_dir(path)
         return brat_examples
 
@@ -375,13 +373,11 @@ class BratDataPreparator(DataPreparator):
         return encoded_examples
 
 
-
 def main():
     parser = argparse.ArgumentParser(description='Reads xml and transform into tensor format.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     args = []
     parser.add_argument('-c', '--path', default='demo_xml', help='path to the source compendium of xml files')
     parser.add_argument('-f', '--filenamebase', default='', help='namebase to save converted trainset and features set files')
-    parser.add_argument('-T', '--testset', action='store_true', help='use the testset instead of the trainset')
     parser.add_argument('-b', '--brat', action='store_true', help='Use brat files instead of xml files')
     parser.add_argument('-X', '--iterations', default=5, type=int, help='number of times each example is sampled')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbosity')
@@ -400,7 +396,6 @@ def main():
     options['verbose'] = args.verbose
     options['length'] = args.length
     options['path'] = args.path
-    options['train_or_test'] = 'test' if args.testset else 'train'
     if args.window:
         options['sampling_mode'] = 'window'
     elif args.start:
@@ -417,7 +412,7 @@ def main():
             prep = BratDataPreparator(options)
         else:
             prep = DataPreparator(options)
-        prep.run_on_dir(options['path'])
+        prep.run_on_compendium(options['path'])
 
 if __name__ == "__main__":
     main()

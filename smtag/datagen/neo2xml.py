@@ -195,20 +195,28 @@ class NeoImport():
 
         return {'paper_level':paper_errors, 'caption_level': caption_errors, 'tag_level': tag_level_errors}
 
-    def split_dataset(self, testfrac):
+    def split_dataset(self, validfract, testfract):
         shuffled_doi = list(self.articles.keys())
         shuffle(shuffled_doi)
         N = len(shuffled_doi)
-        end = floor(N * (1 - testfrac))
+        train_end = floor(N * (1 - validfract - testfract))
+        valid_end = floor(N * (1 - testfract))
         trainset = []
+        validation = []
         testset = []
-        for i in range(0, end):
+        # TRAINSET
+        for i in range(0, train_end):
             doi = shuffled_doi[i]
             trainset.append(self.articles[doi])
-        for i in range(end, N):
+        # VALIDATION SET
+        for i in range(train_end, valid_end):
+            doi = shuffled_doi[i]
+            validation.append(self.articles[doi])
+        # TESTSET
+        for i in range(valid_end, N):
             doi = shuffled_doi[i]
             testset.append(self.articles[doi])
-        return trainset, testset
+        return trainset, validation, testset
 
     def save(self, split_dataset, data_dir, namebase):
         with cd(config.data_dir):
@@ -224,8 +232,9 @@ class NeoImport():
                         os.mkdir(subdir) # should we use os.chmod(os.mkdir(os.path.join(stock, subdir), 0o777)with iopen(os.path.join(self.path, str(id)+".jpg"), 'wb') as file:
                         for i, article in enumerate(articles):
                             filename = str(i)+'.xml'
-                            print('writing to {}'.format(filename))
-                            ElementTree(article).write(os.path.join(subdir, filename), encoding='utf-8', xml_declaration=True)
+                            file_path = os.path.join(subdir, filename)
+                            print('writing to {}'.format(file_path))
+                            ElementTree(article).write(file_path, encoding='utf-8', xml_declaration=True)
 
     def log_errors(self, errors):
         """
@@ -259,7 +268,8 @@ def main():
     parser.add_argument('-r', '--role', default='', help='makes sure each example has entities with the specified role')
     parser.add_argument('-N', '--not_safe_mode', action='store_true', help='protects against some misformed XML in caption; set this option to False for debugging')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
-    parser.add_argument('-t', '--testfract', default=0.2, type=float, help='fraction of papers in testset')
+    parser.add_argument('-T', '--testfract', default=0.2, type=float, help='fraction of papers in testset')
+    parser.add_argument('-V', '--validation', default=0.2, type=float, help='fraction of papers in validation set')
 
     args = parser.parse_args()
 
@@ -334,6 +344,7 @@ def main():
     options['verbose'] = args.verbose
     options['namebase'] = args.namebase
     options['testset_fraction'] = args.testfract
+    options['validation_fraction'] = args.validation
     options['where_clause'] = where_clause
     options['entity_type_clause'] = entity_type_clause
     options['entity_role_clause'] = entity_role_clause
@@ -350,14 +361,14 @@ def main():
         config.working_directory = args.working_directory
 
     with cd(config.working_directory):
-        # check first that options['namebase']
+        # check first that options['namebase'] does not exist yet
         if os.path.isdir(os.path.join(config.data_dir, options['namebase'])):
             print("data {} already exists. Will not do anything.".format(options['namebase']))
         else:
             G = NeoImport(options)
             errors = G.neo2xml(options['source'])
-            trainset, testset = G.split_dataset(options['testset_fraction'])
-            G.save({'train': trainset, 'test': testset}, config.data_dir, options['namebase'])
+            trainset, validation, testset = G.split_dataset(options['validation_fraction'], options['testset_fraction'])
+            G.save({'train': trainset, 'valid': validation, 'test': testset}, config.data_dir, options['namebase'])
             G.log_errors(errors)
 
 if __name__ == "__main__":
