@@ -173,5 +173,5 @@ class Loader:
             for f in self.overlap_features:
                 dataset.output[index, self.index_of_overlap_feature, : ] *= raw_dataset.output[i, concept2index[f], : ]
 
-            print("\ndone\n")
+        print("\ndone\n")
         return dataset
