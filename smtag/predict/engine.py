@@ -112,7 +112,7 @@ class SmtagEngine:
                     (load_model('reporter_geneprod.zip', config.prod_dir), '')
                 ],
                 'context': [
-                    (load_model('causality_geneprod.zip', config.prod_dir), 'geneprod')
+                    (load_model('role_geneprod.zip', config.prod_dir), 'geneprod')
                 ],
                 'panelizer': [
                     (load_model('panel_start.zip', config.prod_dir), '')
