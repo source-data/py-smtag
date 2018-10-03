@@ -9,7 +9,7 @@ import shutil
 import sys
 from string import ascii_letters
 from math import floor
-from xml.etree.ElementTree  import XML, parse
+from xml.etree.ElementTree  import XML, parse, tostring
 
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
@@ -263,8 +263,8 @@ class DataPreparator(object):
                 }
                 encoded_examples.append(example)
             else:
-                print("skipping an example in document with id=", id)
-                print(str(examples[id]))
+                print("\nskipping an example in document with id=", id)
+                print(tostring(examples[id]))
         return encoded_examples
 
 

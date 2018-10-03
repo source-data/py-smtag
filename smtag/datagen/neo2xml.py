@@ -258,7 +258,7 @@ def main():
     parser.add_argument('-f', '--namebase', default='demo_xml', help='The name of the dataset')
     parser.add_argument('-A', '--tags2anonymize', default='', help='tag type to anonymise')
     parser.add_argument('-AA','--donotanonymize', default='', help='role of tags that should NOT be anonymized')
-    parser.add_argument('-l', '--limit', default=10, type=int, help='limit number of papers scanned, mainly for testing')
+    parser.add_argument('-l', '--limit', default=None, type=int, help='limit number of papers scanned, mainly for testing')
     parser.add_argument('-Y', '--year_range', default='', help='select papers published in the start:end year range')
     parser.add_argument('-J', '--journals', default='', help='select set of journals, comma delimited')
     parser.add_argument('-D', '--doi', default='', help='restrict to a single doi')
