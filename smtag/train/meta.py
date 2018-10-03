@@ -29,21 +29,22 @@ class Meta():
 
     def __init__(self, opt):
         self.opt = opt
-        self.training_minibatches = None
-        self.validation_minibatches = None
 
-    def _load_data(self):
-        ldr = Loader(self.opt)
-        datasets = ldr.prepare_datasets(self.opt['namebase'])
+    def _load_data(self): # , train_valid_test): delete
+        ldr = Loader(self.opt) # careful: needs to be re-initialized since batch size can vary in hyper scan
+        datasets = {
+            'train': ldr.prepare_datasets(os.path.join(config.data4th_dir, self.opt['namebase'], 'train')),
+            'valid': ldr.prepare_datasets(os.path.join(config.data4th_dir, self.opt['namebase'], 'valid'))
+        }
         return datasets
 
     def _prep_minibatches(self, datasets):
         training_minibatches = Minibatches(datasets['train'], self.opt['minibatch_size'])
         validation_minibatches = Minibatches(datasets['valid'], self.opt['minibatch_size'])
-        self.opt['nf_input'] = datasets['train'].nf_input
-        self.opt['nf_output'] =  datasets['train'].nf_output
+        self.opt['nf_input'] = datasets['train'].nf_input # dataset
+        self.opt['nf_output'] =  datasets['train'].nf_output # dataset 
         print("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
-        return training_minibatches, validation_minibatches
+        return training_minibatches, validation_minibatches # minibatches
 
     def _train(self, training_minibatches, validation_minibatches, opt):
         # check if previous model specified and load it with importmodel
@@ -64,10 +65,10 @@ class Meta():
         print("final perf ({}):".format("\t".join([x for x in perf])), "\t".join(["{:.2}".format(x) for x in perf]))
         self._save(model)
 
-    def hyper_scan(self, iterations, hyperparams, name):
-        datasets = self._load_data()
+    def hyper_scan(self, iterations, hyperparams, scan_name):
+        datasets = self._load_data() # CAREFUL: needs to re-prepare minibatches since minibatch size is a hyperparam
         with cd(config.scans_dir):
-            scan = HyperScan(self.opt, name)
+            scan = HyperScan(self.opt, scan_name)
             for i in range(iterations):
                 self.opt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
                 training_minibatches, validation_minibatches = self._prep_minibatches(datasets)

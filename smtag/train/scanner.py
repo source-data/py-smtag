@@ -39,7 +39,6 @@ class HyperScan():
             'kernel': opt['kernel_table'][0],
             'pooling': opt['pool_table'][0]
         }
-        self._metrics = []
         self.opt = opt
         timestamp = datetime.now().isoformat("-",timespec='minutes').replace(":", "-") # dir to save scan results
         self.dir_name = dir_name + "_" + timestamp 
@@ -60,7 +59,6 @@ class HyperScan():
         perf['f1'] = perf['f1'].mean()
         perf['train_loss'] = perf['train_loss'].mean()
         perf['valid_loss'] = perf['valid_loss'].mean()
-        # self._metrics.append(perf)
         self.append_to_csv(perf, opt, self.perf_path)
         model_filename = 'scanned_model_' + str(id)
         export_model(model, model_filename, model_dir = self.scanned_models_path)

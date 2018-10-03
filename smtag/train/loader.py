@@ -11,13 +11,12 @@ from ..common.config import NBITS
 from ..common.mapper import Catalogue, concept2index
 from ..common.progress import progress
 from ..common.viz import Show
-from ..common.utils import tokenize
+from ..common.utils import tokenize, cd
 from .. import config
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')
 # logger = logging.getLogger(__name__)
-
 
 class Dataset:
 
@@ -41,38 +40,39 @@ class Dataset:
         self.input = torch.zeros(self.N, self.nf_input, self.L)
         self.output = torch.zeros(self.N, self.nf_output, self.L)
 
-    def from_files(self, basename):
-        features_filename = os.path.join(config.data4th_dir, basename+".pyth")
-        text_filename = os.path.join(config.data4th_dir, basename+".txt")
-        textcoded_filename = os.path.join(config.data4th_dir, basename+"_textcoded.pyth")
-        provenance_filename = os.path.join(config.data4th_dir, basename+".prov")
+    def from_files(self, path):
+        with cd(path):
+            features_filename = 'features.pyth'
+            text_filename = 'text.txt'
+            textcoded_filename = 'textcoded.pyth'
+            provenance_filename = 'provenance.txt'
 
-        print("Loading {} as features for the dataset.".format(features_filename))
-        self.output = torch.load(features_filename).float()
-        self.N = self.output.size(0) #number of examples
-        self.nf_output = self.output.size(1) #number of features
-        self.L = self.output.size(2) #length of text snippet
+            print("Loading {} as features for the dataset.".format(features_filename))
+            self.output = torch.load(features_filename).float()
+            self.N = self.output.size(0) #number of examples
+            self.nf_output = self.output.size(1) #number of features
+            self.L = self.output.size(2) #length of text snippet
 
-        print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
-        self.textcoded = torch.load(textcoded_filename).float()
+            print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
+            self.textcoded = torch.load(textcoded_filename).float()
 
-        print("Loading {} for the original texts of the dataset.".format(text_filename))
-        with open(text_filename, 'r') as f:
-            for line in f:
-                line = line.rstrip('\n')
-                if len(line) > self.L :
-                    raise LineTooLong(line, self.L)
-                self.text.append(line)
+            print("Loading {} for the original texts of the dataset.".format(text_filename))
+            with open(text_filename, 'r') as f:
+                for line in f:
+                    line = line.rstrip('\n')
+                    if len(line) > self.L :
+                        raise LineTooLong(line, self.L)
+                    self.text.append(line)
 
-        print("Loading {} as provenance info for the examples in the dataset.".format(provenance_filename))
-        with open(provenance_filename, 'r') as f:
-            for line in f:
-                self.provenance.append(line)
+            print("Loading {} as provenance info for the examples in the dataset.".format(provenance_filename))
+            with open(provenance_filename, 'r') as f:
+                for line in f:
+                    self.provenance.append(line)
 
-        print("Dataset dimensions:")
-        print("{} text examples of size {}".format(self.N, self.L))
-        print("{} input features (in-channels).".format(self.nf_input))
-        print("{} output features (out-channels).".format(self.nf_output))
+            print("Dataset dimensions:")
+            print("{} text examples of size {}".format(self.N, self.L))
+            print("{} input features (in-channels).".format(self.nf_input))
+            print("{} output features (out-channels).".format(self.nf_output))
 
     def add_token_lists(self):
         if not self.tokenized: # don't retokenize
@@ -130,7 +130,7 @@ class Loader:
         N = raw_dataset.N
         L = raw_dataset.L
         nf = raw_dataset.nf_output # it already includes the last row for 'geneprod'!!
-        
+
         assert N != 0, "zero examples!"
 
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
@@ -142,69 +142,36 @@ class Loader:
         print("Creating dataset with selected features {}, and shuffling {} examples.".format(", ".join([str(f) for f in self.selected_features]), N))
         shuffled_indices = list(range(N))
         shuffle(shuffled_indices)
-        datasets = {}
-        if self.validation_fraction == 0:
-            print("single dataset mode, no validation; for benchmarking")
-            datasets["single"]= {} #--testset mode; for benchmarking
-            datasets["single"]["first_example"] = 0
-            datasets["single"]["last_example"] = N
-        else:
-            print("normal trainset and validation set mode")
-            datasets["train"] = {} #--normal trainset and validation set mode
-            datasets["valid"] = {}
-            datasets["train"]["first_example"] = 0
-            datasets["train"]["last_example"] = math.floor(N*(1-self.validation_fraction))
-            datasets["valid"]["first_example"] = datasets["train"]["last_example"]
-            datasets["valid"]["last_example"] = N
-        # N = 11 examples [0,1,2,3,4,5,6,7,8,9,10], validation_fraction = 0.2
-        # 8 training, 2 validation
-        # train_first_example = 0
-        # train_last_example = 8 = floor(11*(1-0.2)) = floor(8.8)
-        # range(0,8) is 0,1,2,3,4,5,6,7
-        # example_i = 3 => index = 3  - first_example = 3
-        # valid first_example =  train_last_example = 8
-        # valid_last_example = N
-        # N_examples = N - valid_first_example = 11 - 8 = 3
-        # list(range(8,11)) = is 8,9,10
-        # example_i = 9 => index = 9 - first_example = 1
-        for k in datasets: # k 'test' in testing mode otherwise 'valid' or 'train'
-            first_example = datasets[k]['first_example']
-            last_example = datasets[k]['last_example']
-            N_examples = last_example - first_example
-            dataset = Dataset(N_examples, self.nf_input, self.nf_output, L)
+        
+        dataset = Dataset(N, self.nf_input, self.nf_output, L)
 
-            print("Generating {} set with {} examples ({}, {})".format(k, N_examples, first_example, last_example))
-            print("input dataset['{}'] tensor created".format(k))
-            print("output dataset['{}'] tensor created".format(k))
-            for example_i in range(first_example, last_example):
-                i = shuffled_indices[example_i]
-                index = example_i - first_example
-                progress(index, N_examples, status="loading {} examples ({} to {}) into dataset['{}'] (example_i={},index={})".format(N_examples, first_example, last_example, k, example_i, index))
-                #INPUT: TEXT SAMPLE ENCODING
-                assert len(raw_dataset.text[i]) == L, "FATAL: {} > {} with {}".format(len(raw_dataset.text[i]), L, raw_dataset.text[i])
-                dataset.text[index] = raw_dataset.text[i]
-                dataset.provenance[index] = raw_dataset.provenance[i]
-                dataset.input[index, 0:32 , : ] = raw_dataset.textcoded[i, : , : ]
+        print("Generating dataset with {} examples".format(N))
+        for index, i in enumerate(shuffled_indices):
+            progress(index, N, status="loading example {} in position {})".format(i, index))
+            assert len(raw_dataset.text[i]) == L, "FATAL: {} > {} with {}".format(len(raw_dataset.text[i]), L, raw_dataset.text[i])
+            dataset.text[index] = raw_dataset.text[i]
+            dataset.provenance[index] = raw_dataset.provenance[i]
+            dataset.input[index, 0:32 , : ] = raw_dataset.textcoded[i, : , : ]
 
-                for j, f in enumerate(self.features_as_input):
-                    # for example: j=0, => 32 + 0 = 32
-                    dataset.input[index, 32 + j, : ] = raw_dataset.output[i, concept2index[f], : ]
+            # INPUT: ENCODED TEXT SAMPLES
+            for j, f in enumerate(self.features_as_input):
+                # for example: j=0, => 32 + 0 = 32
+                dataset.input[index, 32 + j, : ] = raw_dataset.output[i, concept2index[f], : ]
 
-                #OUTPUT SELECTION AND COMBINATION OF FEATURES
-                for f in self.selected_features:
-                    j = self.selected_features.index(f)
-                    dataset.output[index, j, : ] = raw_dataset.output[i, concept2index[f], : ]
+            # OUTPUT SELECTION AND COMBINATION OF FEATURES
+            for f in self.selected_features:
+                j = self.selected_features.index(f)
+                dataset.output[index, j, : ] = raw_dataset.output[i, concept2index[f], : ]
 
-                #dataset.output[index, nf_collapsed_feature,:] is already initialized with zeros
-                for f in self.collapsed_features:
-                    dataset.output[index, self.index_of_collapsed_feature,  : ] += raw_dataset.output[i, concept2index[f], : ]
+            # dataset.output[index, nf_collapsed_feature,:] is already initialized with zeros
+            for f in self.collapsed_features:
+                dataset.output[index, self.index_of_collapsed_feature,  : ] += raw_dataset.output[i, concept2index[f], : ]
 
-                #for overlap features, need initialization with ones
-                if self.overlap_features:
-                    dataset.output[index, self.index_of_overlap_feature, : ].fill_(1)
-                for f in self.overlap_features:
-                    dataset.output[index, self.index_of_overlap_feature, : ] *= raw_dataset.output[i, concept2index[f], : ]
+            # for overlap features, need initialization with ones
+            if self.overlap_features:
+                dataset.output[index, self.index_of_overlap_feature, : ].fill_(1)
+            for f in self.overlap_features:
+                dataset.output[index, self.index_of_overlap_feature, : ] *= raw_dataset.output[i, concept2index[f], : ]
 
             print("\ndone\n")
-            datasets[k] = dataset
-        return datasets
+        return dataset

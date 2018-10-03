@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
+import os
 import torch
 import argparse
 import numpy as np
@@ -10,6 +11,7 @@ from ..predict.binarize import Binarized
 from ..common.progress import progress
 from ..common.config import DEFAULT_THRESHOLD
 from ..common.importexport import load_model
+from .. import config
 
 class Accuracy(object):
 
@@ -97,18 +99,22 @@ class Accuracy(object):
 
 class Benchmark():
 
-    def __init__(self, model_basename, testset_basename, tokenize):
+    def __init__(self, model_basename, dataset_basename, tokenize):
+        self.model_name = model_basename
         self.model = load_model(model_basename)
         self.opt = self.model.opt
-        self.opt['validation_fraction'] = 0 # single data set mode, no validation
         self.tokenize = tokenize
         loader = Loader(self.opt)
-        dataset = loader.prepare_datasets(testset_basename)
-        minibatches = Minibatches(dataset['single'], self.opt['minibatch_size'])
+        self.testset_name = os.path.join(config.data4th_dir, dataset_basename,'test')
+        testset = loader.prepare_datasets(self.testset_name)
+        minibatches = Minibatches(testset, self.opt['minibatch_size'])
         benchmark = Accuracy(self.model, minibatches, tokenize=self.tokenize)
         self.precision, self.recall, self.f1 = benchmark.run()
 
     def display(self):
+        print("\n\n\033[31;1m========================================================\033[0m")
+        print("\n\033[31;1m Data: {}\033[0m".format(self.testset_name))
+        print("\n\033[31;1m Model: {}\033[0m".format(self.model_name))
         print("\n Global stats: \033[1m\n")
         print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision.mean()))
         print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall.mean()))
@@ -125,13 +131,12 @@ class ScanThreshold():
     def __init__(self, model_basename, dataset_basename, tokenize):
         self.model = load_model(model_basename)
         self.opt = self.model.opt
-        self.opt['validation_fraction'] = 0.3 # single data set mode, no validation
         print("opt from model", "; ".join(["{}={}".format(k, str(self.opt[k])) for k in self.opt]))
         self.tokenize = tokenize
         loader = Loader(self.opt) # validation_fraction == 0 ==> dataset['single'] is loaded
-        dataset = loader.prepare_datasets(dataset_basename)
-        self.minibatches = Minibatches(dataset['train'], int(self.opt['minibatch_size']))
-        
+        validation = loader.prepare_datasets(os.path.join(config.data4th_dir, dataset_basename, 'valid'))
+        self.minibatches = Minibatches(validation, int(self.opt['minibatch_size']))
+
 
     def run(self, n=11):
         old_thresholds = [concept.threshold for concept in self.model.output_semantics]
@@ -152,22 +157,22 @@ class ScanThreshold():
 
 def main():
     parser = argparse.ArgumentParser(description='Accuracy evaluation.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-f', '--file', default='test_entities_test', help='Namebase of the dataset to import as testset')
+    parser.add_argument('-f', '--file', default='test_entities_test', help='Basename of the dataset to import (testset)')
     parser.add_argument('-m' , '--model',  default='entities.sddl', help='Basename of the model to benchmark.')
     parser.add_argument('-T' , '--no_token', action='store_true', help='Flag to disable tokenization.')
     parser.add_argument('-S' , '--scan', action='store_true', help='Flag to switch to threshold scaning mode.')
 
     arguments = parser.parse_args()
-    testset_basename = arguments.file
+    basename = arguments.file
     model_basename = arguments.model
     scan_threshold = arguments.scan
     tokenize = not arguments.no_token
-    print("model: {}, testset: {}, tokenization: {}".format(model_basename, testset_basename, tokenize))
+    print("model: {}, testset: {}, tokenization: {}".format(model_basename, basename, tokenize))
     if scan_threshold:
-        s = ScanThreshold(model_basename, testset_basename, tokenize=tokenize)
+        s = ScanThreshold(model_basename, basename, tokenize=tokenize)
         s.run()
     else:
-        b = Benchmark(model_basename, testset_basename, tokenize=tokenize)
+        b = Benchmark(model_basename, basename, tokenize=tokenize)
         b.display()
 
 if __name__ == '__main__':

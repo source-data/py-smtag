@@ -5,6 +5,7 @@
 import argparse
 import torch
 import os.path
+import shutil
 import sys
 from string import ascii_letters
 from math import floor
@@ -240,10 +241,8 @@ class DataPreparator(object):
         self.min_padding = options['padding']
         self.verbose = options['verbose']
         self.iterations = options['iterations']
-        self.path_compendium = '' # delete
-        self.namebase = options['namebase']
-        self.train_or_test = options['train_or_test'] # delete
-        self.dataset4th = {}
+        self.namebase = options['namebase'] # namebase where the converted dataset should be saved
+        self.compendium = options['compendium'] # the compendium of source documents to be sampled and converted
 
     @staticmethod
     def encode_examples(examples):
@@ -269,13 +268,13 @@ class DataPreparator(object):
         return encoded_examples
 
 
-    def import_files(self, path, train_valid_test, XPath_to_examples='.//figure-caption'):
+    def import_files(self, subset, XPath_to_examples='.//figure-caption'):
         """
         Import xml documents from dir. In each document, extracts examples using XPath.
         """
 
         with cd(config.data_dir):
-            path = os.path.join(path, train_valid_test)
+            path = os.path.join(self.compendium, subset)
             print("\nloading from:", path)
             filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
             examples = {}
@@ -284,7 +283,7 @@ class DataPreparator(object):
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
                     for j, e in enumerate(xml.findall(XPath_to_examples)):
-                        id = filename + "-" + str(i) # unique id provided filename is unique (hence limiting to single allowed file extension)
+                        id = filename + "-" + str(j) # unique id provided filename is unique (hence limiting to single allowed file extension)
                         examples[id] = e
                 except Exception as e:
                     print("problem parsing", os.path.join(path, filename))
@@ -293,76 +292,59 @@ class DataPreparator(object):
         return examples
 
 
-    def save(self, filenamebase, train_valid_test):
+    def save(self, dataset4th, subset):
         """
         Saving datasets prepared for torch to a text file with text example, a npy file for the extracted features and a provenance file that keeps track of origin of each example.
         """
 
         with cd(config.data4th_dir):
-            archive_path = "{}_{}".format(filenamebase, train_valid_test)
-            print("saving to {}.zip".format(archive_path))
-            with ZipFile("{}.zip".format(archive_path), 'w', ZIP_DEFLATED) as myzip:
+            with cd(self.namebase):
+                os.mkdir(subset)
+                with cd(subset):
+                    # write feature tensor
+                    torch.save(dataset4th['tensor4th'], 'features.pyth')
+                    # write encoded text tensor
+                    torch.save(dataset4th['textcoded4th'], 'textcoded.pyth')
+                    # write text examples into text file
+                    with open("text.txt", 'w') as f:
+                        for line in dataset4th['text4th']:
+                            f.write("{}\n".format(line))
+                    # write provenenance of each example into text file
+                    with open('provenance.txt', 'w') as f:
+                        for line in dataset4th['provenance4th']:
+                            f.write(line+"\n")
 
-                # write feature tensor
-                tensor_filename = "{}.pyth".format(archive_path)
-                torch.save(self.dataset4th['tensor4th'], tensor_filename)
-                myzip.write(tensor_filename)
-                os.remove(tensor_filename)
-
-                # write encoded text tensor
-                textcoded_filename = "{}_textcoded.pyth".format(archive_path)
-                torch.save(self.dataset4th['textcoded4th'], textcoded_filename)
-                myzip.write(textcoded_filename)
-                os.remove(textcoded_filename)
-
-                # write text examples into text file
-                text_filename = "{}.txt".format(archive_path)
-                with open(text_filename, 'w') as f:
-                    for line in self.dataset4th['text4th']:
-                        f.write("{}\n".format(line))
-                myzip.write(text_filename)
-                os.remove(text_filename)
-
-                # write provenenance of each example into text file
-                provenance_filename = "{}.prov".format(archive_path)
-                with open(provenance_filename, 'w') as f:
-                    for line in self.dataset4th['provenance4th']:
-                        f.write(line+"\n")
-                        #f.write(", ".join([str(line[k]) for k in ['id','index']]) + "\n")
-                myzip.write(provenance_filename)
-                os.remove(provenance_filename)
-
-                myzip.close()
-
-            for info in myzip.infolist():
-                print("saved {} (size: {})".format(info.filename, info.file_size))
-
-    def run_on_dir(self, path, train_valid_test):
-        examples = self.import_files(path, train_valid_test)
+    def run_on_dir(self, subset):
+        examples = self.import_files(subset)
         encoded_examples = self.encode_examples(examples) # xml elements, attributes and value are encoded into numbered features
         sampler = Sampler(encoded_examples, self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
-        self.dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
-        self.save(self.namebase, train_valid_test) # save the tensors
+        dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
+        self.save(dataset4th, subset) # save the tensors
 
-    def run_on_compendium(self, path, subsets={'train', 'valid', 'test'}):
+    def run_on_compendium(self):
+        with cd(config.data_dir):
+            subsets = os.listdir(self.compendium)
+            subsets = [s for s in subsets if s != '.DS_Store']
+        with cd(config.data4th_dir):
+            if os.path.isdir(self.namebase):
+                shutil.rmtree(self.namebase)
+            os.mkdir(self.namebase)
         for train_valid_test in subsets:
-            self.run_on_dir(path, train_valid_test)
+            self.run_on_dir(train_valid_test)
 
 
 class BratDataPreparator(DataPreparator):
     def __init__(self, options):
         super(BratDataPreparator, self).__init__(options)
 
-    def import_files(self, path, train_valid_test):
+    def import_files(self, subset):
         with cd(config.data_dir):
-            path = os.path.join(path, train_valid_test)
+            path = os.path.join(self.compendium, subset)
             brat_examples = BratImport.from_dir(path)
         return brat_examples
 
     def encode_examples(self, examples):
-
         encoded_examples = []
-
         for ex in examples:
             encoded_features = BratEncoder.encode(ex)
             encoded_examples.append({
@@ -392,6 +374,7 @@ def main():
 
     options = {}
     options['namebase'] = args.filenamebase
+    options['compendium'] = args.path
     options['iterations'] = args.iterations
     options['verbose'] = args.verbose
     options['length'] = args.length
@@ -412,7 +395,7 @@ def main():
             prep = BratDataPreparator(options)
         else:
             prep = DataPreparator(options)
-        prep.run_on_compendium(options['path'])
+        prep.run_on_compendium()
 
 if __name__ == "__main__":
     main()
