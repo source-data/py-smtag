@@ -87,7 +87,6 @@ class Loader:
         self.collapsed_features = Catalogue.from_list(opt['collapsed_features'])
         self.overlap_features = Catalogue.from_list(opt['overlap_features'])
         self.features_as_input = Catalogue.from_list(opt['features_as_input'])
-        self.validation_fraction = opt['validation_fraction']  # fraction of the whole dataset to be used for validation during training
         self.nf_input = NBITS
 
         self.nf_collapsed_feature = 0
