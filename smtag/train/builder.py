@@ -21,7 +21,7 @@ class SmtagModel(nn.Module):
 
         self.pre = nn.BatchNorm1d(nf_input)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout)
-        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1)
+        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1) # reduce output features of unet to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output)
 
         self.output_semantics = Catalogue.from_list(opt['selected_features'])
@@ -108,15 +108,6 @@ class Unet2(nn.Module):
             y, pool_2_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
             y = self.unet2(y)
             y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_2_indices, y_size_2)
-        # else:
-        # impose a fixed internal size to be able to concat with contextual info
-            # y_size_2 = y.size(2)
-            # y = nn.AdaptiveAvgPool1d(20)(y)
-            # y = self.lin(y) # self.lin = nn.Linear(20,20)
-            # y = F.relu(y)
-            # y = Concat([y, external])
-            # y = nn.AdaptiveAvgPool1d(y_size_2)(y)
-        
         y = self.dropout(y)
         y = self.conv_up_B(y)
         y = F.relu(self.BN_up_B(y))
@@ -125,8 +116,7 @@ class Unet2(nn.Module):
         y = F.relu(self.BN_up_A(y))
 
         #y = x + y # this is the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
-        y = self.concat((x, y)) # merge via concatanation of output layers followed by reducing from 2*nf_output to nf_output
-        y = self.reduce(y)
+        y = self.concat((x, y)) # merge via concatanation of output layers 
+        y = self.reduce(y) # reducing from 2*nf_output to nf_output
 
         return y
-
