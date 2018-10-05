@@ -30,7 +30,7 @@ class Meta():
     def __init__(self, opt):
         self.opt = opt
 
-    def _load_data(self): # , train_valid_test): delete
+    def _load_data(self):
         ldr = Loader(self.opt) # careful: needs to be re-initialized since batch size can vary in hyper scan
         datasets = {
             'train': ldr.prepare_datasets(os.path.join(config.data4th_dir, self.opt['namebase'], 'train')),
@@ -89,7 +89,6 @@ def main():
     parser.add_argument('-E' , '--epochs',  default=200, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=32, help='Minibatch size.')
     parser.add_argument('-R', '--learning_rate', default=0.01, type=float, help='Learning rate.')
-    parser.add_argument('-V', '--validation_fraction', default=0.2, help='Fraction of the dataset that should be used as validation set during training.')
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
     parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')
     parser.add_argument('-a', '--overlap_features', default='', help='Features that should be combined by intersecting them (equivalent to AND operation) (use quotes if comma+space delimited).')
@@ -126,7 +125,6 @@ def main():
     opt['pool_table'] = pool_table
     opt['kernel_table'] = kernel_table
     opt['dropout'] = 0.1
-    opt['validation_fraction'] = float(arguments.validation_fraction)
     print("\n".join(["opt[{}]={}".format(o,opt[o]) for o in opt]))
 
     if arguments.working_directory:
