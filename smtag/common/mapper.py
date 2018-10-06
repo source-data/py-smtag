@@ -122,7 +122,7 @@ class Catalogue():
     REPORTER = Role('reporter', [('role', 'reporter')], 0.3)
     EXP_VAR = Role('experiment', [('role', 'experiment')], 0.5)
     GENERIC = Role('component', [('role', 'component')], 0.5)
-    EXP_ASSAY = Category('assay', [('category', 'assay')], 0.4)
+    EXP_ASSAY = Category('assay', [('category', 'assay')], 0.5)
     ENTITY = Category('entity', [('category', 'entity')], 0.5)
     TIME = Category('time', [('category', 'assay')], 0.5)
     PHYSICAL_VAR = Category('physical', [('category', 'physical')], 0.5)
