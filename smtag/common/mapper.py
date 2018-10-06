@@ -119,7 +119,7 @@ class Catalogue():
     INTERVENTION = Role('intervention', [('role', 'intervention')], 0.4)
     MEASUREMENT = Role('assayed', [('role', 'assayed')], 0.4)
     NORMALIZING = Role('normalizing', [('role', 'normalizing')], 0.5)
-    REPORTER = Role('reporter', [('role', 'reporter')], 0.8)
+    REPORTER = Role('reporter', [('role', 'reporter')], 0.3)
     EXP_VAR = Role('experiment', [('role', 'experiment')], 0.5)
     GENERIC = Role('component', [('role', 'component')], 0.5)
     EXP_ASSAY = Category('assay', [('category', 'assay')], 0.4)
