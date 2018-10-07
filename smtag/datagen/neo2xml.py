@@ -5,11 +5,14 @@ import re
 import os
 import argparse
 from getpass import getpass
+from io import open as iopen
 from xml.etree.ElementTree import fromstring, Element, ElementTree, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node
 from random import shuffle
 from math import floor
 import difflib
+import re
+import requests
 from ..common.utils import cd
 from ..common.config import MARKING_CHAR, MARKING_CHAR_ORD  
 from .. import config
@@ -97,6 +100,20 @@ class NeoImport():
 
         return panel_xml, tag_errors
 
+    @staticmethod
+    def download_images(article, XPath_to_graphics='.//Graphics'):
+        graphics = article.findall(XPath_to_graphics)
+        for g in graphics:
+            url = g.attrib['href'] # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
+            id = re.search(r'panel_id=(\d+)', url).group(1)
+            print(f"trying to access {url} (image {id})")
+            resp = requests.get(url)
+            if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
+                with iopen(id +".jpg", 'wb') as file:
+                    file.write(resp.content)
+            else:
+                print(f"skipped {url} ({resp.status_code})")
+    
     def neo2xml(self, source):
 
         where_clause = self.options['where_clause']
@@ -136,7 +153,7 @@ class NeoImport():
                 q_figures = '''
                     MATCH (a:Article )-->(f:Figure)
                     WHERE id(a) = {}
-                    RETURN id(f), f.fig_label //, f.caption
+                    RETURN id(f), f.fig_label, f.image_link //, f.caption
                     ORDER BY f.fig_label ASC
                     '''.format(a_id)
                 results_figures = DB.query(q_figures)
@@ -147,14 +164,14 @@ class NeoImport():
                 for f in results_figures:
                     f_id = f[0]
                     fig_label = f[1]
+                    fig_img_url = f[2]
 
-                    # ADD: url of image
                     q_panel = '''
                     MATCH (f:Figure)-->(p:Panel)-->(t:Tag)
                     WHERE id(f) = {} AND t.in_caption = true
                     {} //AND t.type = some_entity_type OR some other type
                     {} //AND t.role = some role OR some role
-                    WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, COLLECT(DISTINCT t) AS tags
+                    WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, p.image_link, COLLECT(DISTINCT t) AS tags
                     RETURN formatted_caption, label, panel_id, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
                     '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
                     results_panels = DB.query(q_panel)
@@ -164,7 +181,7 @@ class NeoImport():
                     if results_panels:
                         figure_xml_element = Element('figure-caption')
                         #panels not in the proper order, need resorting via label
-                        results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'fig_label':fig_label, 'tags':p[3], 'tags2anonym':p[4]} for p in results_panels}
+                        results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'fig_label':fig_label, 'image_link': p[3], 'tags':p[4], 'tags2anonym':p[5]} for p in results_panels}
                         sorted_panel_labels = list(results_labeled.keys())
                         sorted_panel_labels.sort()
 
@@ -172,8 +189,12 @@ class NeoImport():
                             panel_caption = results_labeled[p]['panel_caption']
                             tags = results_labeled[p]['tags']
                             tags2anonym = results_labeled[p]['tags2anonym']
+                            image_link = results_labeled[p]['image_link']
                             try:
                                 panel_xml_element, tag_errors = self.caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
+                                graphic = Element('Graphic') # https://jats.nlm.nih.gov/publishing/tag-library/1.2d1/element/graphic.html
+                                graphic.attrib['href'] = image_link
+                                panel_xml_element.append(graphic)
                                 figure_xml_element.append(panel_xml_element)
                                 if tag_errors:
                                     panel_id = results_labeled[p]['panel_id']
@@ -235,6 +256,8 @@ class NeoImport():
                             file_path = os.path.join(subdir, filename)
                             print('writing to {}'.format(file_path))
                             ElementTree(article).write(file_path, encoding='utf-8', xml_declaration=True)
+                            # download relevant assets (images)
+                            self.download_images(article)
 
     def log_errors(self, errors):
         """

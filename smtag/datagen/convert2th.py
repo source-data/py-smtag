@@ -256,6 +256,7 @@ class DataPreparator(object):
             text = ''.join([s for s in examples[id].itertext()])
             if text:
                 encoded_features, _, _ = XMLEncoder.encode(examples[id])
+                # call image_features = Context.from_image(examples[id])
                 example = {
                     'provenance': id,
                     'text': text,

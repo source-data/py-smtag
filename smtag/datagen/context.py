@@ -128,7 +128,7 @@ from .. import config
 
 ALLOWED_FILE_EXTENSIONS =['xml', 'jpg']
 
-class OCR():
+class OCRContext():
     """
     [WIP] Will need to be included in encoder module?
     Extracts text elements from images and encode as features for relevant segments of the respective text examples.
@@ -145,10 +145,6 @@ class OCR():
         self.G = G
         self.T = T
         self.client = vision.ImageAnnotatorClient(credentials = service_account.Credentials.from_service_account_file(account_key))
-        self.examples = self.load_from_dir()
-        self.N = len(self.examples)
-        self.context_codes = []
-        #self.context_tensor = torch.Tensor(self.N, self.G, len(text))
 
     def load_from_dir(self):
         xml_documents = self.import_xml_files()
@@ -206,9 +202,7 @@ class OCR():
                 progress(i, len(filenames), "loaded {}".format(filename))
         return examples
 
-    def get_example(self, i):
-        text = self.examples[i]['text']
-        img_filename = self.examples[i]['img']
+    def get_example(self, img_filename): # change this to get_example(self, img_filename)
         with cd(self.path):
             with io.open(img_filename, 'rb') as image_file:
                 img = image_file.read()
@@ -216,7 +210,7 @@ class OCR():
         shape = img_cv.shape
         h = shape[0]
         w = shape[1]
-        return text, img, h, w
+        return img, h, w
 
     def get_ocr(self, img):
         image = types.Image(content=img)
@@ -230,7 +224,10 @@ class OCR():
         return annotations
 
     def get_coordinates(self, annot):
-        return annot.bounding_poly.vertices[0].x, annot.bounding_poly.vertices[0].x
+        print(annot.description)
+        for v in annot.bounding_poly.vertices:
+            print(v.x, v.y)
+        return annot.bounding_poly.vertices[0].x, annot.bounding_poly.vertices[0].y
     
     def get_orientation(self, annot):
         """
@@ -266,7 +263,10 @@ class OCR():
             annot: ocr annotation
         """
         x, y = self.get_coordinates(annot)
-        grid_pos = (floor(self.G * (y / h)) * self.G) + floor(self.G * (x / w))
+        row = floor(self.G * (y / h))
+        column = floor(self.G * (x / w))
+        grid_pos = (row * self.G) + column
+        print("h, w, x, y, grid_pos", h, w, x, y, grid_pos, row, column)
         return grid_pos
 
     def best_matches(self, text, annot):
@@ -280,6 +280,7 @@ class OCR():
             if dist <= self.T:
                 matches.append({
                     'match': text[i:i+l],
+                    'query': query,
                     'length': l,
                     'score': 1-dist,
                     'pos': i
@@ -292,28 +293,38 @@ class OCR():
     def encode_ocr(self, text, h, w, annotations):
         context_tensor = torch.zeros(self.G ** 2, len(text))
         for annot in annotations:
+            print("'{}'".format(annot.description))
             pos_on_grid = self.grid_index(h, w, annot)
             matches = self.best_matches(text, annot)
             for m in matches:
-                print(m)
                 self.add_context_(context_tensor, pos_on_grid, m['pos'], m['length'], m['score'])
         return context_tensor
     
-    def run(self):
-        for i in range(self.N): # for text, img, shape in self.examples # define class Examples and class Example
-            text, img, h, w = self.get_example(i)
-            annotations = self.get_ocr(img)
-            encoded_ocr_context = self.encode_ocr(text, h, w, annotations)
-            self.context_codes.append(encoded_ocr_context)
+    def run(self, text, img_filename):
+        img, h, w = self.get_example(img_filename)
+        annotations = self.get_ocr(img)
+        encoded_ocr_context = self.encode_ocr(text, h, w, annotations)
+        return encoded_ocr_context
+    
+    def run_on_dir(self):
+        examples = self.load_from_dir()
+        N = len(examples)
+        context_codes = []
+        for i in range(N): # for text, img, shape in self.examples # define class Examples and class Example
+            text = examples[i]['text']
+            img_filename = examples[i]['img']
+            encoded_ocr_context = self.run(text, img_filename)
+            context_codes.append(encoded_ocr_context)
+        return examples, context_codes
 
 
 def main():
     test_path = os.path.join(config.data_dir, 'test_img', 'train')
-    ocr = OCR(test_path)
-    ocr.run()
-    print(ocr.examples)
-    for i, t in enumerate(ocr.context_codes):
-        print(ocr.examples[i]['text'])
+    ocr = OCRContext(test_path, G=5, T=0.33)
+    examples, context_codes = ocr.run_on_dir()
+    print(examples)
+    for i, t in enumerate(context_codes):
+        print(examples[i]['text'])
         for j in range(t.size(0)):
             print("".join([['-','+'][ceil(s)] for s in t[j]]))
 
