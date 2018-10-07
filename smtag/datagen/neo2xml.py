@@ -101,8 +101,9 @@ class NeoImport():
         return panel_xml, tag_errors
 
     @staticmethod
-    def download_images(article, XPath_to_graphics='.//Graphics'):
+    def download_images(article, XPath_to_graphics='.//graphic'):
         graphics = article.findall(XPath_to_graphics)
+        print("found {} graphics in {}".format(len(graphics), article.attrib['doi']))
         for g in graphics:
             url = g.attrib['href'] # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
             id = re.search(r'panel_id=(\d+)', url).group(1)
@@ -171,8 +172,8 @@ class NeoImport():
                     WHERE id(f) = {} AND t.in_caption = true
                     {} //AND t.type = some_entity_type OR some other type
                     {} //AND t.role = some role OR some role
-                    WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, p.image_link, COLLECT(DISTINCT t) AS tags
-                    RETURN formatted_caption, label, panel_id, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
+                    WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, p.image_link As url, COLLECT(DISTINCT t) AS tags
+                    RETURN formatted_caption, label, panel_id, url, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
                     '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
                     results_panels = DB.query(q_panel)
                     print("{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi))
@@ -192,7 +193,7 @@ class NeoImport():
                             image_link = results_labeled[p]['image_link']
                             try:
                                 panel_xml_element, tag_errors = self.caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
-                                graphic = Element('Graphic') # https://jats.nlm.nih.gov/publishing/tag-library/1.2d1/element/graphic.html
+                                graphic = Element('graphic') # https://jats.nlm.nih.gov/publishing/tag-library/1.2d1/element/graphic.html
                                 graphic.attrib['href'] = image_link
                                 panel_xml_element.append(graphic)
                                 figure_xml_element.append(panel_xml_element)
@@ -251,13 +252,14 @@ class NeoImport():
                     for subdir in split_dataset:
                         articles = split_dataset[subdir]
                         os.mkdir(subdir) # should we use os.chmod(os.mkdir(os.path.join(stock, subdir), 0o777)with iopen(os.path.join(self.path, str(id)+".jpg"), 'wb') as file:
-                        for i, article in enumerate(articles):
-                            filename = str(i)+'.xml'
-                            file_path = os.path.join(subdir, filename)
-                            print('writing to {}'.format(file_path))
-                            ElementTree(article).write(file_path, encoding='utf-8', xml_declaration=True)
-                            # download relevant assets (images)
-                            self.download_images(article)
+                        with cd(subdir):
+                            for i, article in enumerate(articles):
+                                filename = str(i)+'.xml'
+                                #file_path = os.path.join(subdir, filename)
+                                print('writing to {}'.format(filename))
+                                ElementTree(article).write(filename, encoding='utf-8', xml_declaration=True)
+                                # download relevant assets (images)
+                                self.download_images(article)
 
     def log_errors(self, errors):
         """
