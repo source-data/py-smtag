@@ -25,6 +25,7 @@ class Config():
     _prod_dir_name     = "rack"
     _log_dir_name      = "log"
     _scans_dir_name    = "scans"
+    _img_grid_size     = 5 # grid size used to encode the location of elements on images
 
     def __init__(self):
         self.working_directory = "."
@@ -50,5 +51,8 @@ class Config():
     @property
     def scans_dir(self):
         return os.path.join(self.working_directory, self._scans_dir_name)
+    @property
+    def img_grid_size(self):
+        return self._img_grid_size
 
 config = Config()

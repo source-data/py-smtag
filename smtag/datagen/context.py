@@ -134,13 +134,13 @@ class OCRContext():
     Extracts text elements from images and encode as features for relevant segments of the respective text examples.
 
     Args:
-        path: path to the directory where xml documents and images are found
+        path: path to the directory where xml documents and images can be found
         G: size of the grid, grid is G x G
         T: T similarity threshold (edit distance or Levenshtein distance / word length) when searching for best match between OCRed element and text
         accound_key: path to the account_key json file created in https://console.cloud.google.com/apis/credentials
     """
 
-    def __init__(self, path, G=5, T=0.1, account_key='/Users/lemberger/Documents/code/cloud/smarttag-2-5b02d5e85409.json'):
+    def __init__(self, path, G=config.img_grid_size, T=0.1, account_key='/Users/lemberger/Documents/code/cloud/smarttag-2-5b02d5e85409.json'):
         self.path = path
         self.G = G
         self.T = T

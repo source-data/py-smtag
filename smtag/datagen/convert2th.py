@@ -7,6 +7,7 @@ import torch
 import os.path
 import shutil
 import sys
+import re
 from string import ascii_letters
 from math import floor
 from xml.etree.ElementTree  import XML, parse, tostring
@@ -22,6 +23,7 @@ from .. import config
 from ..common.progress import progress
 from .encoder import XMLEncoder, BratEncoder
 from .brat import BratImport
+from .context import OCRContext
 
 # FIX THIS IN mapper
 NUMBER_OF_ENCODED_FEATURES = 22
@@ -41,6 +43,7 @@ class Sampler():
         self.N = len(encoded_examples)
         self.length = length # desired length of snippet
         self.number_of_features = len(Catalogue.standard_channels) # includes the virtual geneprod feature
+        self.img_cxt_features = config.img_grid_size ** 2
         print("\n{} examples; desired length:{}\n".format(self.N, self.length))
         sys.stdout.flush()
 
@@ -81,7 +84,7 @@ class Sampler():
         return padded_text, left_padding, right_padding
 
     @staticmethod
-    def to_tensor(th, index, features, start, stop, left_padding, right_padding): # should include only terms within the desired sample
+    def features_to_tensor(th, index, features, start, stop, left_padding, right_padding): # should include only terms within the desired sample
         """
         Reads the encoded features corresponding to a text fragment being processed.
         Populates the tensor slice with the appropriate features of the desired fragment and padded accordingly.
@@ -106,6 +109,12 @@ class Sampler():
                             th[index][code][pos] = 1
 
     @staticmethod
+    def slice_and_pad_context(th, index, context_tensor, start, stop, left_padding, right_padding):
+        context_slice = context_tensor[ : , start:start+stop]
+        context_slice.unsqueeze_(0) # adding third dimension
+        th[index, : , start+left_padding:start+left_padding+stop] = context_slice
+
+    @staticmethod
     def show_stats(stats, N):
         text_avg = floor(float(sum(stats) / N))
         text_std = torch.Tensor(stats).std()
@@ -119,7 +128,7 @@ class Sampler():
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_std, text_min, text_max))
 
     @staticmethod
-    def create_tensors(N, iterations, number_of_features, length, min_padding):
+    def create_tensors(N, iterations, number_of_features, img_cxt_features, length, min_padding):
         """
         Creates and initializes the tensors needed  to encode text and features.
         Allows to abstract away the specificity of the encoding. This implementation is for longitudinal features.
@@ -141,7 +150,8 @@ class Sampler():
 
         textcoded4th = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
         features4th = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
-        return textcoded4th, features4th
+        context4th = torch.zeros((N * iterations, img_cxt_features, length+(2*min_padding)), dtype = torch.uint8)
+        return textcoded4th, features4th, context4th
 
     @staticmethod
     def display(text4th, tensor4th):
@@ -180,7 +190,7 @@ class Sampler():
         """
         text4th = []
         provenance4th = []
-        textcoded4th, features4th = self.create_tensors(self.N, iterations, self.number_of_features, self.length, self.min_padding)
+        textcoded4th, features4th, context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.img_cxt_features, self.length, self.min_padding)
         length_stats = []
         total = self.N * iterations
         index = 0
@@ -190,6 +200,8 @@ class Sampler():
             text = self.encoded_examples[i]['text']
             encoded = self.encoded_examples[i]['encoded']
             provenance = self.encoded_examples[i]['provenance']
+            img_context = self.encoded_examples[i]['img_context']
+
             L = len(text)
             length_stats.append(L)
 
@@ -213,7 +225,10 @@ class Sampler():
                 provenance4th.append(provenance)
 
                 # the encoded features of the fragment are added to the feature tensor
-                Sampler.to_tensor(features4th, index, encoded, start, stop, left_padding, right_padding)
+                Sampler.features_to_tensor(features4th, index, encoded, start, stop, left_padding, right_padding)
+
+                # the encoded imgage context features 
+                Sampler.slice_and_pad_context(context4th, index, img_context, start, stop, left_padding, right_padding)
 
                 index += 1
 
@@ -225,7 +240,8 @@ class Sampler():
             'text4th': text4th,
             'textcoded4th': textcoded4th,
             'provenance4th':provenance4th,
-            'tensor4th': features4th
+            'tensor4th': features4th,
+            'context4th': context4th
         }
 
 
@@ -244,34 +260,41 @@ class DataPreparator(object):
         self.namebase = options['namebase'] # namebase where the converted dataset should be saved
         self.compendium = options['compendium'] # the compendium of source documents to be sampled and converted
 
-    @staticmethod
-    def encode_examples(examples):
+    def encode_examples(self, subset, examples, graphics):
         """
         Encodes examples provided as XML Elements.
         """
 
         encoded_examples = []
+        with cd(config.data_dir):
+            path = os.path.join(self.compendium, subset)
+            ocr = OCRContext(path, G=config.img_grid_size)
 
-        for id in examples:
-            text = ''.join([s for s in examples[id].itertext()])
-            if text:
-                encoded_features, _, _ = XMLEncoder.encode(examples[id])
-                # call image_features = Context.from_image(examples[id])
-                example = {
-                    'provenance': id,
-                    'text': text,
-                    'encoded': encoded_features
-                }
-                encoded_examples.append(example)
-            else:
-                print("\nskipping an example in document with id=", id)
-                print(tostring(examples[id]))
+            for id in examples:
+
+                if text:
+                    basename = re.search(r'panel_id=(\d+)', graphics[id]).group(1)
+                    ext = 'jpg'
+                    graphic_filename = '.'.join([basename, ext])
+                    text = ''.join([s for s in examples[id].itertext()])
+                    encoded_features, _, _ = XMLEncoder.encode(examples[id])
+                    ocr_context = ocr.run(text, graphic_filename)
+                    example = {
+                        'provenance': id,
+                        'text': text,
+                        'encoded': encoded_features,
+                        'img_context': ocr_context
+                    }
+                    encoded_examples.append(example)
+                else:
+                    print("\nskipping an example in document with id=", id)
+                    print(tostring(examples[id]))
         return encoded_examples
 
 
-    def import_files(self, subset, XPath_to_examples='.//figure-caption'):
+    def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = './sd-panel/graphics'):
         """
-        Import xml documents from dir. In each document, extracts examples using XPath.
+        Import xml documents from dir. In each document, extracts examples using XPath_to_examples.
         """
 
         with cd(config.data_dir):
@@ -279,18 +302,21 @@ class DataPreparator(object):
             print("\nloading from:", path)
             filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
             examples = {}
+            graphics = {}  
             for i, filename in enumerate(filenames):
                 try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
                     for j, e in enumerate(xml.findall(XPath_to_examples)):
-                        id = filename + "-" + str(j) # unique id provided filename is unique (hence limiting to single allowed file extension)
+                        id = filename + "-" + str(j) # unique id provided filename is unique (hence limiting to a single allowed file extension)
                         examples[id] = e
+                        g = e.find(XPath_to_assets)
+                        graphics[id] = g['url']
                 except Exception as e:
                     print("problem parsing", os.path.join(path, filename))
                     print(e)
                 progress(i, len(filenames), "loaded {}".format(filename))
-        return examples
+        return examples, graphics
 
 
     def save(self, dataset4th, subset):
@@ -306,6 +332,8 @@ class DataPreparator(object):
                     torch.save(dataset4th['tensor4th'], 'features.pyth')
                     # write encoded text tensor
                     torch.save(dataset4th['textcoded4th'], 'textcoded.pyth')
+                    # write image context features
+                    torch.save(dataset4th['context4th'], 'context4th.pyth')
                     # write text examples into text file
                     with open("text.txt", 'w') as f:
                         for line in dataset4th['text4th']:
@@ -316,8 +344,8 @@ class DataPreparator(object):
                             f.write(line+"\n")
 
     def run_on_dir(self, subset):
-        examples = self.import_files(subset)
-        encoded_examples = self.encode_examples(examples) # xml elements, attributes and value are encoded into numbered features
+        examples, graphics = self.import_files(subset)
+        encoded_examples = self.encode_examples(subset, examples, graphics) # xml elements, attributes and value are encoded into numbered features
         sampler = Sampler(encoded_examples, self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
         self.save(dataset4th, subset) # save the tensors
