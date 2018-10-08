@@ -113,7 +113,7 @@ class Catalogue():
     PROTEIN = Entity('protein', [('type', 'protein')], 0.4)
     SUBCELLULAR = Entity('subcellular', [('type', 'subcellular')], 0.4)
     CELL = Entity('cell', [('type', 'cell')], 0.5)
-    TISSUE = Entity('tissue', [('type', 'tissue')], 0.5)
+    TISSUE = Entity('tissue', [('type', 'tissue')], 0.3)
     ORGANISM = Entity('organism', [('type', 'organism')], 0.6)
     UNDEFINED = Entity('undefined', [('type', 'undefined')], 0.5)
     INTERVENTION = Role('intervention', [('role', 'intervention')], 0.4)
