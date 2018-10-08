@@ -7,7 +7,6 @@ import torch
 import math
 import os
 from random import shuffle
-from ..common.config import NBITS
 from ..common.mapper import Catalogue, concept2index
 from ..common.progress import progress
 from ..common.viz import Show
@@ -46,6 +45,7 @@ class Dataset:
             text_filename = 'text.txt'
             textcoded_filename = 'textcoded.pyth'
             provenance_filename = 'provenance.txt'
+            context_filename = 'context.pyth'
 
             print("Loading {} as features for the dataset.".format(features_filename))
             self.output = torch.load(features_filename).float()
@@ -55,6 +55,13 @@ class Dataset:
 
             print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
             self.textcoded = torch.load(textcoded_filename).float()
+
+            if os.path.isfile(context_filename):
+                print("Loading {} as image-based context data.".format(context_filename))
+                self.context = torch.load(context_filename).float()
+            else:
+                print("No image-based context data available.")
+                self.context = None
 
             print("Loading {} for the original texts of the dataset.".format(text_filename))
             with open(text_filename, 'r') as f:
@@ -71,7 +78,7 @@ class Dataset:
 
             print("Dataset dimensions:")
             print("{} text examples of size {}".format(self.N, self.L))
-            print("{} input features (in-channels).".format(self.nf_input))
+            # print("{} input features (in-channels).".format(self.nf_input))
             print("{} output features (out-channels).".format(self.nf_output))
 
     def add_token_lists(self):
@@ -87,7 +94,10 @@ class Loader:
         self.collapsed_features = Catalogue.from_list(opt['collapsed_features'])
         self.overlap_features = Catalogue.from_list(opt['overlap_features'])
         self.features_as_input = Catalogue.from_list(opt['features_as_input'])
-        self.nf_input = NBITS
+        self.use_img_context = opt['use_img_context']
+        self.nf_input = config.nbits
+        self.nf_context = config.img_grid_size ** 2 + 2
+        self.nf_input += self.nf_context
 
         self.nf_collapsed_feature = 0
         self.nf_overlap_feature = 0
@@ -150,12 +160,21 @@ class Loader:
             assert len(raw_dataset.text[i]) == L, "FATAL: {} > {} with {}".format(len(raw_dataset.text[i]), L, raw_dataset.text[i])
             dataset.text[index] = raw_dataset.text[i]
             dataset.provenance[index] = raw_dataset.provenance[i]
-            dataset.input[index, 0:32 , : ] = raw_dataset.textcoded[i, : , : ]
 
             # INPUT: ENCODED TEXT SAMPLES
+            dataset.input[index, 0:config.nbits , : ] = raw_dataset.textcoded[i, : , : ]
+
+            # INPUT: IMAGE CONTEXT FEATURES AS ADDITIONAL INPUT
+            if self.use_img_context:
+                dataset.input[index, config.nbits:config.nbits+self.nf_context, : ] = raw_dataset.context[i, : , : ]
+                supp_input_features = config.nbits+self.nf_context
+            else: 
+                supp_input_features = config.nbits
+
+            # INPUT: FEATURES AS ADDITIONAL INPUT
             for j, f in enumerate(self.features_as_input):
                 # for example: j=0, => 32 + 0 = 32
-                dataset.input[index, 32 + j, : ] = raw_dataset.output[i, concept2index[f], : ]
+                dataset.input[index, supp_input_features + j, : ] = raw_dataset.output[i, concept2index[f], : ]
 
             # OUTPUT SELECTION AND COMBINATION OF FEATURES
             for f in self.selected_features:

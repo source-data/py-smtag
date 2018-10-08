@@ -19,11 +19,11 @@ from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 from ..common.mapper import Catalogue, index2concept
 from ..common.converter import TString
 from ..common.utils import cd, timer
-from .. import config
 from ..common.progress import progress
 from .encoder import XMLEncoder, BratEncoder
 from .brat import BratImport
 from .context import OCRContext
+from .. import config
 
 # FIX THIS IN mapper
 NUMBER_OF_ENCODED_FEATURES = 22
@@ -43,7 +43,7 @@ class Sampler():
         self.N = len(encoded_examples)
         self.length = length # desired length of snippet
         self.number_of_features = len(Catalogue.standard_channels) # includes the virtual geneprod feature
-        self.img_cxt_features = config.img_grid_size ** 2
+        self.img_cxt_features = config.img_grid_size ** 2 + 2 # square grid + vertical + horizontal
         print("\n{} examples; desired length:{}\n".format(self.N, self.length))
         sys.stdout.flush()
 
@@ -180,12 +180,14 @@ class Sampler():
             {'text4th': text4th,
              'textcoded4th': textcoded4th,
              'provenance4th':provenance4th,
-             'tensor4th': features4th}
+             'tensor4th': features4th,
+             'context4th':context4th}
             where:
             text4th: a list with a copy of the padded text of the sample
             textcoded4th: a 3D Tensor (samples x 32 x full length) with the fragment text encoded
             provenance4th: an array with the ids of the example from which the sample was taken
             tensor4th: a 3D Tensor with the encoded features corresponding to the fragment
+            context4th: a 3D Tensor with location features of text elements extracted from the illustration
         """
         text4th = []
         provenance4th = []
@@ -291,7 +293,7 @@ class DataPreparator(object):
         return encoded_examples
 
 
-    def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = 'graphic'):
+    def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = './/graphic'):
         """
         Import xml documents from dir. In each document, extracts examples using XPath_to_examples.
         """
@@ -310,7 +312,7 @@ class DataPreparator(object):
                     for j, e in enumerate(xml.findall(XPath_to_examples)):
                         examples.append(e)
                         g = e.find(XPath_to_assets)
-                        basename = re.search(r'panel_id=(\d+)', g.attrib['href']).group(1)
+                        basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
                         ext = 'jpg'
                         graphic_filename = '.'.join([basename, ext])
                         graphics.append(graphic_filename)
@@ -336,7 +338,7 @@ class DataPreparator(object):
                     # write encoded text tensor
                     torch.save(dataset4th['textcoded4th'], 'textcoded.pyth')
                     # write image context features
-                    torch.save(dataset4th['context4th'], 'context4th.pyth')
+                    torch.save(dataset4th['context4th'], 'context.pyth')
                     # write text examples into text file
                     with open("text.txt", 'w') as f:
                         for line in dataset4th['text4th']:
@@ -399,7 +401,7 @@ def main():
     parser.add_argument('-W', '--window', action='store_true', help='switches to the sampling fig legends using a random window instead of parsing full sentences')
     parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
     parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
-    parser.add_argument('-p', '--padding', default=20, help='minimum padding added to text')
+    parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
 
     args = parser.parse_args()

@@ -93,6 +93,7 @@ def main():
     parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')
     parser.add_argument('-a', '--overlap_features', default='', help='Features that should be combined by intersecting them (equivalent to AND operation) (use quotes if comma+space delimited).')
     parser.add_argument('-c', '--collapsed_features', default='', help='Features that should be collapsed into a single one (equivalent to OR operation) (use quotes if comma+space delimited).')
+    parser.add_argument('-x', '--use_img_context', action="store_true", help='Use as additional input features extracted from the illustration.')
     parser.add_argument('-n', '--nf_table', default="8,8,8", help='Number of features in each hidden super-layer.')
     parser.add_argument('-k', '--kernel_table', default="6,6,6", help='Convolution kernel for each hidden layer.')
     parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
@@ -100,6 +101,7 @@ def main():
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
     parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('-m', '--model', default='', help='Load pre-trained model and continue training.')
+    
 
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
@@ -125,6 +127,7 @@ def main():
     opt['pool_table'] = pool_table
     opt['kernel_table'] = kernel_table
     opt['dropout'] = 0.1
+    opt['use_img_context'] = arguments.use_img_context
     print("\n".join(["opt[{}]={}".format(o,opt[o]) for o in opt]))
 
     if arguments.working_directory:

@@ -2,6 +2,7 @@
 # of linux https://cloud.google.com/sdk/docs/quickstart-linux
 # see also https://googleapis.github.io/google-cloud-python/latest/vision/index.html
 # https://googleapis.github.io/google-cloud-python/latest/vision/
+# https://cloud.google.com/vision/docs/ocr
 # 
 # gcloud components update &&
 # gcloud components install beta
@@ -163,8 +164,6 @@ class OCRContext():
             text = ''.join([s for s in example.itertext()])
             if text:
                 img_filename = example.attrib['img']
-                #encoded_features, _, _ = XMLEncoder.encode(example)
-                #encoded_context = OCR.encode(example) #or somethign like that in the future 
                 example = {
                     'provenance': id,
                     'text': text,
@@ -224,9 +223,6 @@ class OCRContext():
         return annotations
 
     def get_coordinates(self, annot):
-        print(annot.description)
-        for v in annot.bounding_poly.vertices:
-            print(v.x, v.y)
         return annot.bounding_poly.vertices[0].x, annot.bounding_poly.vertices[0].y
     
     def get_orientation(self, annot):
@@ -241,14 +237,19 @@ class OCRContext():
         1----0
         and the vertice order will still be (0, 1, 2, 3).
         """
+        epsilon = 5
         x0 = annot.bounding_poly.vertices[0].x
+        y0 = annot.bounding_poly.vertices[0].y
         x1 = annot.bounding_poly.vertices[1].x
-        if x1 > x0:
-            return 'horizontal'
-        elif x1 < x0:
-            return 'vertical'
+        y1 = annot.bounding_poly.vertices[1].y
+        if abs(y1 - y0) < epsilon:
+            orientation = 'horizontal'
+        elif abs(x1 - x0) < epsilon:
+            orientation = 'vertical'
         else:
-            return 'unknown'
+            orientation  = 'unknown'
+        print(annot.description, x0, y0, x1, y1, orientation)
+        return orientation
 
     def get_text(self, annot):
         return annot.description
@@ -266,7 +267,7 @@ class OCRContext():
         row = floor(self.G * (y / h))
         column = floor(self.G * (x / w))
         grid_pos = (row * self.G) + column
-        print("h, w, x, y, grid_pos", h, w, x, y, grid_pos, row, column)
+        print(annot.description, "h, w, x, y, grid_pos", h, w, x, y, grid_pos, row, column)
         return grid_pos
 
     def best_matches(self, text, annot):
@@ -277,7 +278,7 @@ class OCRContext():
         for i in range(L-l):
             dist = edit_distance(text[i:i+l], query) # Levenshtein distance between query and text at this position
             dist /= l # distance per word length
-            if dist <= self.T:
+            if dist <= self.T and l > 1:
                 matches.append({
                     'match': text[i:i+l],
                     'query': query,
@@ -287,17 +288,21 @@ class OCRContext():
                 })
         return matches
 
-    def add_context_(self, context_tensor, pos_on_grid, pos_in_text, length, score):
+    def add_context_(self, context_tensor, pos_on_grid, orientation, pos_in_text, length, score):
         context_tensor[pos_on_grid, pos_in_text:pos_in_text+length] = score
+        if orientation == 'horizontal':
+            context_tensor[self.G ** 2, pos_in_text:pos_in_text+length] = 1
+        elif orientation == 'vertical':
+            context_tensor[self.G ** 2 + 1, pos_in_text:pos_in_text+length] = 1
 
     def encode_ocr(self, text, h, w, annotations):
-        context_tensor = torch.zeros(self.G ** 2, len(text))
-        for annot in annotations:
-            print("'{}'".format(annot.description))
+        context_tensor = torch.zeros(self.G ** 2 + 2, len(text)) # G^2 features for position on the grid + 2 features for horizontal vs vertical orientation
+        for annot in annotations[1:]: # first annoation is the full list of entities detected
             pos_on_grid = self.grid_index(h, w, annot)
             matches = self.best_matches(text, annot)
+            orientation = self.get_orientation(annot)
             for m in matches:
-                self.add_context_(context_tensor, pos_on_grid, m['pos'], m['length'], m['score'])
+                self.add_context_(context_tensor, pos_on_grid, orientation, m['pos'], m['length'], m['score'])
         return context_tensor
     
     def run(self, text, img_filename):
