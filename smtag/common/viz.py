@@ -4,8 +4,8 @@
 import math
 from random import random
 from .converter import Converter
-from .config import MARKING_CHAR
 from tensorboardX import SummaryWriter
+from .. import config
 
 #for code in {1..256}; do printf "\e[38;5;${code}m"$code"\e[0m";echo; done
 #for i = 1, 32 do COLORS[i] = "\27[38;5;"..(8*i-7).."m" end
@@ -79,8 +79,8 @@ class Show():
             prediction = model(input)
             model.train()
 
-        text = Converter.t_decode(input[[0], 0:31, : ]) #sometimes input has more than 32 features if feature2input option was chosen
-        if nf_input > 32:
+        text = Converter.t_decode(input[[0], 0:config.nbits, : ]) #sometimes input has more than 32 features if feature2input option was chosen
+        if nf_input > config.nbits:
             out += "Additional input features:"+self.nl+self.nl
             out += "    "+self.print_pretty(input[[0], 32:nf_input, : ]) + self.nl + self.nl
 
@@ -111,7 +111,7 @@ class Show():
         return out
 
     def print_pretty_color(self, features, text):
-        text = text.replace(MARKING_CHAR, '#')
+        text = text.replace(config.marking_char, '#')
         nf = features.size(1)
         colored_track = "    "# markdown fixeed font
         pos = 0

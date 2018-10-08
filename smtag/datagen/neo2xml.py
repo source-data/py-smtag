@@ -14,7 +14,6 @@ import difflib
 import re
 import requests
 from ..common.utils import cd
-from ..common.config import MARKING_CHAR, MARKING_CHAR_ORD  
 from .. import config
 
 SD_PANEL_OPEN, SD_PANEL_CLOSE = "<sd-panel>", "</sd-panel>"
@@ -38,7 +37,7 @@ class NeoImport():
                         # if tag_text_lo not in mini_index: mini_index.append(tag_text_lo)
                         # mark = unichr(MARKING_CHAR_ORD + mini_index.index(tag_text_lo))
                         # tag_xml.text = mark * len(tag_xml.text)
-                        tag_xml.text = MARKING_CHAR * len(tag_xml.text)
+                        tag_xml.text = config.marking_char * len(tag_xml.text)
             return panel_xml
         
         tag_errors = []
