@@ -110,9 +110,8 @@ class Sampler():
 
     @staticmethod
     def slice_and_pad_context(th, index, context_tensor, start, stop, left_padding, right_padding):
-        context_slice = context_tensor[ : , start:start+stop]
-        context_slice.unsqueeze_(0) # adding third dimension
-        th[index, : , start+left_padding:start+left_padding+stop] = context_slice
+        L = stop - start
+        th[index, : , left_padding:left_padding+L] = context_tensor[ : , start:stop]
 
     @staticmethod
     def show_stats(stats, N):
