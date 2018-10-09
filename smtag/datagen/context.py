@@ -1,3 +1,4 @@
+# https://cognitiveintegratorapp.azurewebsites.net/integrator/dashboard
 # install gcloud for mac https://cloud.google.com/sdk/docs/quickstart-macos
 # of linux https://cloud.google.com/sdk/docs/quickstart-linux
 # see also https://googleapis.github.io/google-cloud-python/latest/vision/index.html
