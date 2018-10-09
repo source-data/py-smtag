@@ -41,29 +41,34 @@ class NeoImport():
             return panel_xml
         
         tag_errors = []
-        #panel_caption = panel_caption.encode('utf-8')
+        # panel_caption = panel_caption.encode('utf-8')
         if safe_mode:
-            #need protection agains missing spaces
+            # need protection agains missing spaces
 
-            #protection against carriage return
+            # protection against carriage return
             if re.search('[\r\n]', panel_caption):
                 print("WARNING: removing return characters")
                 panel_caption = re.sub('[\r\n]','', panel_caption)
 
-            #protection against <br> instead of <br/>
+            # protection against <br> instead of <br/>
             panel_caption = re.sub(r'<br>', r'<br/>', panel_caption)
 
-            #protection against badly formed link elements
+            # protection against badly formed link elements
             panel_caption = re.sub(r'<link href="(.*)">', r'<link href="\1"/>', panel_caption)
             panel_caption = re.sub(r'<link href="(.*)"/>(\n|.)*</link>', r'<link href="\1">\2</link>', panel_caption)
-            #protection agains missing <sd-panel> tags
+            
+            # protection against missing <sd-panel> tags
             if re.search(r'^{}(\n|.)*{}$'.format(SD_PANEL_OPEN, SD_PANEL_CLOSE), panel_caption) is None:
                 print("WARNING: correcting missing <sd-panel> </sd-panel> tags!")
                 print(panel_caption)
                 panel_caption = SD_PANEL_OPEN + panel_caption + SD_PANEL_CLOSE
 
+            # proteection against nested or empty sd-panel
+            panel_caption = re.sub(r'<sd-panel><sd-panel>', r'<sd-panel>', panel_caption)
+            panel_caption = re.sub(r'</sd-panel></sd-panel>', r'</sd-panel>', panel_caption)
+            panel_caption = re.sub(r'<sd-panel/>', '', panel_caption)
 
-        #We may loose a space that separates panels in the actual figure legend...
+        # We may loose a space that separates panels in the actual figure legend...
         panel_caption = re.sub('</sd-panel>$', ' </sd-panel>', panel_caption)
         #and then remove possible runs of spaces
         panel_caption = re.sub(r' +',r' ', panel_caption)
@@ -78,7 +83,24 @@ class NeoImport():
             print(panel_caption)
             tag_errors.append(list(tags_not_found))
 
-        #keep attributes only for the selected tags and clear the rest
+        # protection against nested tags
+        for tag in tags_xml:
+            nested_tag = tag.find('.//sd-tag')
+            if nested_tag is not None:
+                print("WARNING, removing nested tags {}".format(tostring(tag)))
+                text_from_parent = tag.text or ''
+                inner_text = ''.join([s for s in nested_tag.itertext()])
+                tail = nested_tag.tail or ''
+                text_to_recover = text_from_parent + inner_text + tail
+                for k in nested_tag.attrib: # in fact, sometimes more levels of nesting... :-(
+                    if k not in tag.attrib:
+                        tag.attrib[k] = nested_tag.attrib[k]
+                tag.text = text_to_recover
+                for e in list(tag): # tag.remove(nested_tag) would not always work if some <i> are flanking it for example
+                    tag.remove(e)
+                print("cleaned tag: {}".format(tostring(tag)))
+
+        # keep attributes only for the selected tags and clear the rest
         if exclusive_mode:
             for t_xml in tags_xml:
                 if 'id' in t_xml.attrib:
