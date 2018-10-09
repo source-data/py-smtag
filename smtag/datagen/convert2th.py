@@ -261,35 +261,34 @@ class DataPreparator(object):
         self.namebase = options['namebase'] # namebase where the converted dataset should be saved
         self.compendium = options['compendium'] # the compendium of source documents to be sampled and converted
 
-    def encode_examples(self, subset, examples, graphics, provenance):
+    def encode_examples(self, subset, examples):
         """
         Encodes examples provided as XML Elements.
         """
 
         encoded_examples = []
-        N = len(examples)
         with cd(config.data_dir):
             path = os.path.join(self.compendium, subset)
             ocr = OCRContext(path, G=config.img_grid_size)
 
-            for i in range(N):
-                example = examples[i]
-                graphic = graphics[i]
-                prov = provenance[i]
-                text = ''.join([s for s in example.itertext()])
+            for ex in examples:
+                xml = ex['xml']
+                graphic = ex['graphic']
+                prov = ex['provenance']
+                text = ''.join([s for s in xml.itertext()])
                 if text:
-                    encoded_features, _, _ = XMLEncoder.encode(example)
+                    encoded_features, _, _ = XMLEncoder.encode(xml)
                     ocr_context = ocr.run(text, graphic)
-                    example = {
+                    encoded = {
                         'provenance': prov,
                         'text': text,
                         'encoded': encoded_features,
                         'img_context': ocr_context
                     }
-                    encoded_examples.append(example)
+                    encoded_examples.append(encoded)
                 else:
-                    print("\nskipping an example in document with id=", id)
-                    print(tostring(examples[id]))
+                    print("\nskipping an example in document with id=", prov)
+                    print(tostring(examples[i]))
         return encoded_examples
 
 
@@ -303,25 +302,29 @@ class DataPreparator(object):
             print("\nloading from:", path)
             filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
             examples = []
-            provenance = []
-            graphics = []
             for i, filename in enumerate(filenames):
                 try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
                     for j, e in enumerate(xml.findall(XPath_to_examples)):
-                        examples.append(e)
+                        provenance = filename + "-" + str(j)
                         g = e.find(XPath_to_assets)
-                        basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
-                        ext = 'jpg'
-                        graphic_filename = '.'.join([basename, ext])
-                        graphics.append(graphic_filename)
-                        provenance.append(filename + "-" + str(j))
+                        if g is not None:
+                            basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
+                            ext = 'jpg'
+                            graphic_filename = '.'.join([basename, ext])
+                        else:
+                            graphic_filename = ''
+                        examples.append({
+                            'xml': e,
+                            'provenance': provenance,
+                            'graphic': graphic_filename
+                        })
                 except Exception as e:
                     print("problem parsing", os.path.join(path, filename))
                     print(e)
                 progress(i, len(filenames), "loaded {}".format(filename))
-        return examples, graphics, provenance
+        return examples
 
 
     def save(self, dataset4th, subset):
@@ -349,8 +352,8 @@ class DataPreparator(object):
                             f.write(line+"\n")
 
     def run_on_dir(self, subset):
-        examples, graphics, provenance = self.import_files(subset)
-        encoded_examples = self.encode_examples(subset, examples, graphics, provenance) # xml elements, attributes and value are encoded into numbered features
+        examples = self.import_files(subset)
+        encoded_examples = self.encode_examples(subset, examples) # xml elements, attributes and value are encoded into numbered features
         sampler = Sampler(encoded_examples, self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
         self.save(dataset4th, subset) # save the tensors

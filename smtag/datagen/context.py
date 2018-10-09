@@ -203,24 +203,30 @@ class OCRContext():
         return examples
 
     def get_example(self, img_filename): # change this to get_example(self, img_filename)
-        with cd(self.path):
-            with io.open(img_filename, 'rb') as image_file:
-                img = image_file.read()
-            img_cv = cv.imread(img_filename) # hack, would be better not to read file twice... dunno how to get image size otherwise!!
-        shape = img_cv.shape
-        h = shape[0]
-        w = shape[1]
+        try:
+            with cd(self.path):
+                with io.open(img_filename, 'rb') as image_file:
+                    img = image_file.read()
+                img_cv = cv.imread(img_filename) # hack, would be better not to read file twice... dunno how to get image size otherwise!!
+            shape = img_cv.shape
+            h = shape[0]
+            w = shape[1]
+        except Exception as e:
+            print("{} not loaded".format(img_filename))
+            print(e)
+            img = None
+            h = 0
+            w = 0
         return img, h, w
 
     def get_ocr(self, img):
-        image = types.Image(content=img)
-        # Performs text detection on the image file; see https://googleapis.github.io/google-cloud-python/latest/vision/gapic/v1/api.html#google.cloud.vision_v1.ImageAnnotatorClient.text_detection
-        response = self.client.text_detection(image)
-        annotations = response.text_annotations
-        print('\nTextual elements detected on image:')
-        for a in annotations:
-            print(a.description)
-        print("###########")
+        if img is not None:
+            image = types.Image(content=img)
+            # Performs text detection on the image file; see https://googleapis.github.io/google-cloud-python/latest/vision/gapic/v1/api.html#google.cloud.vision_v1.ImageAnnotatorClient.text_detection
+            response = self.client.text_detection(image)
+            annotations = response.text_annotations
+        else:
+            annotations = []
         return annotations
 
     def get_coordinates(self, annot):
@@ -309,6 +315,9 @@ class OCRContext():
     def run(self, text, img_filename):
         img, h, w = self.get_example(img_filename)
         annotations = self.get_ocr(img)
+        print('\nTextual elements detected on image {}:'.format(img_filename))
+        print("///".join([a.description for a in annotations]))
+        print("###################")
         encoded_ocr_context = self.encode_ocr(text, h, w, annotations)
         return encoded_ocr_context
     
