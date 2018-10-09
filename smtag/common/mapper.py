@@ -126,7 +126,7 @@ class Catalogue():
     ENTITY = Category('entity', [('category', 'entity')], 0.5)
     TIME = Category('time', [('category', 'assay')], 0.5)
     PHYSICAL_VAR = Category('physical', [('category', 'physical')], 0.5)
-    DISEASE = Category('disease', [('category', 'disease')], 0.4)
+    DISEASE = Category('disease', [('category', 'disease')], 0.6)
     PANEL_START = Boundary('panel_start','sd-panel',  0.6)
     PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
     GENEPROD = Entity('geneprod', [('type', 'geneprod')], 0.4)
