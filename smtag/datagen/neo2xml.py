@@ -6,7 +6,7 @@ import os
 import argparse
 from getpass import getpass
 from io import open as iopen
-from xml.etree.ElementTree import fromstring, Element, ElementTree, SubElement, tostring
+from xml.etree.ElementTree import parse, fromstring, Element, ElementTree, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node
 from random import shuffle
 from math import floor
@@ -121,21 +121,7 @@ class NeoImport():
 
         return panel_xml, tag_errors
 
-    @staticmethod
-    def download_images(article, XPath_to_graphics='.//graphic'):
-        graphics = article.findall(XPath_to_graphics)
-        print("found {} graphics in {}".format(len(graphics), article.attrib['doi']))
-        for g in graphics:
-            url = g.attrib['href'] # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
-            id = re.search(r'panel_id=(\d+)', url).group(1)
-            print(f"trying to access {url} (image {id})")
-            resp = requests.get(url)
-            if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
-                with iopen(id +".jpg", 'wb') as file:
-                    file.write(resp.content)
-            else:
-                print(f"skipped {url} ({resp.status_code})")
-    
+
     def neo2xml(self, source):
 
         where_clause = self.options['where_clause']
@@ -261,11 +247,12 @@ class NeoImport():
             testset.append(self.articles[doi])
         return trainset, validation, testset
 
-    def save(self, split_dataset, data_dir, namebase):
-        with cd(config.data_dir):
+    @staticmethod
+    def save_xml_files(split_dataset, data_dir, namebase):
+        with cd(data_dir):
             print("saving to: ", data_dir)
             if namebase in os.listdir():
-                print("data {} already exists".format(namebase))
+                print("data {} already exists. Will not do anything.".format(namebase))
                 raise(Exception())
             else:
                 os.mkdir(namebase)
@@ -279,8 +266,41 @@ class NeoImport():
                                 #file_path = os.path.join(subdir, filename)
                                 print('writing to {}'.format(filename))
                                 ElementTree(article).write(filename, encoding='utf-8', xml_declaration=True)
-                                # download relevant assets (images)
-                                self.download_images(article)
+
+    @staticmethod
+    def download_images(data_dir, namebase, XPath_to_graphics='.//graphic'):
+        with cd(data_dir):
+            if not os.path.isdir(namebase):
+                print("{} does not exists; nothing to download.".format(namebase))
+            else:
+               with cd(namebase):
+                   print("attempting to download images to: ", namebase)
+                   subsets = os.listdir()
+                   for subset in subsets:
+                       with cd(subset):
+                        filenames = os.listdir()
+                        xml_filenames = [f for f in filenames if f.split('.')[-1]=='xml']
+                        for filename in xml_filenames:
+                            with open(filename) as f:
+                                article = parse(f)
+                                article = article.getroot()
+                                graphics = article.findall(XPath_to_graphics)
+                                print("found {} graphics in {}".format(len(graphics), article.get('doi')))
+                                for g in graphics:
+                                    url = g.get('href') # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
+                                    id = re.search(r'panel_id=(\d+)', url).group(1)
+                                    image_filename = id +".jpg"
+                                    if os.path.exists(image_filename):
+                                        print("image {} already downloaded".format(image_filename))
+                                    else:
+                                        print(f"trying to access {url} (image {id})")
+                                        resp = requests.get(url)
+                                        if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
+                                            with iopen(image_filename, 'wb') as file:
+                                                file.write(resp.content)
+                                        else:
+                                            print(f"skipped {url} ({resp.status_code})")
+
 
     def log_errors(self, errors):
         """
@@ -408,14 +428,16 @@ def main():
 
     with cd(config.working_directory):
         # check first that options['namebase'] does not exist yet
-        if os.path.isdir(os.path.join(config.data_dir, options['namebase'])):
-            print("data {} already exists. Will not do anything.".format(options['namebase']))
-        else:
-            G = NeoImport(options)
+        G = NeoImport(options)
+        if not os.path.isdir(os.path.join(config.data_dir, options['namebase'])):
             errors = G.neo2xml(options['source'])
             trainset, validation, testset = G.split_dataset(options['validation_fraction'], options['testset_fraction'])
-            G.save({'train': trainset, 'valid': validation, 'test': testset}, config.data_dir, options['namebase'])
+            G.save_xml_files({'train': trainset, 'valid': validation, 'test': testset}, config.data_dir, options['namebase'])
             G.log_errors(errors)
+        else:
+            print("data {} already exists. Trying to download images only.".format(options['namebase']))
+        # attempts to finish downloading images
+        G.download_images(config.data_dir, options['namebase'])
 
 if __name__ == "__main__":
     main()
