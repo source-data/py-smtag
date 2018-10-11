@@ -275,7 +275,7 @@ class NeoImport():
             else:
                with cd(namebase):
                    print("attempting to download images to: ", namebase)
-                   subsets = os.listdir()
+                   subsets = [d for d in os.listdir() if d != '.DS_Store']
                    for subset in subsets:
                        with cd(subset):
                         filenames = os.listdir()

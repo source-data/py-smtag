@@ -148,6 +148,7 @@ class Catalogue():
         else:
             return None
 
+NUMBER_OF_ENCODED_FEATURES = len(Catalogue.standard_channels)
 
 label2concept = {e.label:e for e in Catalogue.standard_channels}
 concept2index = {Catalogue.standard_channels[i]:i for i in range(len(Catalogue.standard_channels))}
