@@ -293,7 +293,7 @@ class NeoImport():
                                     if os.path.exists(image_filename):
                                         print("image {} already downloaded".format(image_filename))
                                     else:
-                                        print(f"trying to access {url} (image {id})")
+                                        print("downloading image {} from {}".format(id, url))
                                         resp = requests.get(url)
                                         if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
                                             with iopen(image_filename, 'wb') as file:

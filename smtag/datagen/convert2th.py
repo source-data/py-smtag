@@ -285,7 +285,7 @@ class DataPreparator(object):
                         'encoded': encoded_features,
                         'img_context': ocr_context
                     }
-                    encoded_examples.append(encoded)
+                    encoded_examples.append(encoded) # need to write this to disk to allow recovery from interruptions
                 else:
                     print("\nskipping an example in document with id=", prov)
                     print(tostring(examples[i]))
@@ -307,12 +307,11 @@ class DataPreparator(object):
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
                     for j, e in enumerate(xml.findall(XPath_to_examples)):
-                        provenance = filename + "-" + str(j)
+                        provenance = os.path.splitext(filename)[0] + "-" + str(j)
                         g = e.find(XPath_to_assets)
                         if g is not None:
                             basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
-                            ext = 'jpg'
-                            graphic_filename = '.'.join([basename, ext])
+                            graphic_filename = basename + '.jpg'
                         else:
                             graphic_filename = ''
                         examples.append({
