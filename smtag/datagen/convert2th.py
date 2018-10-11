@@ -126,7 +126,7 @@ class Sampler():
         return textcoded4th, features4th, context4th
 
     @staticmethod
-    def display(text4th, tensor4th):
+    def display(text4th, tensor4th, context4th):
         """
         Display text fragments and extracted features to the console.
         """
@@ -137,12 +137,14 @@ class Sampler():
             print("Text:")
             print(text4th[i])
             for j in range(featsize):
-                if j < len(index2concept):
-                    feature = str(index2concept[j])
-                else:
-                    feature = 'ctx_' + j - len(index2concept)
+                feature = str(index2concept[j])
                 track = [int(tensor4th[i, j, k]) for k in range(L)]
                 print(''.join([['-','+'][x] for x in track]), feature)
+            for j in range(context4th.size(1)):
+                feature = 'ctx_' + str(j)
+                track = [int(context4th[i, j, k]) for k in range(L)]
+                print(''.join([['-','+'][ceil(x)] for x in track]), feature)
+
 
     @timer
     def run(self, iterations):
@@ -207,7 +209,7 @@ class Sampler():
 
         Sampler.show_stats(length_stats, self.N)
         if self.verbose:
-            Sampler.display(text4th, features4th)
+            Sampler.display(text4th, features4th, context4th)
 
         return {
             'text4th': text4th,
