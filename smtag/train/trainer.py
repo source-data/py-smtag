@@ -80,6 +80,7 @@ class Trainer:
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
+                #print(self.console.example(self.validation_minibatches, self.model))
 
             # Logging/plotting
             avg_train_loss = avg_train_loss / N

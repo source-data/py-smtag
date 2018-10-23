@@ -97,7 +97,8 @@ class Loader:
         self.use_img_context = opt['use_img_context']
         self.nf_input = config.nbits
         self.nf_context = config.img_grid_size ** 2 + 2
-        self.nf_input += self.nf_context
+        if self.use_img_context:
+            self.nf_input += self.nf_context
 
         self.nf_collapsed_feature = 0
         self.nf_overlap_feature = 0
@@ -170,11 +171,23 @@ class Loader:
                 supp_input_features = config.nbits+self.nf_context
             else: 
                 supp_input_features = config.nbits
-
+            ######################### DEBUG ###############################################################
+            #print("context data size", dataset.input.size())
+            #from ..common.viz import Show
+            #for i in range(dataset.input.size(0)):
+            #print("nf_context", self.nf_context)
+            #print("use img context", self.use_img_context)
+            #print("example",index)
+            #print("nbits, nbits+fn_context", config.nbits, config.nbits+self.nf_context)
+            #print(Show().print_pretty(dataset.input[[index], : , : ]))
+            #print("raw_dataset.context")
+            #print(Show().print_pretty(raw_dataset.context[[i], : , : ]))
+            ################################################################################################
             # INPUT: FEATURES AS ADDITIONAL INPUT
             for j, f in enumerate(self.features_as_input):
                 # for example: j=0, => 32 + 0 = 32
                 dataset.input[index, supp_input_features + j, : ] = raw_dataset.output[i, concept2index[f], : ]
+
 
             # OUTPUT SELECTION AND COMBINATION OF FEATURES
             for f in self.selected_features:

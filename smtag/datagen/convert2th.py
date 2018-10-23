@@ -8,6 +8,7 @@ import os.path
 import shutil
 import sys
 import re
+import copy
 from string import ascii_letters
 from math import floor, ceil
 from xml.etree.ElementTree  import XML, parse, tostring
@@ -22,7 +23,7 @@ from ..common.utils import cd, timer
 from ..common.progress import progress
 from .encoder import XMLEncoder, BratEncoder
 from .brat import BratImport
-from .context import OCRContext
+from .ocr import OCRContext
 from .. import config
 
 class Sampler():
@@ -228,7 +229,7 @@ class EncodedExample():
 
     def save(self, path):
         if not os.path.exists(path):
-            os.mkdir(path)
+            os.mkdir(path) 
             with cd(path):
                 torch.save(self.features, 'features.pyth')
                 torch.save(self.context, 'context.pyth')
@@ -237,7 +238,7 @@ class EncodedExample():
                 with open('text.txt', 'w') as f:
                     f.write(self.text)
         else:
-            print("EncodedExample detected that {} already exists.".format(path))
+            print("EncodedExample detected that {} already exists. Will not overwrite.".format(path))
     
     def load(self, path):
         with cd(path):
@@ -279,8 +280,9 @@ class DataPreparator(object):
         self.iterations = options['iterations']
         self.namebase = options['namebase'] # namebase where the converted dataset should be saved
         self.compendium = options['compendium'] # the compendium of source documents to be sampled and converted
+        self.anonymization_xpath = options['anonymize']
 
-    def encode_examples(self, subset, examples):
+    def encode_examples(self, subset, examples, anonymize=None):
         """
         Encodes examples provided as XML Elements and writes them to disk.
         """
@@ -289,21 +291,38 @@ class DataPreparator(object):
             ocr = OCRContext(subset, G=config.img_grid_size)
             for ex in examples:
                 xml = ex['xml']
+                anonymized_xml = ex['anonymized']
                 graphic = ex['graphic']
                 prov = ex['provenance']
-                text = ''.join([s for s in xml.itertext()])
+                original_text = ''.join([s for s in xml.itertext()])
+                anonymized_text = ''.join([s for s in anonymized_xml.itertext()])
+
                 path_to_example = os.path.join(subset, prov)
                 if not os.path.exists(path_to_example):
-                    if text:
-                        encoded_features = XMLEncoder.encode(xml) # convert to tensor already here; 
-                        ocr_context = ocr.run(text, graphic) # returns a tensor
-                        encoded_example = EncodedExample(prov, text, encoded_features, ocr_context)
+                    if original_text:
+                        encoded_features = XMLEncoder.encode(anonymized_xml) # convert to tensor already here; 
+
+                        # OCR HAPPENS HERE ! Needs the unaltered un anonymized original text for alignment
+                        ocr_context = ocr.run(original_text, graphic) # returns a tensor
+
+                        # VISUAL CONTEXT HAPPENS HERE
+                        # viz_context = context.get_context(graphic)
+
+                        encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context)
                         encoded_example.save(path_to_example)
                     else:
                         print("\nskipping an example in document with id=", prov)
                 else:
-                    print("\n{} was already encoded".format(prov))
+                    print("{} has already been encoded".format(prov))
 
+    def anonymize(self, original_xml, anonymizations):
+        xml = copy.deepcopy(original_xml)
+        for xpath in anonymizations:
+            to_be_anonymized = xml.findall(xpath)
+            print("anonymizing", xpath, len(to_be_anonymized)) 
+            for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
+                e.text = config.marking_char * len(e.text)
+        return xml
 
     def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = './/graphic'):
         """
@@ -330,8 +349,10 @@ class DataPreparator(object):
                             print('no graphic element found')
                             graphic_filename = ''
                         #if not os.path.exists(os.path.join(config.data4th_dir, graphic_filename):
+                        anonymized = self.anonymize(e, self.anonymization_xpath)
                         examples.append({
                             'xml': e,
+                            'anonymized': anonymized,
                             'provenance': provenance,
                             'graphic': graphic_filename
                         })
@@ -367,10 +388,14 @@ class DataPreparator(object):
                             f.write(line+"\n")
 
     def run_on_dir(self, subset):
+        print("\nImporting files from {}".format(subset))
         examples = self.import_files(subset)
+        print("\nEncoding {} examples".format(len(examples)))
         self.encode_examples(subset, examples) # xml elements, attributes and value are encoded into numbered features
+        print("\nSampling examples from {}".format(subset))
         sampler = Sampler(os.path.join(config.data_dir, self.compendium, subset), self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
+        print("\nSaving tensors to {}".format(subset))
         self.save(dataset4th, subset) # save the tensors
 
     def run_on_compendium(self):
@@ -419,6 +444,8 @@ def main():
     parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
     parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
+    parser.add_argument('-A', '--anonymize', help='Xpath expressions to select xml that will be anonymized. Example .//sd-tag[@type=\'gene\']')
+
 
     args = parser.parse_args()
 
@@ -437,7 +464,8 @@ def main():
         options['sampling_mode'] = 'sentence'
     options['random_shifting'] = not args.disable_shifting
     options['padding'] = args.padding
-
+    options['anonymize'] =  args.anonymize.split(',')
+    print(options['anonymize'])
     if args.working_directory:
         config.working_directory = args.working_directory
     with cd(config.working_directory):

@@ -276,6 +276,7 @@ class NeoImport():
                with cd(namebase):
                    print("attempting to download images to: ", namebase)
                    subsets = [d for d in os.listdir() if d != '.DS_Store']
+                   #NOOO! Download image first into common data/img folder and avoid redownloading
                    for subset in subsets:
                        with cd(subset):
                         filenames = os.listdir()
