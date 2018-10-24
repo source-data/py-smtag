@@ -24,7 +24,9 @@ Assumptions that may differ on your system:
 * We use a local user called _ubuntu_ who has its home in `/home/ubuntu`
 * The tensorboard website will be accessed via `http://tensorboard.sdtag.net`
 
-## Setup the project
+## Setup the project and run tensorboard once
+As a first step and to make sure we have all the moving pieces working together we are goint to install py-smtag, run it once to generate some data and then run a on-demand tensorboard server to display the results.
+
 Go to the home of your user and clone the github project
 
     cd /home/ubuntu
@@ -35,7 +37,6 @@ Go to the home of your user and clone the github project
     pip install -r requirements.txt
     pip install --upgrade tensorflow
 
-## Run tensorboard once
 We will manually run tensorboard once to make sure everything works fine.
 
 First, let's generate some dummy data that tensorboard can display:
@@ -54,10 +55,43 @@ Then you can manually launch your tensorboard:
 
 Now you can open your browser and point it to http://tensorboard.sdtag.net:6006
 
-You should be able to see the Tensorboard interface. Next we will see how to convert it into a Linux machine that automatically launches so we don't have to do anythin manually. The following steps will need to be done only once per linux machine.
+You should be able to see the Tensorboard interface.
+
+The problem of this workflow is that when you close your console you also close tensorboard webserver. You could use tmux or run the process in the background, but what happens if the tensorboard process dies? or tmux? What if we want to run on a standard web port instead of 6006? Or what if we want to add SSL? If we are going to do it, let's do it right! :D
+
+## Running tensorboard as a proper website
+Now we will see how to create service that automatically launches tensorboard when the machine starts up, and will also monitor the process and relaunch in case it dies.
+
+Next we will use NGINX as a web server to proxy to the tensorboard service. This will allow things (not covered here) such as:
+
+* running on standard ports
+* handling different CNAMEs
+* adding SSL and running only over `https`
 
 
-## Adding a systemd service
+### Setup the hosting directory
+Following standard web practices we will create a new directory under `/var/www` to host the tensorboard website. For normal websites this step feels more natural, here we are just looking for a place to create our python virtual environment and install tensorboard.
+
+Note: our AMI instance didn't have a *www* user, so I created one: `sudo adduser www`
+
+```sh
+sudo su
+mkdir -p /var/www/tensorboard.sdtag.net
+chown www:www /var/www/tensorboard.sdtag.net
+su www
+cd /var/www/tensorboard.sdtag.net
+python3 -m venv venv
+source venv/bin/activate
+pip3 install --upgrade tensorflow
+```
+
+If we peek into the virtual environment that we created we will see that by installing tensorflow we also installed the binary for tensorboard:
+
+```sh
+ls -la /var/www/tensorboard.sdtag.net/venv/bin | grep tensorboard
+```
+
+### Adding a systemd service
 
 Systemd is an init system and system manager that has become the standar in Linux machines. We will use it to treat the tensorboard backend as a service in our machine, ensuring it will always be up and running even after every reboot, or in case the process dies. As reference I recommend reading [this](https://www.digitalocean.com/community/tutorials/systemd-essentials-working-with-services-units-and-the-journal) and [this](https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units).
 
@@ -100,7 +134,7 @@ Then let's check the status, make sure it auto-launches after every reboot, and 
     systemctl stop tensorboard.sdtag.net.service
 
 
-## Configure NGINX
+### Configure NGINX
 
 NGINX is an open source high performance web server that has become a standard on web development in the last decade. We will be using it as a reverse proxy to the Tensorboard backend. It can allow us to implement things like SSL (not covered here), IP whitelisting or Basic Authentication.
 
