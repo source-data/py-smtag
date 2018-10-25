@@ -24,6 +24,7 @@ from ..common.progress import progress
 from .encoder import XMLEncoder, BratEncoder
 from .brat import BratImport
 from .ocr import OCRContext
+from .context import VisualContext
 from .. import config
 
 class Sampler():
@@ -42,7 +43,8 @@ class Sampler():
         self.N = len(self.dirnames)
         self.length = length # desired length of snippet
         self.number_of_features = NUMBER_OF_ENCODED_FEATURES # includes the virtual geneprod feature
-        self.img_cxt_features = config.img_grid_size ** 2 + 2 # square grid + vertical + horizontal
+        self.ocr_cxt_features = config.img_grid_size ** 2 + 2 # square grid + vertical + horizontal
+        self.viz_cxt_features = config.viz_cxt_features
         print("\n{} examples; desired length:{}\n".format(self.N, self.length))
 
 
@@ -101,7 +103,7 @@ class Sampler():
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_std, text_min, text_max))
 
     @staticmethod
-    def create_tensors(N, iterations, number_of_features, img_cxt_features, length, min_padding):
+    def create_tensors(N, iterations, number_of_features, ocr_cxt_features, viz_cxt_features, length, min_padding):
         """
         Creates and initializes the tensors needed  to encode text and features.
         Allows to abstract away the specificity of the encoding. This implementation is for longitudinal features.
@@ -121,13 +123,14 @@ class Sampler():
                 features: 3D zero-initialized ByteTensor, N*iterations x number_of_features x full_length, where full_length=length+(2*min_padding)
         """
 
-        textcoded4th = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
-        features4th = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
-        context4th = torch.zeros((N * iterations, img_cxt_features, length+(2*min_padding)), dtype = torch.uint8)
-        return textcoded4th, features4th, context4th
+        textcoded4th   = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
+        features4th    = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
+        ocr_context4th = torch.zeros((N * iterations, ocr_cxt_features, length+(2*min_padding)), dtype = torch.uint8)
+        viz_context4th = torch.zeros((N * iterations, viz_cxt_features), dtype = torch.uint8)
+        return textcoded4th, features4th, ocr_context4th, viz_context4th
 
     @staticmethod
-    def display(text4th, tensor4th, context4th):
+    def display(text4th, tensor4th, ocr_context4th, viz_context4th):
         """
         Display text fragments and extracted features to the console.
         """
@@ -141,9 +144,13 @@ class Sampler():
                 feature = str(index2concept[j])
                 track = [int(tensor4th[i, j, k]) for k in range(L)]
                 print(''.join([['-','+'][x] for x in track]), feature)
-            for j in range(context4th.size(1)):
-                feature = 'ctx_' + str(j)
-                track = [int(context4th[i, j, k]) for k in range(L)]
+            for j in range(ocr_context4th.size(1)):
+                feature = 'ocr_' + str(j)
+                track = [int(ocr_context4th[i, j, k]) for k in range(L)]
+                print(''.join([['-','+'][ceil(x)] for x in track]), feature)
+            for j in range(viz_context4th.size(1)):
+                feature = 'viz_' + str(j)
+                track = [int(viz_context4th[i, j, k]) for k in range(L)]
                 print(''.join([['-','+'][ceil(x)] for x in track]), feature)
 
 
@@ -160,7 +167,8 @@ class Sampler():
              'textcoded4th': textcoded4th,
              'provenance4th':provenance4th,
              'tensor4th': features4th,
-             'context4th':context4th}
+             'ocrcontext4th': ocrcontext4th,
+             'vizcontext4th':context4th}
             where:
             text4th: a list with a copy of the padded text of the sample
             textcoded4th: a 3D Tensor (samples x 32 x full length) with the fragment text encoded
@@ -170,7 +178,7 @@ class Sampler():
         """
         text4th = []
         provenance4th = []
-        textcoded4th, features4th, context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.img_cxt_features, self.length, self.min_padding)
+        textcoded4th, features4th, ocr_context4th, viz_context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.ocr_cxt_features, self.viz_cxt_features, self.length, self.min_padding)
         length_stats = []
         total = self.N * iterations
         index = 0
@@ -183,7 +191,8 @@ class Sampler():
                 text = encoded_example.text
                 encoded = encoded_example.features
                 provenance = encoded_example.provenance
-                img_context = encoded_example.context
+                ocr_context = encoded_example.ocr_context
+                viz_context = encoded_example.viz_context
 
                 L = len(text)
                 length_stats.append(L)
@@ -203,36 +212,41 @@ class Sampler():
                     provenance4th.append(provenance)
                     # the encoded features of the fragment are added to the feature tensor
                     Sampler.slice_and_pad(features4th, index, encoded, start, stop, left_padding, right_padding)
-                    # the encoded imgage context features 
-                    Sampler.slice_and_pad(context4th, index, img_context, start, stop, left_padding, right_padding)
+                    # the encoded ocr context features 
+                    Sampler.slice_and_pad(ocr_context4th, index, ocr_context, start, stop, left_padding, right_padding)
+                    # the visual context features are independent of the position of the text fragment
+                    viz_context4th[index] =  viz_context
 
                     index += 1
 
         Sampler.show_stats(length_stats, self.N)
         if self.verbose:
-            Sampler.display(text4th, features4th, context4th)
+            Sampler.display(text4th, features4th, ocr_context4th, viz_context4th)
 
         return {
             'text4th': text4th,
             'textcoded4th': textcoded4th,
             'provenance4th':provenance4th,
             'tensor4th': features4th,
-            'context4th': context4th
+            'ocrcontext4th': ocr_context4th,
+            'vizcontext4th': viz_context4th
         }
 
 class EncodedExample():
-    def __init__(self, provenance='', text='', features=None, context=None):
+    def __init__(self, provenance='', text='', features=None, ocr_context=None, viz_context=None):
         self._provenance = provenance
         self._text = text
         self._features = features
-        self._context = context
+        self._ocr_context = ocr_context
+        self._viz_context = viz_context
 
     def save(self, path):
         if not os.path.exists(path):
             os.mkdir(path) 
             with cd(path):
                 torch.save(self.features, 'features.pyth')
-                torch.save(self.context, 'context.pyth')
+                torch.save(self.ocr_context, 'ocr_context.pyth')
+                torch.save(self.viz_context, 'viz_context.pyth')
                 with open('provenance.txt', 'w') as f: 
                     f.write(self.provenance)
                 with open('text.txt', 'w') as f:
@@ -247,7 +261,8 @@ class EncodedExample():
             with open('text.txt', 'r') as f:
                 self._text = f.read()
             self._features = torch.load('features.pyth').byte()
-            self._context = torch.load('context.pyth') # this is float()
+            self._ocr_context = torch.load('ocr_context.pyth') # this is float()
+            self._viz_context = torch.load('viz_context.pyth') # this is float()
 
     @property
     def provenance(self):
@@ -262,8 +277,12 @@ class EncodedExample():
         return self._features
 
     @property
-    def context(self):
-        return self._context
+    def ocr_context(self):
+        return self._ocr_context
+
+    @property
+    def viz_context(self):
+        return self._viz_context
 
 
 class DataPreparator(object):
@@ -289,6 +308,7 @@ class DataPreparator(object):
 
         with cd(os.path.join(config.data_dir, self.compendium)):
             ocr = OCRContext(subset, G=config.img_grid_size)
+            viz = VisualContext(subset)
             for ex in examples:
                 xml = ex['xml']
                 anonymized_xml = ex['anonymized']
@@ -306,9 +326,9 @@ class DataPreparator(object):
                         ocr_context = ocr.run(original_text, graphic) # returns a tensor
 
                         # VISUAL CONTEXT HAPPENS HERE
-                        # viz_context = context.get_context(graphic)
+                        viz_context = viz.get_context(graphic)
 
-                        encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context)
+                        encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context, viz_context)
                         encoded_example.save(path_to_example)
                     else:
                         print("\nskipping an example in document with id=", prov)
@@ -376,8 +396,10 @@ class DataPreparator(object):
                     torch.save(dataset4th['tensor4th'], 'features.pyth')
                     # write encoded text tensor
                     torch.save(dataset4th['textcoded4th'], 'textcoded.pyth')
-                    # write image context features
-                    torch.save(dataset4th['context4th'], 'context.pyth')
+                    # write ocr context features
+                    torch.save(dataset4th['ocrcontext4th'], 'ocrcontext.pyth')
+                    # write visual context features
+                    torch.save(dataset4th['vizcontext4th'], 'vizcontext.pyth')
                     # write text examples into text file
                     with open("text.txt", 'w') as f:
                         for line in dataset4th['text4th']:
@@ -444,7 +466,7 @@ def main():
     parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
     parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
-    parser.add_argument('-A', '--anonymize', help='Xpath expressions to select xml that will be anonymized. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be anonymized. Example .//sd-tag[@type=\'gene\']')
 
 
     args = parser.parse_args()

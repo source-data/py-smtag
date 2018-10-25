@@ -11,6 +11,7 @@ from torchvision.models import resnet152
 from torchvision.models.resnet import model_urls
 model_urls['resnet152'] = model_urls['resnet152'].replace('https://', 'http://')
 from torchvision import transforms
+from ..common.utils import cd
 
 
 # All pre-trained models expect input images normalized in the same way, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224.
@@ -31,6 +32,9 @@ from torchvision import transforms
 # for p in resnet152.parameters():
 #     p.requires_grad = False
 
+# All pre-trained models expect input images normalized in the same way, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224. The images have to be loaded in to a range of [0, 1] and then normalized using mean = [0.485, 0.456, 0.406] and std = [0.229, 0.224, 0.225]. You can use the following transform to normalize:
+
+
 # modules = list(resnet152(pretrained=True).children())[:-1]
 # m = nn.Sequential(*modules)
 # x = torch.zeros(1, 3, 244, 244)
@@ -40,28 +44,38 @@ from torchvision import transforms
 
 class VisualContext(object):
 
-    def __init__(self, selected_output_module=-1):
+    def __init__(self, path, selected_output_module=-1):
+        self.path = path
         modules = list(resnet152(pretrained=True).children())[:selected_output_module]
         self.net = nn.Sequential(*modules)
+        #self.viz_ctx_features =  viz_ctx_features
 
-    def open(self, filename):
-        cv_image = cv.imread(filename) #H x W x C, BGR
+    def open(self, img_filename):
+        try:
+            with cd(self.path):
+                cv_image = cv.imread(img_filename) #H x W x C, BGR
+        except Exception as e:
+            print("{} not loaded".format(img_filename), e)
+            cv_image = None
         return cv_image
 
-    def convert(self, cv_image):        
+    @staticmethod
+    def cv2th(cv_image):        
         BGR = torch.from_numpy(cv_image) # cv image is BGR # cv images are height   x width  x channels
-        blue = BGR[ : , : , 0]
-        green = BGR[ : , : , 1]
-        red = BGR[ : , : , 2]
+        blu  = BGR[ : , : , 0]
+        gre  = BGR[ : , : , 1]
+        red  = BGR[ : , : , 2]
         RGB = torch.Tensor(BGR.size())
-        RGB[0] = red
-        RGB[1] = green
-        RGB[2] = blue
-        RGB = torch.transpose(RGB, 2, 0) # transpose to  channels x width  x height 
-        RGB = torch.transpose(RGB, 1, 2) # transpose to  channels x height x width
+        RGB[ : , : , 0] = red
+        RGB[ : , : , 1] = gre
+        RGB[ : , : , 2] = blu
+        RGB = torch.transpose(RGB, 2, 0) # transpose to channels x width  x height 
+        RGB = torch.transpose(RGB, 1, 2) # transpose to channels x height x width
+        RGB = RGB.float() / 255.0
         return RGB
 
     def resize(self, cv_image):
+        print("resizing", cv_image.shape)
         resized = cv.resize(cv_image, (224, 224), interpolation=cv.INTER_AREA)
         return resized
 
@@ -71,13 +85,17 @@ class VisualContext(object):
 
     def get_context(self, filename):
         cv_image = self.open(filename)
-        resized = self.resize(cv_image)
-        image = self.convert(resized)
-        normalized = self.normalize(image)
+        if cv_image is not None:
+            resized = self.resize(cv_image)
+            image = self.cv2th(resized)
+            normalized = self.normalize(image)
+            normalized.unsqueeze_(0)
+        else: 
+            normalized = torch.zeros(1, 3, 224, 224) # a waste...
         self.net.eval()
         with torch.no_grad():
             output = self.net(normalized)
-        N = output.size(0) # number of minibacthes
-        n = output.numel() / N # number of elements per minibatch
-        vectorized = output.view(N, n) # flatten tensor to batch of vectors
-        return vectorized
+        # NORMALIZE OUTPUT TO 0..1 ? 
+        n = output.numel() # number of elements per minibatch
+        vectorized = output.view(n) # flatten tensor to batch of vectors
+        return vectorized # 1D n

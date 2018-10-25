@@ -273,34 +273,34 @@ class NeoImport():
             if not os.path.isdir(namebase):
                 print("{} does not exists; nothing to download.".format(namebase))
             else:
-               with cd(namebase):
-                   print("attempting to download images to: ", namebase)
-                   subsets = [d for d in os.listdir() if d != '.DS_Store']
-                   #NOOO! Download image first into common data/img folder and avoid redownloading
-                   for subset in subsets:
-                       with cd(subset):
-                        filenames = os.listdir()
-                        xml_filenames = [f for f in filenames if f.split('.')[-1]=='xml']
-                        for filename in xml_filenames:
-                            with open(filename) as f:
-                                article = parse(f)
-                                article = article.getroot()
-                                graphics = article.findall(XPath_to_graphics)
-                                print("found {} graphics in {}".format(len(graphics), article.get('doi')))
-                                for g in graphics:
-                                    url = g.get('href') # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
-                                    id = re.search(r'panel_id=(\d+)', url).group(1)
-                                    image_filename = id +".jpg"
-                                    if os.path.exists(image_filename):
-                                        print("image {} already downloaded".format(image_filename))
-                                    else:
-                                        print("downloading image {} from {}".format(id, url))
-                                        resp = requests.get(url)
-                                        if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
-                                            with iopen(image_filename, 'wb') as file:
-                                                file.write(resp.content)
+                with cd(namebase):
+                    print("attempting to download images to: ", namebase)
+                    subsets = [d for d in os.listdir() if d != '.DS_Store']
+                    #NOOO! Download image first into data/img common to all datasets and avoid redownloading
+                    for subset in subsets:
+                        with cd(subset):
+                            filenames = os.listdir()
+                            xml_filenames = [f for f in filenames if f.split('.')[-1]=='xml']
+                            for filename in xml_filenames:
+                                with open(filename) as f:
+                                    article = parse(f)
+                                    article = article.getroot()
+                                    graphics = article.findall(XPath_to_graphics)
+                                    print("found {} graphics in {}".format(len(graphics), article.get('doi')))
+                                    for g in graphics:
+                                        url = g.get('href') # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
+                                        id = re.search(r'panel_id=(\d+)', url).group(1)
+                                        image_filename = id +".jpg"
+                                        if os.path.exists(image_filename):
+                                            print("image {} already downloaded".format(image_filename))
                                         else:
-                                            print(f"skipped {url} ({resp.status_code})")
+                                            print("downloading image {} from {}".format(id, url))
+                                            resp = requests.get(url)
+                                            if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
+                                                with iopen(image_filename, 'wb') as file:
+                                                    file.write(resp.content)
+                                            else:
+                                                print(f"skipped {url} ({resp.status_code})")
 
 
     def log_errors(self, errors):

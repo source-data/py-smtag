@@ -45,7 +45,8 @@ class Dataset:
             text_filename = 'text.txt'
             textcoded_filename = 'textcoded.pyth'
             provenance_filename = 'provenance.txt'
-            context_filename = 'context.pyth'
+            ocr_context_filename = 'ocrcontext.pyth'
+            viz_context_filename = 'vizcontext.pyth'
 
             print("Loading {} as features for the dataset.".format(features_filename))
             self.output = torch.load(features_filename).float()
@@ -56,12 +57,19 @@ class Dataset:
             print("Loading {} as encoded text for the dataset.".format(textcoded_filename))
             self.textcoded = torch.load(textcoded_filename).float()
 
-            if os.path.isfile(context_filename):
-                print("Loading {} as image-based context data.".format(context_filename))
-                self.context = torch.load(context_filename).float()
+            if os.path.isfile(ocr_context_filename):
+                print("Loading {} as image-based OCR data.".format(ocr_context_filename))
+                self.ocr_context = torch.load(ocr_context_filename).float()
             else:
-                print("No image-based context data available.")
-                self.context = None
+                print("No image-based OCR context data available.")
+                self.ocr_context = None
+
+            if os.path.isfile(viz_context_filename):
+                print("Loading {} as image-based visual context data.".format(viz_context_filename))
+                self.viz_context = torch.load(viz_context_filename).float()
+            else:
+                print("No image-based visual context data available.")
+                self.viz_context = None
 
             print("Loading {} for the original texts of the dataset.".format(text_filename))
             with open(text_filename, 'r') as f:
@@ -96,9 +104,11 @@ class Loader:
         self.features_as_input = Catalogue.from_list(opt['features_as_input'])
         self.use_img_context = opt['use_img_context']
         self.nf_input = config.nbits
-        self.nf_context = config.img_grid_size ** 2 + 2
+        self.nf_ocr_context = 2 # restricting to horizontal / vertical features, disrigarding position ## config.img_grid_size ** 2 + 2
+        self.nf_viz_context = config.viz_cxt_features
         if self.use_img_context:
-            self.nf_input += self.nf_context
+            self.nf_input += self.nf_ocr_context
+            self.nf_input += self.nf_viz_context
 
         self.nf_collapsed_feature = 0
         self.nf_overlap_feature = 0
@@ -140,7 +150,9 @@ class Loader:
         N = raw_dataset.N
         L = raw_dataset.L
         nf = raw_dataset.nf_output # it already includes the last row for 'geneprod'!!
-
+        viz_context = raw_dataset.viz_context #  N X C
+        viz_context.unsqueeze_(2) # N x C x 1
+        viz_context = viz_context.repeat(1, 1, L) # N x C x L
         assert N != 0, "zero examples!"
 
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
@@ -152,7 +164,7 @@ class Loader:
         print("Creating dataset with selected features {}, and shuffling {} examples.".format(", ".join([str(f) for f in self.selected_features]), N))
         shuffled_indices = list(range(N))
         shuffle(shuffled_indices)
-        
+
         dataset = Dataset(N, self.nf_input, self.nf_output, L)
 
         print("Generating dataset with {} examples".format(N))
@@ -164,30 +176,22 @@ class Loader:
 
             # INPUT: ENCODED TEXT SAMPLES
             dataset.input[index, 0:config.nbits , : ] = raw_dataset.textcoded[i, : , : ]
+            supp_input = config.nbits
 
-            # INPUT: IMAGE CONTEXT FEATURES AS ADDITIONAL INPUT
+            # INPUT: IMAGE OCR FEATURES AS ADDITIONAL INPUT
             if self.use_img_context:
-                dataset.input[index, config.nbits:config.nbits+self.nf_context, : ] = raw_dataset.context[i, : , : ]
-                supp_input_features = config.nbits+self.nf_context
-            else: 
-                supp_input_features = config.nbits
-            ######################### DEBUG ###############################################################
-            #print("context data size", dataset.input.size())
-            #from ..common.viz import Show
-            #for i in range(dataset.input.size(0)):
-            #print("nf_context", self.nf_context)
-            #print("use img context", self.use_img_context)
-            #print("example",index)
-            #print("nbits, nbits+fn_context", config.nbits, config.nbits+self.nf_context)
-            #print(Show().print_pretty(dataset.input[[index], : , : ]))
-            #print("raw_dataset.context")
-            #print(Show().print_pretty(raw_dataset.context[[i], : , : ]))
-            ################################################################################################
+                dataset.input[index, supp_input:supp_input+self.nf_ocr_context, : ] = raw_dataset.ocr_context[i, -2:, : ] #### testing only vertical horizontal features
+                supp_input += self.nf_ocr_context
+
+            # INPUT: IMAGE VISUAL CONTEXT FEATURES AS ADDITIONAL INPUT
+            if self.use_img_context:
+                dataset.input[index, supp_input:supp_input+self.nf_viz_context, : ] = viz_context[index, : , : ]
+                supp_input += self.nf_viz_context
+
             # INPUT: FEATURES AS ADDITIONAL INPUT
             for j, f in enumerate(self.features_as_input):
                 # for example: j=0, => 32 + 0 = 32
-                dataset.input[index, supp_input_features + j, : ] = raw_dataset.output[i, concept2index[f], : ]
-
+                dataset.input[index, supp_input + j, : ] = raw_dataset.output[i, concept2index[f], : ]
 
             # OUTPUT SELECTION AND COMBINATION OF FEATURES
             for f in self.selected_features:
