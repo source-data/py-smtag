@@ -5,7 +5,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 
 setuptools.setup(
     name="smtag",
-    version="0.0.2.dev2",
+    version="0.0.2.dev3",
     python_requires='>=3.6',
     author="Source Data",
     author_email="source_data@embo.org",
