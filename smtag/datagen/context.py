@@ -5,13 +5,19 @@
 import cv2 as cv
 import torch
 from torch import nn
+from torch.nn import functional as F
 import torchvision
 #https://discuss.pytorch.org/t/torchvision-url-error-when-loading-pretrained-model/2544/6
-from torchvision.models import resnet152
-from torchvision.models.resnet import model_urls
-model_urls['resnet152'] = model_urls['resnet152'].replace('https://', 'http://')
+from torchvision.models import vgg19, resnet152
 from torchvision import transforms
 from ..common.utils import cd
+
+from torchvision.models.resnet import model_urls as resnet_urls
+from torchvision.models.vgg import model_urls as vgg_urls
+for m in resnet_urls:
+    resnet_urls[m] = resnet_urls[m].replace('https://', 'http://')
+for m in vgg_urls:
+    vgg_urls[m] = vgg_urls[m].replace('https://', 'http://')
 
 
 # All pre-trained models expect input images normalized in the same way, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224.
@@ -44,10 +50,10 @@ from ..common.utils import cd
 
 class VisualContext(object):
 
-    def __init__(self, path, selected_output_module=-1):
+    def __init__(self, path, selected_output_module=5):
         self.path = path
-        modules = list(resnet152(pretrained=True).children())[:selected_output_module]
-        self.net = nn.Sequential(*modules)
+        modules = list(vgg19(pretrained=True).features) # children() for resnet
+        self.net = nn.Sequential(*modules[:selected_output_module])
         #self.viz_ctx_features =  viz_ctx_features
 
     def open(self, img_filename):
@@ -95,7 +101,7 @@ class VisualContext(object):
         self.net.eval()
         with torch.no_grad():
             output = self.net(normalized)
-        # NORMALIZE OUTPUT TO 0..1 ? 
+            output = F.adaptive_max_pool2d(output, 2) # expecting 1 x 64 x 2 x 2 (256 elements)
         n = output.numel() # number of elements per minibatch
-        vectorized = output.view(n) # flatten tensor to batch of vectors
-        return vectorized # 1D n
+        v = output.view(n) # flatten tensor to vector
+        return v # 1D n
