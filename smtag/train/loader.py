@@ -102,12 +102,14 @@ class Loader:
         self.collapsed_features = Catalogue.from_list(opt['collapsed_features'])
         self.overlap_features = Catalogue.from_list(opt['overlap_features'])
         self.features_as_input = Catalogue.from_list(opt['features_as_input'])
-        self.use_img_context = opt['use_img_context']
+        self.use_ocr_context = opt['use_ocr_context']
+        self.use_viz_context = opt['use_viz_context']
         self.nf_input = config.nbits
         self.nf_ocr_context = 2 # restricting to horizontal / vertical features, disrigarding position ## config.img_grid_size ** 2 + 2
         self.nf_viz_context = config.viz_cxt_features
-        if self.use_img_context:
+        if self.use_ocr_context:
             self.nf_input += self.nf_ocr_context
+        if self.use_viz_context:
             self.nf_input += self.nf_viz_context
 
         self.nf_collapsed_feature = 0
@@ -152,6 +154,7 @@ class Loader:
         nf = raw_dataset.nf_output # it already includes the last row for 'geneprod'!!
         viz_context = raw_dataset.viz_context #  N X C
         viz_context.unsqueeze_(2) # N x C x 1
+        viz_context.div_(2*viz_context.max()) # scale to 0..0.5 to avoid dominance of visual input
         viz_context = viz_context.repeat(1, 1, L) # N x C x L
         assert N != 0, "zero examples!"
 
@@ -179,12 +182,12 @@ class Loader:
             supp_input = config.nbits
 
             # INPUT: IMAGE OCR FEATURES AS ADDITIONAL INPUT
-            if self.use_img_context:
+            if self.use_ocr_context:
                 dataset.input[index, supp_input:supp_input+self.nf_ocr_context, : ] = raw_dataset.ocr_context[i, -2:, : ] #### testing only vertical horizontal features
                 supp_input += self.nf_ocr_context
 
             # INPUT: IMAGE VISUAL CONTEXT FEATURES AS ADDITIONAL INPUT
-            if self.use_img_context:
+            if self.use_viz_context:
                 dataset.input[index, supp_input:supp_input+self.nf_viz_context, : ] = viz_context[index, : , : ]
                 supp_input += self.nf_viz_context
 
