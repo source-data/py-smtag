@@ -202,7 +202,7 @@ class OCRContext():
                 progress(i, len(filenames), "loaded {}".format(filename))
         return examples
 
-    def get_example(self, img_filename): # change this to get_example(self, img_filename)
+    def get_example(self, img_filename):
         try:
             with cd(self.path):
                 with io.open(img_filename, 'rb') as image_file:
@@ -274,7 +274,7 @@ class OCRContext():
         row = floor(self.G * (y / h))
         column = floor(self.G * (x / w))
         grid_pos = (row * self.G) + column
-        print(annot.description, "h, w, x, y, grid_pos", h, w, x, y, grid_pos, row, column)
+        # print(annot.description, "h, w, x, y, grid_pos", h, w, x, y, grid_pos, row, column)
         return grid_pos
 
     def best_matches(self, text, annot):
@@ -316,7 +316,7 @@ class OCRContext():
         img, h, w = self.get_example(img_filename)
         annotations = self.get_ocr(img)
         print('\nTextual elements detected on image {}:'.format(img_filename))
-        print("///".join([a.description for a in annotations]))
+        print(", ".join(['"'+a.description[1:]+'"' for a in annotations]))
         print("###################")
         encoded_ocr_context = self.encode_ocr(text, h, w, annotations)
         return encoded_ocr_context
