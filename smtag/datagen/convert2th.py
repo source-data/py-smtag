@@ -213,9 +213,11 @@ class Sampler():
                     # the encoded features of the fragment are added to the feature tensor
                     Sampler.slice_and_pad(features4th, index, encoded, start, stop, left_padding, right_padding)
                     # the encoded ocr context features 
-                    Sampler.slice_and_pad(ocr_context4th, index, ocr_context, start, stop, left_padding, right_padding)
+                    if ocr_context is not None:
+                        Sampler.slice_and_pad(ocr_context4th, index, ocr_context, start, stop, left_padding, right_padding)
                     # the visual context features are independent of the position of the text fragment
-                    viz_context4th[index] =  viz_context
+                    if viz_context is not None:
+                        viz_context4th[index] =  viz_context
 
                     index += 1
 
@@ -245,15 +247,17 @@ class EncodedExample():
             os.mkdir(path) 
             with cd(path):
                 torch.save(self.features, 'features.pyth')
-                torch.save(self.ocr_context, 'ocr_context.pyth')
-                torch.save(self.viz_context, 'viz_context.pyth')
+                if self.ocr_context is not None:
+                    torch.save(self.ocr_context, 'ocr_context.pyth')
+                if self.viz_context is not None:
+                    torch.save(self.viz_context, 'viz_context.pyth')
                 with open('provenance.txt', 'w') as f: 
                     f.write(self.provenance)
                 with open('text.txt', 'w') as f:
                     f.write(self.text)
         else:
             print("EncodedExample detected that {} already exists. Will not overwrite.".format(path))
-    
+
     def load(self, path):
         with cd(path):
             with open('provenance.txt', 'r') as f:
@@ -261,8 +265,10 @@ class EncodedExample():
             with open('text.txt', 'r') as f:
                 self._text = f.read()
             self._features = torch.load('features.pyth').byte()
-            self._ocr_context = torch.load('ocr_context.pyth') # this is float()
-            self._viz_context = torch.load('viz_context.pyth') # this is float()
+            if os.path.exists('ocr_context.pyth'):
+                self._ocr_context = torch.load('ocr_context.pyth') # this is float()
+            if os.path.exists('viz_context.pyth'):
+                self._viz_context = torch.load('viz_context.pyth') # this is float()
 
     @property
     def provenance(self):
@@ -300,46 +306,51 @@ class DataPreparator(object):
         self.namebase = options['namebase'] # namebase where the converted dataset should be saved
         self.compendium = options['compendium'] # the compendium of source documents to be sampled and converted
         self.anonymization_xpath = options['anonymize']
+        self.ocr = options['ocr']
 
     def encode_examples(self, subset, examples, anonymize=None):
         """
         Encodes examples provided as XML Elements and writes them to disk.
         """
 
-        with cd(os.path.join(config.data_dir, self.compendium)):
-            ocr = OCRContext(subset, G=config.img_grid_size)
-            viz = VisualContext(subset)
-            for ex in examples:
-                xml = ex['xml']
-                anonymized_xml = ex['anonymized']
-                graphic = ex['graphic']
-                prov = ex['provenance']
-                original_text = ''.join([s for s in xml.itertext()])
-                anonymized_text = ''.join([s for s in anonymized_xml.itertext()])
+        path_to_compendium = os.path.join(config.data_dir, self.compendium)
+        if self.ocr:
+            ocr = OCRContext(config.image_dir, G=config.img_grid_size)
+        viz = VisualContext(config.image_dir)
+        for ex in examples:
+            xml = ex['xml']
+            anonymized_xml = ex['anonymized']
+            graphic = ex['graphic']
+            prov = ex['provenance']
+            original_text = ''.join([s for s in xml.itertext()])
+            anonymized_text = ''.join([s for s in anonymized_xml.itertext()])
 
-                path_to_example = os.path.join(subset, prov)
-                if not os.path.exists(path_to_example):
-                    if original_text:
-                        encoded_features = XMLEncoder.encode(anonymized_xml) # convert to tensor already here; 
+            path_to_example = os.path.join(path_to_compendium, subset, prov)
+            if not os.path.exists(path_to_example):
+                if original_text:
+                    encoded_features = XMLEncoder.encode(anonymized_xml) # convert to tensor already here; 
 
-                        # OCR HAPPENS HERE ! Needs the unaltered un anonymized original text for alignment
+                    # OCR HAPPENS HERE ! Needs the unaltered un anonymized original text for alignment
+                    if self.ocr:
                         ocr_context = ocr.run(original_text, graphic) # returns a tensor
-
-                        # VISUAL CONTEXT HAPPENS HERE
-                        viz_context = viz.get_context(graphic)
-
-                        encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context, viz_context)
-                        encoded_example.save(path_to_example)
                     else:
-                        print("\nskipping an example in document with id=", prov)
+                        ocr_context = None
+
+                    # VISUAL CONTEXT HAPPENS HERE
+                    viz_context = viz.get_context(graphic)
+
+                    encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context, viz_context)
+                    path_to_encoded = os.path.join(config.encoded_dir, self.compendium, subset, prov)
+                    encoded_example.save(path_to_encoded)
                 else:
-                    print("{} has already been encoded".format(prov))
+                    print("\nskipping an example in document with id=", prov)
+            else:
+                print("{} has already been encoded".format(prov))
 
     def anonymize(self, original_xml, anonymizations):
         xml = copy.deepcopy(original_xml)
         for xpath in anonymizations:
             to_be_anonymized = xml.findall(xpath)
-            print("anonymizing", xpath, len(to_be_anonymized)) 
             for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
                 e.text = config.marking_char * len(e.text)
         return xml
@@ -390,7 +401,6 @@ class DataPreparator(object):
 
         with cd(config.data4th_dir):
             with cd(self.namebase):
-                os.mkdir(subset)
                 with cd(subset):
                     # write feature tensor
                     torch.save(dataset4th['tensor4th'], 'features.pyth')
@@ -415,7 +425,8 @@ class DataPreparator(object):
         print("\nEncoding {} examples".format(len(examples)))
         self.encode_examples(subset, examples) # xml elements, attributes and value are encoded into numbered features
         print("\nSampling examples from {}".format(subset))
-        sampler = Sampler(os.path.join(config.data_dir, self.compendium, subset), self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
+        path_to_encoded_data = os.path.join(config.encoded_dir, self.compendium, subset)
+        sampler = Sampler(path_to_encoded_data, self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
         print("\nSaving tensors to {}".format(subset))
         self.save(dataset4th, subset) # save the tensors
@@ -424,10 +435,20 @@ class DataPreparator(object):
         with cd(config.data_dir):
             subsets = os.listdir(self.compendium)
             subsets = [s for s in subsets if s != '.DS_Store']
+        with cd(config.encoded_dir):
+            if not os.path.isdir(self.compendium):
+                os.mkdir(self.compendium)
+                with cd(self.compendium):
+                    for s in subsets:
+                        os.mkdir(s)
         with cd(config.data4th_dir):
+            # overwrite data4th tensors if already there; resampling
             if os.path.isdir(self.namebase):
                 shutil.rmtree(self.namebase)
             os.mkdir(self.namebase)
+            with cd(self.namebase):
+                for s in subsets:
+                    os.mkdir(s)
         for train_valid_test in subsets:
             self.run_on_dir(train_valid_test)
 
@@ -467,6 +488,7 @@ def main():
     parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
     parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be anonymized. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('--noocr', action='store_true', default=False, help='Set this flag to prevent OCR analysis of images.')
 
 
     args = parser.parse_args()
@@ -478,6 +500,7 @@ def main():
     options['verbose'] = args.verbose
     options['length'] = args.length
     options['path'] = args.path
+    options['ocr'] = not args.noocr
     if args.window:
         options['sampling_mode'] = 'window'
     elif args.start:

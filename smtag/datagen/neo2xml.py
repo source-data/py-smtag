@@ -269,38 +269,41 @@ class NeoImport():
 
     @staticmethod
     def download_images(data_dir, namebase, XPath_to_graphics='.//graphic'):
-        with cd(data_dir):
-            if not os.path.isdir(namebase):
-                print("{} does not exists; nothing to download.".format(namebase))
-            else:
-                with cd(namebase):
-                    print("attempting to download images to: ", namebase)
-                    subsets = [d for d in os.listdir() if d != '.DS_Store']
-                    #NOOO! Download image first into data/img common to all datasets and avoid redownloading
-                    for subset in subsets:
-                        with cd(subset):
-                            filenames = os.listdir()
-                            xml_filenames = [f for f in filenames if f.split('.')[-1]=='xml']
-                            for filename in xml_filenames:
-                                with open(filename) as f:
-                                    article = parse(f)
-                                    article = article.getroot()
-                                    graphics = article.findall(XPath_to_graphics)
-                                    print("found {} graphics in {}".format(len(graphics), article.get('doi')))
-                                    for g in graphics:
-                                        url = g.get('href') # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
-                                        id = re.search(r'panel_id=(\d+)', url).group(1)
-                                        image_filename = id +".jpg"
-                                        if os.path.exists(image_filename):
-                                            print("image {} already downloaded".format(image_filename))
-                                        else:
-                                            print("downloading image {} from {}".format(id, url))
-                                            resp = requests.get(url)
-                                            if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
-                                                with iopen(image_filename, 'wb') as file:
-                                                    file.write(resp.content)
-                                            else:
-                                                print(f"skipped {url} ({resp.status_code})")
+        path_to_compendium = os.path.join(data_dir, namebase)
+        if not os.path.isdir(path_to_compendium):
+            print("{} does not exists; nothing to download.".format(namebase))
+        else:
+            print("attempting to download images for the compendium: ", namebase)
+            subsets = [d for d in os.listdir(path_to_compendium) if d != '.DS_Store']
+            for subset in subsets:
+                path_to_subset = os.path.join(path_to_compendium, subset)
+                filenames = os.listdir(path_to_subset)
+                xml_filenames = [f for f in filenames if f.split('.')[-1]=='xml']
+                for filename in xml_filenames:
+                    path_to_xml_file = os.path.join(path_to_subset, filename)
+                    with open(path_to_xml_file) as f:
+                        article = parse(f)
+                        article = article.getroot()
+                        graphics = article.findall(XPath_to_graphics)
+                        print("found {} graphics in {}".format(len(graphics), article.get('doi')))
+                    for g in graphics:
+                        url = g.get('href') # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
+                        id = re.search(r'panel_id=(\d+)', url).group(1)
+                        image_filename = id +".jpg"
+                        path_to_image = os.path.join(config.image_dir, image_filename)
+                        if os.path.exists(path_to_image):
+                            print("image {} already downloaded".format(image_filename))
+                        else:
+                            print("trying to download image {} from {}".format(id, url))
+                            try:
+                                resp = requests.get(url)
+                                if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
+                                    with iopen(path_to_image, 'wb') as file:
+                                        file.write(resp.content)
+                                else:
+                                    print("skipped {} ({})".format(url, resp.status_code))
+                            except Exception as e:
+                                print("skipped {}".format(url), end)
 
 
     def log_errors(self, errors):
@@ -322,10 +325,10 @@ class NeoImport():
 def main():
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode.')
-    parser.add_argument('-f', '--namebase', default='demo_xml', help='The name of the dataset')
+    parser.add_argument('-f', '--namebase', default='test', help='The name of the dataset')
     parser.add_argument('-A', '--tags2anonymize', default='', help='tag type to anonymise')
     parser.add_argument('-AA','--donotanonymize', default='', help='role of tags that should NOT be anonymized')
-    parser.add_argument('-l', '--limit', default=None, type=int, help='limit number of papers scanned, mainly for testing')
+    parser.add_argument('-l', '--limit', default=10, type=int, help='limit number of papers scanned, mainly for testing')
     parser.add_argument('-Y', '--year_range', default='', help='select papers published in the start:end year range')
     parser.add_argument('-J', '--journals', default='', help='select set of journals, comma delimited')
     parser.add_argument('-D', '--doi', default='', help='restrict to a single doi')

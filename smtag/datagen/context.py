@@ -81,7 +81,6 @@ class VisualContext(object):
         return RGB
 
     def resize(self, cv_image):
-        print("resizing", cv_image.shape)
         resized = cv.resize(cv_image, (224, 224), interpolation=cv.INTER_AREA)
         return resized
 
@@ -90,6 +89,7 @@ class VisualContext(object):
         return normalizer(image)
 
     def get_context(self, filename):
+        print("visual context from ", filename)
         cv_image = self.open(filename)
         if cv_image is not None:
             resized = self.resize(cv_image)
@@ -101,7 +101,7 @@ class VisualContext(object):
         self.net.eval()
         with torch.no_grad():
             output = self.net(normalized)
-            output = F.adaptive_max_pool2d(output, 2) # expecting 1 x 64 x 2 x 2 (256 elements)
+        output = F.adaptive_avg_pool2d(output, 3) # expecting 1 x 64 x 3 x 3 (576 elements)
         n = output.numel() # number of elements per minibatch
         v = output.view(n) # flatten tensor to vector
         return v # 1D n
