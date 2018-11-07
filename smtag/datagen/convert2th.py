@@ -369,7 +369,7 @@ class DataPreparator(object):
                 try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
-                        print("\ndoi:", xml.getroot().get('doi'))
+                        print("\n({}/{}) doi:".format(i, len(filenames)), xml.getroot().get('doi'))
                     for j, e in enumerate(xml.getroot().findall(XPath_to_examples)):
                         provenance = os.path.splitext(filename)[0] + "_" + str(j)
                         g = e.find(XPath_to_assets)
@@ -390,7 +390,7 @@ class DataPreparator(object):
                 except Exception as e:
                     print("problem parsing", os.path.join(path, filename))
                     print(e)
-                progress(i, len(filenames), "loaded {}".format(filename))
+                # progress(i, len(filenames), "loaded {}".format(filename))
         return examples
 
 
