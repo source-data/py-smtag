@@ -28,8 +28,7 @@ def tokenize(s):
     re_non_word_chars = r"(?:[\.?!)\";}\]\*:@\'\({\[,])" # added . and +
     re_multi_char_punct = r"(?:\-–—‐−{2,}|\.{2,}|(?:\.\s){2,}\.)" # added dashes
     re_genotype = r"(?:[+\-–—‐−]/[+\-–—‐−])"
-    re_hyphenated = r"(?<!\s[\dαβγδεζηθικλμνξπρστυφχψωA-Za-z])(?:[\-–—‐−][^\dαβγδεζηθικλμνξπρστυφχψω])" # try to modify first term to (?<!\s[^\dαβγδεζηθικλμνξπρστυφχψωA-Z]) to include single capital or single letter with A-Za-z] IL-β or γ-actin vs GFP-P53 or 12-330-3244 or Creb-1
-
+    re_hyphenated = r"(?<!\s[\dΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩωA-Za-z])(?:[\-–—‐−][^\dΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω])" # try to modify first term to (?<!\s[^\dαβγδεζηθικλμνξπρστυφχψωA-Z]) to include single capital or single letter with A-Za-z] IL-β or γ-actin vs GFP-P53 or 12-330-3244 or Creb-1
     re_word_tokenize_fmt = r'''(
         %(MultiChar)s
         |
