@@ -2,11 +2,9 @@
 #T. Lemberger, 2018
 
 import torch
+import json
+from ..common.utils import cd
 from ..common.mapper import brat_map, xml_map, NUMBER_OF_ENCODED_FEATURES
-
-# WIP
-# features should actually be instance of EncodedFeatures()
-# define abstract Encoder class that takes Example and returns EncodedFeatures
 
 
 class Encoder(object):

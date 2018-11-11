@@ -116,6 +116,8 @@
 
 import io
 import os
+import argparse
+import json
 import torch
 from xml.etree.ElementTree  import XML, parse, tostring
 from nltk.metrics.distance import edit_distance
@@ -128,9 +130,9 @@ from ..common.utils import cd
 from ..common.progress import progress
 from .. import config
 
-ALLOWED_FILE_EXTENSIONS =['xml', 'jpg']
+ALLOWED_FILE_EXTENSIONS =['.jpg', '.jpeg']
 
-class OCRContext():
+class OCR():
     """
     [WIP] Will need to be included in encoder module?
     Extracts text elements from images and encode as features for relevant segments of the respective text examples.
@@ -143,71 +145,15 @@ class OCRContext():
     """
 
     def __init__(self, path, G=config.img_grid_size, T=0.1, account_key='/Users/lemberger/Documents/code/cloud/smarttag-2-5b02d5e85409.json'):
-        self.path = path
-        self.G = G
-        self.T = T
+        self.path = path # path to images 
+        # path to annotations
         self.client = vision.ImageAnnotatorClient(credentials = service_account.Credentials.from_service_account_file(account_key))
 
-    def load_from_dir(self):
-        xml_documents = self.import_xml_files()
-        examples = self.load_examples(xml_documents)
-        return examples
-    
-    def load_examples(self, examples):
-        """
-        Encodes examples provided as XML Elements.
-        """
-
-        encoded_examples = []
-
-        for id in examples:
-            example = examples[id]
-            text = ''.join([s for s in example.itertext()])
-            if text:
-                img_filename = example.attrib['img']
-                example = {
-                    'provenance': id,
-                    'text': text,
-                    'img': img_filename
-                }
-                encoded_examples.append(example)
-            else:
-                print("\nskipping an example in document with id=", id)
-                print(tostring(examples[id]))
-        return encoded_examples
-
-
-    def import_xml_files(self, XPath_to_examples='.//sd-panel'):
-        """
-        Import xml documents from path. In each document, extracts examples using XPath. 
-        """
-
-        with cd(self.path):
-            # path = os.path.join(self.compendium, subset)
-            print("\nloading from:", self.path)
-            filenames = os.listdir()
-            filenames = [f for f in filenames if f.split('.')[-1] == 'xml']
-            print("filenames", filenames)
-            examples = {}
-            for i, filename in enumerate(filenames):
-                try:
-                    with open(filename) as f: 
-                        xml = parse(f)
-                    for j, e in enumerate(xml.findall(XPath_to_examples)):
-                        id = filename + "-" + str(j) # unique id provided filename is unique (hence limiting to single allowed file extension)
-                        examples[id] = e
-                except Exception as e:
-                    print("problem parsing", filename)
-                    print(e)
-                progress(i, len(filenames), "loaded {}".format(filename))
-        return examples
-
-    def get_example(self, img_filename):
+    def load_image(self, img_filename):
         try:
-            with cd(self.path):
-                with io.open(img_filename, 'rb') as image_file:
-                    img = image_file.read()
-                img_cv = cv.imread(img_filename) # hack, would be better not to read file twice... dunno how to get image size otherwise!!
+            with io.open(img_filename, 'rb') as image_file:
+                img = image_file.read()
+            img_cv = cv.imread(img_filename) # hack, would be better not to read file twice... dunno how to get image size otherwise!!
             shape = img_cv.shape
             h = shape[0]
             w = shape[1]
@@ -224,15 +170,130 @@ class OCRContext():
             image = types.Image(content=img)
             # Performs text detection on the image file; see https://googleapis.github.io/google-cloud-python/latest/vision/gapic/v1/api.html#google.cloud.vision_v1.ImageAnnotatorClient.text_detection
             response = self.client.text_detection(image)
-            annotations = response.text_annotations
+            print("response.text_annotations", response.text_annotations)
+            print("iterating", ">>>".join([a.description for a in response.text_annotations[1:]]))
+            annotations = OCRAnnotations.from_google(response.text_annotations)
         else:
-            annotations = []
+            annotations = None
         return annotations
 
-    def get_coordinates(self, annot):
-        return annot.bounding_poly.vertices[0].x, annot.bounding_poly.vertices[0].y
+    def save_annotations(self, annotations, filename):
+        with open(filename, 'w') as f:
+           json.dump(annotations.dict, f) # json.dump(annotations, f, cls=myJSONEncoder)
     
-    def get_orientation(self, annot):
+    def run(self):
+        with cd(self.path):
+            filenames = [f for f in os.listdir() if os.path.splitext(f)[-1] in ALLOWED_FILE_EXTENSIONS]
+            for filename in filenames:
+                basename = os.path.splitext(filename)[0]
+                ocr_filename = basename +'.json'
+                if not os.path.exists(ocr_filename):
+                    img, h, w = self.load_image(filename)
+                    annotations = self.get_ocr(img)
+                    annotations.image_width = w
+                    annotations.image_height = h
+                    print('\nTextual elements detected on image {}:'.format(filename))
+                    print(", ".join(['"'+a.text+'"' for a in annotations]))
+                    self.save_annotations(annotations, ocr_filename)
+                else:
+                    print("{} has already been OCR-ed".format(filename))
+
+class OCRAnnotations(object):
+
+    def __init__(self, annot_dict): # what about converting json to OCRAnnotatoins?
+        self._annotations = [Annotation(a) for a in annot_dict['annotations']]
+        self._image_height = annot_dict['image_height']
+        self._image_width = annot_dict['image_width']
+
+    @classmethod
+    def from_google(cls, google_annot):
+        annotation_list = [Annotation.from_google(a) for a in google_annot[1:]]
+        annot_dict = [a.dict for a in annotation_list]
+        d = {
+            'image_width': None,
+            'image_height': None,
+            'annotations': annot_dict
+        }
+        return cls(d)
+
+    def __iter__(self):
+        return self._annotations.__iter__()
+
+    def __next__(self):
+        return next(self._annotations)
+
+    def __len__(self):
+        return len(self._annotations)
+
+    def __getitem__(self, i):
+        return self._annotations[i]
+
+    @property
+    def image_height(self):
+        return self._image_height
+    @property
+    def image_width(self):
+        return self._image_width
+    @image_height.setter
+    def image_height(self, x):
+        self._image_height = x
+    @image_width.setter
+    def image_width(self, x):
+        self._image_width = x
+
+    @property
+    def dict(self):
+        d = {
+            'image_width': self.image_width,
+            'image_height': self.image_height,
+            'annotations': [a.dict for a in self._annotations]
+        }
+        return d
+
+
+class Annotation(object):
+
+    def __init__(self, annot):
+        self._annot = annot
+        self._text = annot['text']
+        self._coordinates =  annot['coordinates']
+        self._orientation =  annot['orientation']
+
+    @classmethod
+    def from_google(cls, google_annot):
+        annot = {
+             'text': cls._set_text(google_annot),
+             'coordinates': cls._set_coordinates(google_annot),
+             'orientation': cls._set_orientation(google_annot)
+        }
+        return cls(annot)
+
+    @property
+    def dict(self):
+        return self._annot
+
+    @property
+    def text(self):
+        return self._text
+
+    @property
+    def coordinates(self):
+        return self._coordinates
+
+    @property
+    def orientation(self):
+        return self._orientation
+
+    @staticmethod
+    def _set_text(google_annot):
+        return google_annot.description
+
+    @staticmethod
+    def _set_coordinates(google_annot):
+        return (google_annot.bounding_poly.vertices[0].x, google_annot.bounding_poly.vertices[0].y)
+
+    @staticmethod
+    def _set_orientation(google_annot):
         """
         when the text is horizontal it might look like:
         0----1
@@ -245,21 +306,27 @@ class OCRContext():
         and the vertice order will still be (0, 1, 2, 3).
         """
         epsilon = 5
-        x0 = annot.bounding_poly.vertices[0].x
-        y0 = annot.bounding_poly.vertices[0].y
-        x1 = annot.bounding_poly.vertices[1].x
-        y1 = annot.bounding_poly.vertices[1].y
+        x0 = google_annot.bounding_poly.vertices[0].x
+        y0 = google_annot.bounding_poly.vertices[0].y
+        x1 = google_annot.bounding_poly.vertices[1].x
+        y1 = google_annot.bounding_poly.vertices[1].y
         if abs(y1 - y0) < epsilon:
             orientation = 'horizontal'
         elif abs(x1 - x0) < epsilon:
             orientation = 'vertical'
         else:
             orientation  = 'unknown'
-        print(annot.description, x0, y0, x1, y1, orientation)
+        print(google_annot.description, x0, y0, x1, y1, orientation)
         return orientation
 
-    def get_text(self, annot):
-        return annot.description
+
+class OCREncoder(object):
+
+    def __init__(self, path, G, T=0.1):
+        self.path = path
+        self.G = G
+        self.T = T
+
 
     def grid_index(self, h, w, annot):
         """
@@ -270,7 +337,8 @@ class OCRContext():
             h, w : height and width of the image
             annot: ocr annotation
         """
-        x, y = self.get_coordinates(annot)
+
+        x, y = annot.coordinates
         row = floor(self.G * (y / h))
         column = floor(self.G * (x / w))
         grid_pos = (row * self.G) + column
@@ -278,7 +346,7 @@ class OCRContext():
         return grid_pos
 
     def best_matches(self, text, annot):
-        query = self.get_text(annot)
+        query = annot.text
         l = len(query)
         L = len(text)
         matches = []
@@ -302,47 +370,38 @@ class OCRContext():
         elif orientation == 'vertical':
             context_tensor[self.G ** 2 + 1, pos_in_text:pos_in_text+length] = 1
 
-    def encode_ocr(self, text, h, w, annotations):
+    def load_annotations(self, filename):
+        with cd(self.path):
+            with open(filename, 'r') as f:
+                j = json.load(f)
+        return OCRAnnotations(j)
+
+    def encode(self, text, graphic_filename):
+        basename = os.path.splitext(graphic_filename)[0]
+        ocr_filename = basename + ".json"
+        annotations = self.load_annotations(ocr_filename)
+        h = annotations.image_height
+        w = annotations.image_width
         context_tensor = torch.zeros(self.G ** 2 + 2, len(text)) # G^2 features for position on the grid + 2 features for horizontal vs vertical orientation
-        for annot in annotations[1:]: # first annoation is the full list of entities detected
+        for annot in annotations: # first annoation is the full list of entities detected
             pos_on_grid = self.grid_index(h, w, annot)
             matches = self.best_matches(text, annot)
-            orientation = self.get_orientation(annot)
+            orientation = annot.orientation 
             for m in matches:
                 self.add_context_(context_tensor, pos_on_grid, orientation, m['pos'], m['length'], m['score'])
         return context_tensor
-    
-    def run(self, text, img_filename):
-        img, h, w = self.get_example(img_filename)
-        annotations = self.get_ocr(img)
-        print('\nTextual elements detected on image {}:'.format(img_filename))
-        print(", ".join(['"'+a.description[1:]+'"' for a in annotations]))
-        print("###################")
-        encoded_ocr_context = self.encode_ocr(text, h, w, annotations)
-        return encoded_ocr_context
-    
-    def run_on_dir(self):
-        examples = self.load_from_dir()
-        N = len(examples)
-        context_codes = []
-        for i in range(N): # for text, img, shape in self.examples # define class Examples and class Example
-            text = examples[i]['text']
-            img_filename = examples[i]['img']
-            encoded_ocr_context = self.run(text, img_filename)
-            context_codes.append(encoded_ocr_context)
-        return examples, context_codes
-
 
 def main():
-    test_path = os.path.join(config.data_dir, 'test_img', 'train')
-    ocr = OCRContext(test_path, G=5, T=0.33)
-    examples, context_codes = ocr.run_on_dir()
-    print(examples)
-    for i, t in enumerate(context_codes):
-        print(examples[i]['text'])
-        for j in range(t.size(0)):
-            print("".join([['-','+'][ceil(s)] for s in t[j]]))
+    parser = argparse.ArgumentParser(description='Modules to perform OCR and encode OCR-based context.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode.')
 
+    args = parser.parse_args()
+    if args.working_directory:
+        config.working_directory = args.working_directory
+    print("running ocr from",  os.getcwd(), config.image_dir)
+    ocr = OCR(config.image_dir, config.img_grid_size)
+    ocr.run()
 
 if __name__ == '__main__':
     main()

@@ -22,8 +22,8 @@ from ..common.converter import TString
 from ..common.utils import cd, timer
 from ..common.progress import progress
 from .encoder import XMLEncoder, BratEncoder
+from .ocr import OCREncoder
 from .brat import BratImport
-from .ocr import OCRContext
 from .context import VisualContext
 from .. import config
 
@@ -315,12 +315,12 @@ class DataPreparator(object):
 
         path_to_compendium = os.path.join(config.data_dir, self.compendium)
         if self.ocr:
-            ocr = OCRContext(config.image_dir, G=config.img_grid_size)
+            ocr = OCREncoder(config.image_dir, G=config.img_grid_size)
         viz = VisualContext(config.image_dir)
         for ex in examples:
             xml = ex['xml']
             anonymized_xml = ex['anonymized']
-            graphic = ex['graphic']
+            graphic_filename = ex['graphic']
             prov = ex['provenance']
             original_text = ''.join([s for s in xml.itertext()])
             anonymized_text = ''.join([s for s in anonymized_xml.itertext()])
@@ -330,15 +330,14 @@ class DataPreparator(object):
                 if original_text:
                     encoded_features = XMLEncoder.encode(anonymized_xml) # convert to tensor already here; 
 
-                    # OCR HAPPENS HERE ! Needs the unaltered un anonymized original text for alignment
+                    # OCR CONTEXT HAPPENS HERE ! Needs the unaltered un anonymized original text for alignment
                     if self.ocr:
-                        ocr_context = ocr.run(original_text, graphic) # returns a tensor
+                        ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
                     else:
                         ocr_context = None
 
                     # VISUAL CONTEXT HAPPENS HERE
-                    viz_context = viz.get_context(graphic)
-
+                    viz_context = viz.get_context(graphic_filename)
                     encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context, viz_context)
                     path_to_encoded = os.path.join(config.encoded_dir, self.compendium, subset, prov)
                     encoded_example.save(path_to_encoded)
@@ -432,15 +431,18 @@ class DataPreparator(object):
         self.save(dataset4th, subset) # save the tensors
 
     def run_on_compendium(self):
+        print("config.data_dir", config.data_dir, os.getcwd())
         with cd(config.data_dir):
             subsets = os.listdir(self.compendium)
             subsets = [s for s in subsets if s != '.DS_Store']
+
         with cd(config.encoded_dir):
             if not os.path.isdir(self.compendium):
                 os.mkdir(self.compendium)
                 with cd(self.compendium):
                     for s in subsets:
                         os.mkdir(s)
+
         with cd(config.data4th_dir):
             # overwrite data4th tensors if already there; resampling
             if os.path.isdir(self.namebase):
@@ -449,6 +451,7 @@ class DataPreparator(object):
             with cd(self.namebase):
                 for s in subsets:
                     os.mkdir(s)
+
         for train_valid_test in subsets:
             self.run_on_dir(train_valid_test)
 
@@ -513,12 +516,12 @@ def main():
     print(options['anonymize'])
     if args.working_directory:
         config.working_directory = args.working_directory
-    with cd(config.working_directory):
-        if args.brat:
-            prep = BratDataPreparator(options)
-        else:
-            prep = DataPreparator(options)
-        prep.run_on_compendium()
+    # with cd(config.working_directory):
+    if args.brat:
+        prep = BratDataPreparator(options)
+    else:
+        prep = DataPreparator(options)
+    prep.run_on_compendium()
 
 if __name__ == "__main__":
     main()
