@@ -5,6 +5,7 @@
 from .train   import meta       as train_meta
 from .train   import evaluator  as train_eval
 from .datagen import neo2xml    as datagen_neo2xml
+from .datagen import ocr        as datagen_ocr
 from .datagen import convert2th as datagen_convert2th
 from .predict import engine     as predict_engine
 
@@ -13,6 +14,9 @@ def meta():
 
 def neo2xml():
     return datagen_neo2xml.main()
+
+def ocr():
+    return datagen_ocr.main()
 
 def convert2th():
     return datagen_convert2th.main()

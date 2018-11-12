@@ -170,8 +170,6 @@ class OCR():
             image = types.Image(content=img)
             # Performs text detection on the image file; see https://googleapis.github.io/google-cloud-python/latest/vision/gapic/v1/api.html#google.cloud.vision_v1.ImageAnnotatorClient.text_detection
             response = self.client.text_detection(image)
-            print("response.text_annotations", response.text_annotations)
-            print("iterating", ">>>".join([a.description for a in response.text_annotations[1:]]))
             annotations = OCRAnnotations.from_google(response.text_annotations)
         else:
             annotations = None
@@ -342,7 +340,6 @@ class OCREncoder(object):
         row = floor(self.G * (y / h))
         column = floor(self.G * (x / w))
         grid_pos = (row * self.G) + column
-        # print(annot.description, "h, w, x, y, grid_pos", h, w, x, y, grid_pos, row, column)
         return grid_pos
 
     def best_matches(self, text, annot):
@@ -394,7 +391,6 @@ class OCREncoder(object):
 def main():
     parser = argparse.ArgumentParser(description='Modules to perform OCR and encode OCR-based context.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
-    parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode.')
 
     args = parser.parse_args()
     if args.working_directory:

@@ -5,7 +5,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 
 setuptools.setup(
     name="smtag",
-    version="0.1.0.dev3",
+    version="0.1.0.dev4",
     python_requires='>=3.6',
     author="Source Data",
     author_email="source_data@embo.org",
@@ -37,6 +37,7 @@ setuptools.setup(
     entry_points = {
         'console_scripts': [
             'smtag-neo2xml=smtag.command_line:neo2xml',
+            'smtag-ocr=smtag.command_line:ocr',
             'smtag-convert2th=smtag.command_line:convert2th',
             'smtag-meta=smtag.command_line:meta',
             'smtag-eval=smtag.command_line:eval',

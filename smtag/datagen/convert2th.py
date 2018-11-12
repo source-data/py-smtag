@@ -306,6 +306,8 @@ class DataPreparator(object):
         self.namebase = options['namebase'] # namebase where the converted dataset should be saved
         self.compendium = options['compendium'] # the compendium of source documents to be sampled and converted
         self.anonymization_xpath = options['anonymize']
+        self.enrich_xpath = options['enrich']
+        self.exclusive_xpath = options['exclusive']
         self.ocr = options['ocr']
 
     def encode_examples(self, subset, examples, anonymize=None):
@@ -346,12 +348,39 @@ class DataPreparator(object):
             else:
                 print("{} has already been encoded".format(prov))
 
-    def anonymize(self, original_xml, anonymizations):
-        xml = copy.deepcopy(original_xml)
-        for xpath in anonymizations:
-            to_be_anonymized = xml.findall(xpath)
-            for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
-                e.text = config.marking_char * len(e.text)
+    def enrich(self, xml, select):
+        if select:
+            xml = copy.deepcopy(xml)
+            selected = xml.findall(select)
+            if selected:
+                return True
+            else:
+                return False
+        else:
+            return True
+
+    def exclusive(self, xml, keep, element='sd-tag'):
+        if keep:
+            xml = copy.deepcopy(xml)
+            all = xml.findall(element)
+            for e in all:
+                discard = True
+                for xpath in keep:
+                    if e.find(xpath):
+                        discard = False
+                if discard:
+                    for a in e.attrib:
+                        del e.attrib[a]
+        return xml
+
+
+    def anonymize(self, xml, anonymizations):
+        if anomizatins:
+            xml = copy.deepcopy(xml)
+            for xpath in anonymizations:
+                to_be_anonymized = xml.findall(xpath)
+                for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
+                    e.text = config.marking_char * len(e.text)
         return xml
 
     def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = './/graphic'):
@@ -370,22 +399,24 @@ class DataPreparator(object):
                         xml = parse(f)
                         print("\n({}/{}) doi:".format(i, len(filenames)), xml.getroot().get('doi'))
                     for j, e in enumerate(xml.getroot().findall(XPath_to_examples)):
-                        provenance = os.path.splitext(filename)[0] + "_" + str(j)
-                        g = e.find(XPath_to_assets)
-                        if g is not None:
-                            basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
-                            graphic_filename = basename + '.jpg'
-                        else:
-                            print('no graphic element found')
-                            graphic_filename = ''
-                        #if not os.path.exists(os.path.join(config.data4th_dir, graphic_filename):
-                        anonymized = self.anonymize(e, self.anonymization_xpath)
-                        examples.append({
-                            'xml': e,
-                            'anonymized': anonymized,
-                            'provenance': provenance,
-                            'graphic': graphic_filename
-                        })
+                        if enrich(self.enrichment_xpath):
+                            e = self.exclusive(e, self.exclusive_xpath)
+                            #if not os.path.exists(os.path.join(config.data4th_dir, graphic_filename):
+                            anonymized = self.anonymize(e, self.anonymization_xpath)
+                            provenance = os.path.splitext(filename)[0] + "_" + str(j)
+                            g = e.find(XPath_to_assets)
+                            if g is not None:
+                                basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
+                                graphic_filename = basename + '.jpg'
+                            else:
+                                print('no graphic element found')
+                                graphic_filename = ''
+                            examples.append({
+                                'xml': e,
+                                'anonymized': anonymized,
+                                'provenance': provenance,
+                                'graphic': graphic_filename
+                            })
                 except Exception as e:
                     print("problem parsing", os.path.join(path, filename))
                     print(e)
@@ -491,6 +522,8 @@ def main():
     parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
     parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be anonymized. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('-e', '--exclusive', default='', help='Xpath expressions to keep only specific tags. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('--noocr', action='store_true', default=False, help='Set this flag to prevent OCR analysis of images.')
 
 
@@ -513,6 +546,8 @@ def main():
     options['random_shifting'] = not args.disable_shifting
     options['padding'] = args.padding
     options['anonymize'] =  args.anonymize.split(',')
+    options['exclusive'] =  args.exclusive.split(',')
+    options['enrich'] =  args.enrich.split(',')
     print(options['anonymize'])
     if args.working_directory:
         config.working_directory = args.working_directory
