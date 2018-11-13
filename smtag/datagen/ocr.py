@@ -185,7 +185,12 @@ class OCR():
             for filename in filenames:
                 basename = os.path.splitext(filename)[0]
                 ocr_filename = basename +'.json'
-                if not os.path.exists(ocr_filename):
+                empty = True
+                if os.path.exists(ocr_filename):
+                    with open(ocr_filename, 'r') as f:
+                        content = f.read()
+                    empty = (content == "")
+                if empty:
                     img, h, w = self.load_image(filename)
                     annotations = self.get_ocr(img)
                     annotations.image_width = w
@@ -194,14 +199,19 @@ class OCR():
                     print(", ".join(['"'+a.text+'"' for a in annotations]))
                     self.save_annotations(annotations, ocr_filename)
                 else:
+                    # add a check of whether file empty, can happen rarely
                     print("{} has already been OCR-ed".format(filename))
 
 class OCRAnnotations(object):
 
-    def __init__(self, annot_dict): # what about converting json to OCRAnnotatoins?
-        self._annotations = [Annotation(a) for a in annot_dict['annotations']]
-        self._image_height = annot_dict['image_height']
-        self._image_width = annot_dict['image_width']
+    def __init__(self, annot_dict):
+        self._annotations = []
+        self._image_height = None
+        self._image_width = None
+        if annot_dict:
+            self._annotations = [Annotation(a) for a in annot_dict['annotations']]
+            self._image_height = annot_dict['image_height']
+            self._image_width = annot_dict['image_width']
 
     @classmethod
     def from_google(cls, google_annot):
@@ -368,9 +378,15 @@ class OCREncoder(object):
             context_tensor[self.G ** 2 + 1, pos_in_text:pos_in_text+length] = 1
 
     def load_annotations(self, filename):
+        j = {}
         with cd(self.path):
-            with open(filename, 'r') as f:
-                j = json.load(f)
+            if os.path.exists(filename):
+                with open(filename, 'r') as f:
+                    try:
+                        j = json.load(f)
+                    except Exception as e:
+                        j = {}
+                        print("problem with json file", filename, e)
         return OCRAnnotations(j)
 
     def encode(self, text, graphic_filename):

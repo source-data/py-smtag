@@ -148,10 +148,9 @@ class Sampler():
                 feature = 'ocr_' + str(j)
                 track = [int(ocr_context4th[i, j, k]) for k in range(L)]
                 print(''.join([['-','+'][ceil(x)] for x in track]), feature)
-            for j in range(viz_context4th.size(1)):
-                feature = 'viz_' + str(j)
-                track = [int(viz_context4th[i, j, k]) for k in range(L)]
-                print(''.join([['-','+'][ceil(x)] for x in track]), feature)
+            feature = 'viz_' + str(j)
+            track = [int(x) for x in viz_context4th[i]]
+            print(''.join([str(x) for x in track]), feature)
 
 
     @timer
@@ -306,7 +305,7 @@ class DataPreparator(object):
         self.namebase = options['namebase'] # namebase where the converted dataset should be saved
         self.compendium = options['compendium'] # the compendium of source documents to be sampled and converted
         self.anonymization_xpath = options['anonymize']
-        self.enrich_xpath = options['enrich']
+        self.enrichment_xpath = options['enrich'] 
         self.exclusive_xpath = options['exclusive']
         self.ocr = options['ocr']
 
@@ -327,9 +326,10 @@ class DataPreparator(object):
             original_text = ''.join([s for s in xml.itertext()])
             anonymized_text = ''.join([s for s in anonymized_xml.itertext()])
 
-            path_to_example = os.path.join(path_to_compendium, subset, prov)
-            if not os.path.exists(path_to_example):
+            path_to_encoded = os.path.join(config.encoded_dir, self.compendium, subset, prov)
+            if not os.path.exists(path_to_encoded): #path_to_example):
                 if original_text:
+                    # ENCODING XML
                     encoded_features = XMLEncoder.encode(anonymized_xml) # convert to tensor already here; 
 
                     # OCR CONTEXT HAPPENS HERE ! Needs the unaltered un anonymized original text for alignment
@@ -341,7 +341,6 @@ class DataPreparator(object):
                     # VISUAL CONTEXT HAPPENS HERE
                     viz_context = viz.get_context(graphic_filename)
                     encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context, viz_context)
-                    path_to_encoded = os.path.join(config.encoded_dir, self.compendium, subset, prov)
                     encoded_example.save(path_to_encoded)
                 else:
                     print("\nskipping an example in document with id=", prov)
@@ -350,37 +349,46 @@ class DataPreparator(object):
 
     def enrich(self, xml, select):
         if select:
-            xml = copy.deepcopy(xml)
-            selected = xml.findall(select)
-            if selected:
-                return True
-            else:
-                return False
+            keep = False
+            for xpath in select:
+                xml = copy.deepcopy(xml)
+                found = xml.findall(xpath)
+                if found:
+                    keep = True
+                else: 
+                    print(xpath, "not found")
         else:
-            return True
+            keep = True
+        return keep
 
-    def exclusive(self, xml, keep, element='sd-tag'):
-        if keep:
+    def exclusive(self, xml, keep_only, element='sd-tag'):
+        if keep_only:
             xml = copy.deepcopy(xml)
+            for xpath in keep_only:
+                selected = xml.findall(xpath)
+                for e in selected:
+                    e.attrib['temp_attribute_keep_only_this'] = '1'
             all = xml.findall(element)
             for e in all:
-                discard = True
-                for xpath in keep:
-                    if e.find(xpath):
-                        discard = False
-                if discard:
-                    for a in e.attrib:
-                        del e.attrib[a]
+                if e.get('temp_attribute_keep_only_this', False):
+                    del e.attrib['temp_attribute_keep_only_this']
+                else:
+                    e.attrib = {}
         return xml
 
 
     def anonymize(self, xml, anonymizations):
-        if anomizatins:
+        if anonymizations:
             xml = copy.deepcopy(xml)
             for xpath in anonymizations:
                 to_be_anonymized = xml.findall(xpath)
                 for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
-                    e.text = config.marking_char * len(e.text)
+                    innertext = "".join([s for s in e.itertext()])
+                    attrib = e.attrib
+                    e.clear()
+                    e.attrib = attrib
+                    e.text = config.marking_char * len(innertext)
+
         return xml
 
     def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = './/graphic'):
@@ -394,12 +402,12 @@ class DataPreparator(object):
             filenames = [f for f in os.listdir(path) if os.path.splitext(f)[1] == '.xml']
             examples = []
             for i, filename in enumerate(filenames):
-                try:
+                #try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
                         print("\n({}/{}) doi:".format(i, len(filenames)), xml.getroot().get('doi'))
                     for j, e in enumerate(xml.getroot().findall(XPath_to_examples)):
-                        if enrich(self.enrichment_xpath):
+                        if self.enrich(e, self.enrichment_xpath):
                             e = self.exclusive(e, self.exclusive_xpath)
                             #if not os.path.exists(os.path.join(config.data4th_dir, graphic_filename):
                             anonymized = self.anonymize(e, self.anonymization_xpath)
@@ -417,9 +425,9 @@ class DataPreparator(object):
                                 'provenance': provenance,
                                 'graphic': graphic_filename
                             })
-                except Exception as e:
-                    print("problem parsing", os.path.join(path, filename))
-                    print(e)
+                # except Exception as e:
+                #     print("problem parsing", os.path.join(path, filename))
+                #     print(e)
                 # progress(i, len(filenames), "loaded {}".format(filename))
         return examples
 
@@ -545,10 +553,10 @@ def main():
         options['sampling_mode'] = 'sentence'
     options['random_shifting'] = not args.disable_shifting
     options['padding'] = args.padding
-    options['anonymize'] =  args.anonymize.split(',')
-    options['exclusive'] =  args.exclusive.split(',')
-    options['enrich'] =  args.enrich.split(',')
-    print(options['anonymize'])
+    options['anonymize'] =  [a for a in args.anonymize.split(',') if a] # to make sure list is empty if args is ''
+    options['exclusive'] =  [a for a in args.exclusive.split(',') if a]
+    options['enrich'] =  [a for a in args.enrich.split(',') if a]
+    print(options)
     if args.working_directory:
         config.working_directory = args.working_directory
     # with cd(config.working_directory):
