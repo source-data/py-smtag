@@ -81,7 +81,7 @@ class Show():
 
         text = Converter.t_decode(input[[0], 0:config.nbits, : ]) #sometimes input has more than 32 features if feature2input option was chosen
         if nf_input > config.nbits:
-            out += "Additional input features:"+self.nl+self.nl
+            out += "\nAdditional input features:"+self.nl+self.nl
             out += "    "+self.print_pretty(input[[0], 32:nf_input, : ]) + self.nl + self.nl
 
         out+= "__Expected:__" + "({})".format(provenance.strip()) + self.nl + self.nl
