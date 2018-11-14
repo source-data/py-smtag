@@ -354,9 +354,10 @@ class DataPreparator(object):
                 xml = copy.deepcopy(xml)
                 found = xml.findall(xpath)
                 if found:
-                    keep = True
-                else: 
-                    print(xpath, "not found")
+                    return True
+            if not found: 
+                print(xpath, "not found")
+                print(tostring(xml))
         else:
             keep = True
         return keep
@@ -367,13 +368,13 @@ class DataPreparator(object):
             for xpath in keep_only:
                 selected = xml.findall(xpath)
                 for e in selected:
-                    e.attrib['temp_attribute_keep_only_this'] = '1'
-            all = xml.findall(element)
+                    e.set('temp_attribute_keep_only_this', '1')
+            all = xml.findall(".//"+element)
             for e in all:
                 if e.get('temp_attribute_keep_only_this', False):
                     del e.attrib['temp_attribute_keep_only_this']
                 else:
-                    e.attrib = {}
+                    e.attrib = None
         return xml
 
 
@@ -383,10 +384,10 @@ class DataPreparator(object):
             for xpath in anonymizations:
                 to_be_anonymized = xml.findall(xpath)
                 for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
+                    # FIX PROBLEM WITH MISSING SPACES
                     innertext = "".join([s for s in e.itertext()])
-                    attrib = e.attrib
-                    e.clear()
-                    e.attrib = attrib
+                    for sub in e:
+                        e.remove(sub)
                     e.text = config.marking_char * len(innertext)
 
         return xml
