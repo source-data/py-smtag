@@ -386,10 +386,9 @@ class DataPreparator(object):
                 for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
                     # FIX PROBLEM WITH MISSING SPACES
                     innertext = "".join([s for s in e.itertext()])
-                    for sub in e:
+                    for sub in list(e):
                         e.remove(sub)
                     e.text = config.marking_char * len(innertext)
-
         return xml
 
     def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = './/graphic'):
@@ -513,7 +512,6 @@ class BratDataPreparator(DataPreparator):
                 encoded_features = BratEncoder.encode(ex)
                 encoded_example = EncodedExample(ex['provenance'], ex['text'], encoded_features)
                 encoded_example.save(path)
-
 
 
 def main():

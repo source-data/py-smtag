@@ -14,9 +14,10 @@ class TestDataGen(SmtagTestCase):
 
     @classmethod
     def setUpClass(self): 
-        self.xmls = tostring(fromstring('''
-        <Article doi="bidon"><figure-caption><sd-panel><sd-tag type="gene" role="normalized"><i>Gapdh</i></sd-tag> and <sd-tag type="gene" role="assayed">CA VIII</sd-tag> in the <sd-tag type="tissue" role="experiment">brain</sd-tag> and <sd-tag type="tissue" role="experiment">stomach</sd-tag> and <sd-tag type="tissue" role="experiment">duodenum</sd-tag>.<graphic href="https://api.sourcedata.io/file.php?panel_id=singleton" /></sd-panel></figure-caption></Article>
-        '''))
+        self.s= '''
+        <Article doi="bidon"><figure-caption><sd-panel><sd-tag type="gene" role="normalized"><i>crs1ß</i><sup>+</sup></sd-tag> and <sd-tag type="gene" role="assayed">CA VIII</sd-tag> in the <sd-tag type="tissue" role="experiment">brain</sd-tag> and <sd-tag type="tissue" role="experiment">stomach</sd-tag> and <sd-tag type="tissue" role="experiment">duodenum</sd-tag>.<graphic href="https://api.sourcedata.io/file.php?panel_id=singleton" /></sd-panel></figure-caption></Article>
+        '''
+        self.xmls = tostring(fromstring(self.s))
         self.xml = fromstring(self.xmls)
         self.options = {
                     'length': 120,
@@ -38,7 +39,7 @@ class TestDataGen(SmtagTestCase):
         xml = dataprep.exclusive(self.xml, ['.//sd-tag[@type="gene"]'])
         xml_s = tostring(xml)
         xml_s_expected = tostring(fromstring('''
-        <Article doi="bidon"><figure-caption><sd-panel><sd-tag type="gene" role="normalized"><i>Gapdh</i></sd-tag> and <sd-tag type="gene" role="assayed">CA VIII</sd-tag> in the <sd-tag>brain</sd-tag> and <sd-tag>stomach</sd-tag> and <sd-tag>duodenum</sd-tag>.<graphic href="https://api.sourcedata.io/file.php?panel_id=singleton" /></sd-panel></figure-caption></Article>
+        <Article doi="bidon"><figure-caption><sd-panel><sd-tag type="gene" role="normalized"><i>crs1ß</i><sup>+</sup></sd-tag> and <sd-tag type="gene" role="assayed">CA VIII</sd-tag> in the <sd-tag>brain</sd-tag> and <sd-tag>stomach</sd-tag> and <sd-tag>duodenum</sd-tag>.<graphic href="https://api.sourcedata.io/file.php?panel_id=singleton" /></sd-panel></figure-caption></Article>
         '''))
         # print(xml_excl_s)
         # print(xml_s_expected)
@@ -48,14 +49,17 @@ class TestDataGen(SmtagTestCase):
         dataprep = DataPreparator(self.options)
         xml = dataprep.anonymize(self.xml, ['.//sd-tag[@type="gene"]'])
         xml_s = tostring(xml)
-        gene1 = config.marking_char * len("Gapdh")
+        gene1 = config.marking_char * len("crs1ß+")
         gene2 = config.marking_char * len("CA VIII")
         xml_s_expected = tostring(fromstring('''
         <Article doi="bidon"><figure-caption><sd-panel><sd-tag type="gene" role="normalized">'''+gene1+'''</sd-tag> and <sd-tag type="gene" role="assayed">'''+gene2+'''</sd-tag> in the <sd-tag type="tissue" role="experiment">brain</sd-tag> and <sd-tag type="tissue" role="experiment">stomach</sd-tag> and <sd-tag type="tissue" role="experiment">duodenum</sd-tag>.<graphic href="https://api.sourcedata.io/file.php?panel_id=singleton" /></sd-panel></figure-caption></Article>
         '''))
-        # print(xml_excl_s)
+        print(xml_s)
         # print(xml_s_expected)
         self.assertEqual(xml_s, xml_s_expected)
+        L_expected = len("".join([s for s in fromstring(self.s).itertext()]))
+        L = len("".join([s for s in xml.itertext()]))
+        self.assertEqual(L, L_expected)
 
     def test_enrich(self):
         dataprep = DataPreparator(self.options)
