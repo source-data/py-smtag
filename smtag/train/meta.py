@@ -102,8 +102,7 @@ def main():
     parser.add_argument('-m', '--model', default='', help='Load pre-trained model and continue training.')
     parser.add_argument('--ocr', action="store_true", help='Use as additional input features extracted by OCR from the illustration.')
     parser.add_argument('--viz', action="store_true", help='Use as additional visual features extracted from the illustration.')
-    
-    
+
 
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]

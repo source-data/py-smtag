@@ -44,7 +44,7 @@ class Sampler():
         self.length = length # desired length of snippet
         self.number_of_features = NUMBER_OF_ENCODED_FEATURES # includes the virtual geneprod feature
         self.ocr_cxt_features = config.img_grid_size ** 2 + 2 # square grid + vertical + horizontal
-        self.viz_cxt_features = config.viz_cxt_features
+        # self.viz_cxt_features = config.viz_cxt_features
         print("\n{} examples; desired length:{}\n".format(self.N, self.length))
 
 
@@ -103,7 +103,7 @@ class Sampler():
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_std, text_min, text_max))
 
     @staticmethod
-    def create_tensors(N, iterations, number_of_features, ocr_cxt_features, viz_cxt_features, length, min_padding):
+    def create_tensors(N, iterations, number_of_features, ocr_cxt_features, length, min_padding): # viz_cxt_features, 
         """
         Creates and initializes the tensors needed  to encode text and features.
         Allows to abstract away the specificity of the encoding. This implementation is for longitudinal features.
@@ -126,11 +126,11 @@ class Sampler():
         textcoded4th   = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
         features4th    = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
         ocr_context4th = torch.zeros((N * iterations, ocr_cxt_features, length+(2*min_padding)), dtype = torch.uint8)
-        viz_context4th = torch.zeros((N * iterations, viz_cxt_features), dtype = torch.uint8)
-        return textcoded4th, features4th, ocr_context4th, viz_context4th
+        # viz_context4th = torch.zeros((N * iterations, viz_cxt_features), dtype = torch.uint8)
+        return textcoded4th, features4th, ocr_context4th #, viz_context4th
 
     @staticmethod
-    def display(text4th, tensor4th, ocr_context4th, viz_context4th):
+    def display(text4th, tensor4th, ocr_context4th): #, viz_context4th):
         """
         Display text fragments and extracted features to the console.
         """
@@ -177,7 +177,8 @@ class Sampler():
         """
         text4th = []
         provenance4th = []
-        textcoded4th, features4th, ocr_context4th, viz_context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.ocr_cxt_features, self.viz_cxt_features, self.length, self.min_padding)
+        # textcoded4th, features4th, ocr_context4th, viz_context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.ocr_cxt_features, self.viz_cxt_features, self.length, self.min_padding)
+        textcoded4th, features4th, ocr_context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.ocr_cxt_features, self.length, self.min_padding)
         length_stats = []
         total = self.N * iterations
         index = 0
@@ -191,7 +192,7 @@ class Sampler():
                 encoded = encoded_example.features
                 provenance = encoded_example.provenance
                 ocr_context = encoded_example.ocr_context
-                viz_context = encoded_example.viz_context
+                # viz_context = encoded_example.viz_context
 
                 L = len(text)
                 length_stats.append(L)
@@ -215,31 +216,32 @@ class Sampler():
                     if ocr_context is not None:
                         Sampler.slice_and_pad(ocr_context4th, index, ocr_context, start, stop, left_padding, right_padding)
                     # the visual context features are independent of the position of the text fragment
-                    if viz_context is not None:
-                        viz_context4th[index] =  viz_context
+                    # if viz_context is not None:
+                    #     viz_context4th[index] =  viz_context
 
                     index += 1
 
         Sampler.show_stats(length_stats, self.N)
         if self.verbose:
-            Sampler.display(text4th, features4th, ocr_context4th, viz_context4th)
+            Sampler.display(text4th, features4th, ocr_context4th) #, viz_context4th)
 
         return {
             'text4th': text4th,
             'textcoded4th': textcoded4th,
             'provenance4th':provenance4th,
             'tensor4th': features4th,
-            'ocrcontext4th': ocr_context4th,
-            'vizcontext4th': viz_context4th
+            'ocrcontext4th': ocr_context4th
+            # ,
+            # 'vizcontext4th': viz_context4th
         }
 
 class EncodedExample():
-    def __init__(self, provenance='', text='', features=None, ocr_context=None, viz_context=None):
+    def __init__(self, provenance='', text='', features=None, ocr_context=None): #, viz_context=None):
         self._provenance = provenance
         self._text = text
         self._features = features
         self._ocr_context = ocr_context
-        self._viz_context = viz_context
+        # self._viz_context = viz_context
 
     def save(self, path):
         if not os.path.exists(path):
@@ -248,8 +250,8 @@ class EncodedExample():
                 torch.save(self.features, 'features.pyth')
                 if self.ocr_context is not None:
                     torch.save(self.ocr_context, 'ocr_context.pyth')
-                if self.viz_context is not None:
-                    torch.save(self.viz_context, 'viz_context.pyth')
+                # if self.viz_context is not None:
+                #     torch.save(self.viz_context, 'viz_context.pyth')
                 with open('provenance.txt', 'w') as f: 
                     f.write(self.provenance)
                 with open('text.txt', 'w') as f:
@@ -266,8 +268,8 @@ class EncodedExample():
             self._features = torch.load('features.pyth').byte()
             if os.path.exists('ocr_context.pyth'):
                 self._ocr_context = torch.load('ocr_context.pyth') # this is float()
-            if os.path.exists('viz_context.pyth'):
-                self._viz_context = torch.load('viz_context.pyth') # this is float()
+            # if os.path.exists('viz_context.pyth'):
+            #     self._viz_context = torch.load('viz_context.pyth') # this is float()
 
     @property
     def provenance(self):
@@ -314,7 +316,6 @@ class DataPreparator(object):
         Encodes examples provided as XML Elements and writes them to disk.
         """
 
-        path_to_compendium = os.path.join(config.data_dir, self.compendium)
         if self.ocr:
             ocr = OCREncoder(config.image_dir, G=config.img_grid_size)
         viz = VisualContext(config.image_dir)
@@ -339,8 +340,8 @@ class DataPreparator(object):
                         ocr_context = None
 
                     # VISUAL CONTEXT HAPPENS HERE
-                    viz_context = viz.get_context(graphic_filename)
-                    encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context, viz_context)
+                    # viz_context = viz.get_context(graphic_filename)
+                    encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context) #, viz_context)
                     encoded_example.save(path_to_encoded)
                 else:
                     print("\nskipping an example in document with id=", prov)
@@ -409,7 +410,6 @@ class DataPreparator(object):
                     for j, e in enumerate(xml.getroot().findall(XPath_to_examples)):
                         if self.enrich(e, self.enrichment_xpath):
                             e = self.exclusive(e, self.exclusive_xpath)
-                            #if not os.path.exists(os.path.join(config.data4th_dir, graphic_filename):
                             anonymized = self.anonymize(e, self.anonymization_xpath)
                             provenance = os.path.splitext(filename)[0] + "_" + str(j)
                             g = e.find(XPath_to_assets)
@@ -447,7 +447,7 @@ class DataPreparator(object):
                     # write ocr context features
                     torch.save(dataset4th['ocrcontext4th'], 'ocrcontext.pyth')
                     # write visual context features
-                    torch.save(dataset4th['vizcontext4th'], 'vizcontext.pyth')
+                    # torch.save(dataset4th['vizcontext4th'], 'vizcontext.pyth')
                     # write text examples into text file
                     with open("text.txt", 'w') as f:
                         for line in dataset4th['text4th']:

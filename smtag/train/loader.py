@@ -152,10 +152,11 @@ class Loader:
         N = raw_dataset.N
         L = raw_dataset.L
         nf = raw_dataset.nf_output # it already includes the last row for 'geneprod'!!
-        viz_context = raw_dataset.viz_context #  N X C
-        viz_context.unsqueeze_(2) # N x C x 1
-        viz_context.div_(2*viz_context.max()) # scale to 0..0.5 to avoid dominance of visual input
-        viz_context = viz_context.repeat(1, 1, L) # N x C x L
+        if raw_dataset.viz_context is not None:
+            viz_context = raw_dataset.viz_context #  N X C
+            viz_context.unsqueeze_(2) # N x C x 1
+            viz_context.div_(2*viz_context.max()) # scale to 0..0.5 to avoid dominance of visual input
+            viz_context = viz_context.repeat(1, 1, L) # N x C x L
         assert N != 0, "zero examples!"
 
         # generate on the fly a 'virtual' geneprod feature as the union (sum) of protein and gene features
