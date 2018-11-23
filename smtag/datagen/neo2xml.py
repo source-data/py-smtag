@@ -262,7 +262,9 @@ class NeoImport():
                         os.mkdir(subdir) # should we use os.chmod(os.mkdir(os.path.join(stock, subdir), 0o777)with iopen(os.path.join(self.path, str(id)+".jpg"), 'wb') as file:
                         with cd(subdir):
                             for i, article in enumerate(articles):
-                                filename = str(i)+'.xml'
+                                doi = article.get('doi')
+                                doi = doi.replace(".","_").replace("/","-")
+                                filename = doi + '.xml'
                                 #file_path = os.path.join(subdir, filename)
                                 print('writing to {}'.format(filename))
                                 ElementTree(article).write(filename, encoding='utf-8', xml_declaration=True)
@@ -296,14 +298,15 @@ class NeoImport():
                         else:
                             print("trying to download image {} from {}".format(id, url))
                             try:
-                                resp = requests.get(url)
+                                #add authentication here!
+                                resp = requests.get(url, auth=("lemberger", "ONuYev3ydK9L"))
                                 if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
                                     with iopen(path_to_image, 'wb') as file:
                                         file.write(resp.content)
                                 else:
                                     print("skipped {} ({})".format(url, resp.status_code))
                             except Exception as e:
-                                print("skipped {}".format(url), end)
+                                print("skipped {}".format(url), e)
 
 
     def log_errors(self, errors):
