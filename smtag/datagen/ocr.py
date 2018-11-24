@@ -324,7 +324,7 @@ class Annotation(object):
             orientation = 'vertical'
         else:
             orientation  = 'unknown'
-        print(google_annot.description, x0, y0, x1, y1, orientation)
+        print(google_annot.description, x0, y0, x1, y1, orientation) # STOD 362 307 442 321 unknown
         return orientation
 
 
@@ -376,6 +376,9 @@ class OCREncoder(object):
             context_tensor[self.G ** 2, pos_in_text:pos_in_text+length] = 1
         elif orientation == 'vertical':
             context_tensor[self.G ** 2 + 1, pos_in_text:pos_in_text+length] = 1
+        elif orientation == 'unkown':
+            context_tensor[self.G ** 2,     pos_in_text:pos_in_text+length] = 0.5
+            context_tensor[self.G ** 2 + 1, pos_in_text:pos_in_text+length] = 0.5
 
     def load_annotations(self, filename):
         j = {}
