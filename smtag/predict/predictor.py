@@ -8,9 +8,11 @@ from ..common.converter import TString
 from .binarize import Binarized
 from .serializer import Serializer
 from ..common.utils import tokenize, timer
-from ..common.config import MIN_PADDING,  MIN_SIZE, MARKING_CHAR
+from .. import config
 
-
+MIN_PADDING = config.min_padding
+MIN_SIZE = config.min_size
+MARKING_CHAR = config.marking_char
 MARKING_ENCODED = TString(MARKING_CHAR)
 SPACE_ENCODED = TString(" ")
 
