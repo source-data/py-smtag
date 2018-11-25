@@ -4,8 +4,10 @@
 import math
 from random import random
 from .converter import Converter
-from .config import MARKING_CHAR
+from .. import config
 from tensorboardX import SummaryWriter
+
+MARKING_CHAR = config.marking_char
 
 #for code in {1..256}; do printf "\e[38;5;${code}m"$code"\e[0m";echo; done
 #for i = 1, 32 do COLORS[i] = "\27[38;5;"..(8*i-7).."m" end
