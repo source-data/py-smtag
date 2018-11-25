@@ -184,7 +184,7 @@ class Loader:
 
             # INPUT: IMAGE OCR FEATURES AS ADDITIONAL INPUT
             if self.use_ocr_context:
-                dataset.input[index, supp_input:supp_input+self.nf_ocr_context, : ] = raw_dataset.ocr_context[i, -2:, : ] #### testing only vertical horizontal features
+                dataset.input[index, supp_input:supp_input+self.nf_ocr_context, : ] = raw_dataset.ocr_context[i, -2: , : ] #### testing only vertical horizontal features # [i, : , : ] #
                 supp_input += self.nf_ocr_context
 
             # INPUT: IMAGE VISUAL CONTEXT FEATURES AS ADDITIONAL INPUT
