@@ -14,7 +14,7 @@ from ..common.utils import cd
 from .. import config
 
 MARKING_CHAR = config.marking_char
-MARKING_CHAR_ORD = MARKING_CHAR_ORD
+MARKING_CHAR_ORD = ord(MARKING_CHAR)
 SD_PANEL_OPEN, SD_PANEL_CLOSE = "<sd-panel>", "</sd-panel>"
 
 class NeoImport():
