@@ -9,7 +9,6 @@ from .minibatches import Minibatches
 from .loader import Loader
 from ..predict.binarize import Binarized
 from ..common.progress import progress
-from ..common.config import DEFAULT_THRESHOLD
 from ..common.importexport import load_model
 from .. import config
 
