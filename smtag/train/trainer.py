@@ -72,6 +72,7 @@ class Trainer:
                 m_input = m.input
                 m_output = m.output
                 if self.cuda_on:
+                    print("moving minibatch to GPU")
                     m_input = m_input.cuda()
                     m_output = m_output.cuda()
                 self.optimizer.zero_grad()
