@@ -11,9 +11,10 @@ from random import shuffle
 from math import floor
 import difflib
 from ..common.utils import cd
-from ..common.config import MARKING_CHAR, MARKING_CHAR_ORD  
 from .. import config
 
+MARKING_CHAR = config.marking_char
+MARKING_CHAR_ORD = MARKING_CHAR_ORD
 SD_PANEL_OPEN, SD_PANEL_CLOSE = "<sd-panel>", "</sd-panel>"
 
 class NeoImport():

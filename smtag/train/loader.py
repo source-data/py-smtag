@@ -7,12 +7,13 @@ import torch
 import math
 import os
 from random import shuffle
-from ..common.config import NBITS
 from ..common.mapper import Catalogue, concept2index
 from ..common.progress import progress
 from ..common.viz import Show
 from ..common.utils import tokenize, cd
 from .. import config
+
+NBITS = config.nbits
 
 # import logging.config
 # logging.config.fileConfig('logging.conf')

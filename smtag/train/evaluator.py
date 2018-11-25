@@ -13,6 +13,8 @@ from ..common.config import DEFAULT_THRESHOLD
 from ..common.importexport import load_model
 from .. import config
 
+DEFAULT_THRESHOLD = config.default_threshold
+
 class Accuracy(object):
 
     def __init__(self, model, minibatches, tokenize=False):
