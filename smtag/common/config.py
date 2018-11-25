@@ -20,7 +20,7 @@ class Config():
     _log_dir_name      = "log" # general logging dir
     _runs_log_dir_name = "runs" # dir for tensorboard logs
     _scans_dir_name    = "scans" # results of hyperparameter scans
-    _img_grid_size     = 10 # grid size used to encode the location of elements on images
+    _img_grid_size     = 5 # grid size used to encode the location of elements on images
     _viz_cxt_features  = 576 # number of features used from pre-trained visual analysis network
     _nbits             = 32 # number of features use to encode characters 
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
