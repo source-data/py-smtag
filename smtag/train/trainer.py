@@ -37,7 +37,7 @@ class Trainer:
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
         self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
-        self.loss_fn = nn.BCELoss()
+        self.loss_fn = nn.L1Loss() # nn.BCELoss() # 
         self.markdown = Show('markdown')
         self.console = Show('console')
 
