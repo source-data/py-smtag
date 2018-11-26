@@ -250,7 +250,7 @@ class NeoImport():
                 #write log file anyway, even if zero errors, to remove old copy
                 with open('errors_{}.log'.format(e), 'w') as f:
                     for row in errors[e]:
-                        f.write(u"\t".join([str(x) for x in row]))
+                        f.write(u"\t".join([str(x) for x in row]) + "\n")
                 f.close()
 
 def main():
