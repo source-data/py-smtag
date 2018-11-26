@@ -360,7 +360,7 @@ class OCREncoder(object):
         for i in range(L-l):
             dist = edit_distance(text[i:i+l].lower(), query.lower()) # Levenshtein distance between query and text at this position
             dist /= l # distance per word length
-            if dist <= self.T and l > 1:
+            if dist <= self.T and l > 2:
                 matches.append({
                     'match': text[i:i+l],
                     'query': query,
