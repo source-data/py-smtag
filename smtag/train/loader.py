@@ -105,7 +105,14 @@ class Loader:
         self.use_ocr_context = opt['use_ocr_context']
         self.use_viz_context = opt['use_viz_context']
         self.nf_input = config.nbits
-        self.nf_ocr_context = 2 # restricting to horizontal / vertical features, disrigarding position ## config.img_grid_size ** 2 + 2
+        if self.use_ocr_context == 'ocr1':
+            self.nf_ocr_context = 1 # fusing horizontal and vertial into single detected-on-image feature
+        elif self.use_ocr_context == 'ocr2':
+            self.nf_ocr_context = 2 # restricting to horizontal / vertical features, disrigarding position
+        elif self.use_ocr_context == 'ocrxy':
+            self.nf_ocr_context = config.img_grid_size ** 2 + 2 # 1-hot encoded position on the grid + 2 orientation-dependent features
+        else:
+            self.nf_ocr_context = 0
         self.nf_viz_context = config.viz_cxt_features
         if self.use_ocr_context:
             self.nf_input += self.nf_ocr_context
@@ -183,8 +190,14 @@ class Loader:
             supp_input = config.nbits
 
             # INPUT: IMAGE OCR FEATURES AS ADDITIONAL INPUT
-            if self.use_ocr_context:
-                dataset.input[index, supp_input:supp_input+self.nf_ocr_context, : ] = raw_dataset.ocr_context[i, -2: , : ] #### testing only vertical horizontal features # [i, : , : ] #
+            if self.use_ocr_context =='ocr1':
+                dataset.input[index, supp_input:supp_input+self.nf_ocr_context, : ] = raw_dataset.ocr_context[i, -2, : ] + raw_dataset.ocr_context[i, -1, : ] #### fuse vertical and horizontal features
+                supp_input += self.nf_ocr_context
+            elif self.use_ocr_context =='ocr2':
+                dataset.input[index, supp_input:supp_input+self.nf_ocr_context, : ] = raw_dataset.ocr_context[i, -2: , : ] #### only vertical horizontal features
+                supp_input += self.nf_ocr_context
+            elif self.use_ocr_context == 'ocrxy':
+                dataset.input[index, supp_input:supp_input+self.nf_ocr_context, : ] = raw_dataset.ocr_context[i, : , : ]
                 supp_input += self.nf_ocr_context
 
             # INPUT: IMAGE VISUAL CONTEXT FEATURES AS ADDITIONAL INPUT

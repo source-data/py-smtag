@@ -100,7 +100,9 @@ def main():
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
     parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('-m', '--model', default='', help='Load pre-trained model and continue training.')
-    parser.add_argument('--ocr', action="store_true", help='Use as additional input features extracted by OCR from the illustration.')
+    parser.add_argument('--ocrxy', action="store_true", help='Use as additional input position and orientation of words extracted by OCR from the illustration.')
+    parser.add_argument('--ocr1', action="store_true", help='Use as additional presence of words extracted by OCR from the illustration.')
+    parser.add_argument('--ocr2', action="store_true", help='Use as additional input orientation of words extracted by OCR from the illustration.')
     parser.add_argument('--viz', action="store_true", help='Use as additional visual features extracted from the illustration.')
 
 
@@ -128,7 +130,14 @@ def main():
     opt['pool_table'] = pool_table
     opt['kernel_table'] = kernel_table
     opt['dropout'] = 0.1
-    opt['use_ocr_context'] = arguments.ocr
+    if arguments.ocrxy:
+        opt['use_ocr_context'] = 'ocrxy'
+    elif arguments.ocr1:
+        opt['use_ocr_context'] = 'ocr1'
+    elif arguments.ocr2:
+        opt['use_ocr_context'] = 'ocr2'
+    else:
+        opt['use_ocr_context'] = ''
     opt['use_viz_context'] = arguments.viz
     print("\n".join(["opt[{}]={}".format(o,opt[o]) for o in opt]))
 
