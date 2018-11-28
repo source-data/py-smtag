@@ -319,15 +319,16 @@ class DataPreparator(object):
         if self.ocr:
             ocr = OCREncoder(config.image_dir, G=config.img_grid_size)
         viz = VisualContext(config.image_dir)
-        for ex in examples:
+        N = len(examples)
+        for i, ex in enumerate(examples):
             xml = ex['xml']
             anonymized_xml = ex['anonymized']
             graphic_filename = ex['graphic']
             prov = ex['provenance']
             original_text = ''.join([s for s in xml.itertext()])
             anonymized_text = ''.join([s for s in anonymized_xml.itertext()])
-
             path_to_encoded = os.path.join(config.encoded_dir, self.compendium, subset, prov)
+            progress(i, N, "{}".format(prov))
             if not os.path.exists(path_to_encoded): #path_to_example):
                 if original_text:
                     # ENCODING XML
