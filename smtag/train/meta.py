@@ -89,6 +89,7 @@ def main():
     parser.add_argument('-E' , '--epochs',  default=200, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=32, help='Minibatch size.')
     parser.add_argument('-R', '--learning_rate', default=0.01, type=float, help='Learning rate.')
+    parser.add_argument('-D', '--dropout_rate', default=0.1, type=float, help='Dropout rate.')
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
     parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')
     parser.add_argument('-a', '--overlap_features', default='', help='Features that should be combined by intersecting them (equivalent to AND operation) (use quotes if comma+space delimited).')
@@ -113,6 +114,7 @@ def main():
     opt['namebase'] = arguments.file
     opt['modelname'] = arguments.model
     opt['learning_rate'] = float(arguments.learning_rate)
+    opt['dropout'] = float(arguments.dropout_rate)
     opt['epochs'] = int(arguments.epochs)
     opt['minibatch_size'] = int(arguments.minibatch_size)
     output_features = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
@@ -129,7 +131,6 @@ def main():
     opt['nf_table'] =  nf_table
     opt['pool_table'] = pool_table
     opt['kernel_table'] = kernel_table
-    opt['dropout'] = 0.1
     if arguments.ocrxy:
         opt['use_ocr_context'] = 'ocrxy'
     elif arguments.ocr1:
