@@ -16,3 +16,4 @@ IPython==6.5.0
 google-cloud-vision==0.34
 google-auth==1.5.1
 opencv-python==3.4.1.15
+scikit-learn == 0.20.1
