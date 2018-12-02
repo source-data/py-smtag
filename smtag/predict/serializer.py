@@ -60,7 +60,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
         for concept in on_features:
             if concept:
                 for attribute, value in HTMLElementSerializer.map(concept):
-                     html_class = "_".join([attribute, value])
+                     html_class = value # "_".join([attribute, value])
                      if html_class not in html_classes:
                          html_classes.append(html_class)
         html_string = "<span class=\"{} {}\">{}</span>".format(tag, ' '.join(html_classes), inner_text)
@@ -69,10 +69,9 @@ class HTMLElementSerializer(AbstractElementSerializer):
     @staticmethod
     def mark_boundary(action): # in the future, it will accept a specific boundary but now only PANEL
         if action == 'open':
-            return '<span class="{}">'.format(XMLElementSerializer.map(Catalogue.PANEL_START))
+            return '<span class="{}">'.format(HTMLElementSerializer.map(Catalogue.PANEL_START))
         elif action == 'close':
             return '</span>'
-
 
     @staticmethod
     def map(concept):
@@ -243,13 +242,12 @@ class HTMLTagger(AbstractTagger):
     def serialize_element(self, on_features, inner_text):
         return HTMLElementSerializer.make_element(self.tag, on_features, inner_text)
 
-class BratSerializer(AbstractSerializer):
+    def serialize_boundary(self, action):
+        return HTMLElementSerializer.mark_boundary(action)
 
-    def __init__(self, tag):
-        super(BratSerializer, self).__init__(self, tag)
-
-    def serialize_element(self, inner_text, on_features, scores): #need the positions; maybe does not need to be abstract method if I cannot change the parameters
-        pass
+    def serialize(self, binarized_pred):
+        html_string_list = super(HTMLTagger, self).serialize(binarized_pred)
+        return ["<div>{}</div>".format(xml_string) for xml_string in html_string_list]
 
 
 class Serializer():
@@ -261,8 +259,6 @@ class Serializer():
     def serialize(self, binarized_pred):
         if self.format == 'html':
             s = HTMLTagger(self.tag)
-        elif self.format == 'xml':
+        else: # elif self.format == 'xml':
             s = XMLTagger(self.tag)
-        elif self.format == 'brat':
-            s = BratSerializer(self.tag)
         return s.serialize(binarized_pred)
