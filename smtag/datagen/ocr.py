@@ -350,6 +350,7 @@ class OCREncoder(object):
         row = floor(self.G * (y / h))
         column = floor(self.G * (x / w))
         grid_pos = (row * self.G) + column
+        # compress this into binary code
         return grid_pos
 
     def best_matches(self, text, annot):
@@ -371,6 +372,7 @@ class OCREncoder(object):
         return matches
 
     def add_context_(self, context_tensor, pos_on_grid, orientation, pos_in_text, length, score):
+        # 1-hot encoding of position on the grid
         context_tensor[pos_on_grid, pos_in_text:pos_in_text+length] = score
         if orientation == 'horizontal':
             context_tensor[self.G ** 2, pos_in_text:pos_in_text+length] = 1
@@ -398,7 +400,7 @@ class OCREncoder(object):
         annotations = self.load_annotations(ocr_filename)
         h = annotations.image_height
         w = annotations.image_width
-        context_tensor = torch.zeros(self.G ** 2 + 2, len(text)) # G^2 features for position on the grid + 2 features for horizontal vs vertical orientation
+        context_tensor = torch.zeros(self.G ** 2 + 2, len(text)) # G^2 1-hot encoded features for position on the grid + 2 features for horizontal vs vertical orientation
         for annot in annotations: # first annoation is the full list of entities detected
             pos_on_grid = self.grid_index(h, w, annot)
             matches = self.best_matches(text, annot)

@@ -173,7 +173,8 @@ class Sampler():
             textcoded4th: a 3D Tensor (samples x 32 x full length) with the fragment text encoded
             provenance4th: an array with the ids of the example from which the sample was taken
             tensor4th: a 3D Tensor with the encoded features corresponding to the fragment
-            context4th: a 3D Tensor with location features of text elements extracted from the illustration
+            ocr_context4th: a 3D Tensor with location features of text elements extracted from the illustration
+            viz_context4th: 
         """
         text4th = []
         provenance4th = []
@@ -220,6 +221,9 @@ class Sampler():
                     #     viz_context4th[index] =  viz_context
 
                     index += 1
+
+        # PCA of viz_context here
+        # viz_context4th = context.reduce_context(viz_context4th, config.k_principal_components)
 
         Sampler.show_stats(length_stats, self.N)
         if self.verbose:
