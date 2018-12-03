@@ -10,10 +10,6 @@ from .serializer import Serializer
 from ..common.utils import tokenize, timer
 from .. import config
 
-MIN_PADDING = config.min_padding
-MIN_SIZE = config.min_size
-MARKING_CHAR = config.marking_char
-MARKING_ENCODED = TString(MARKING_CHAR)
 SPACE_ENCODED = TString(" ")
 
 class Predictor: #(nn.Module?)
@@ -24,7 +20,7 @@ class Predictor: #(nn.Module?)
         self.format = format
 
     def padding(self, input):
-        padding_length = ceil(max(MIN_SIZE - len(input), MIN_PADDING)/2)
+        padding_length = ceil(max(config.min_size - len(input), config.min_padding)/2)
         pad = SPACE_ENCODED.repeat(padding_length)
         return pad + input + pad
 
@@ -81,7 +77,7 @@ class ContextualPredictor(Predictor):
         self.tag = tag
         self.format = format
 
-    def anonymize(self, input, marks, replacement = MARKING_CHAR):
+    def anonymize(self, input, marks, replacement = config.marking_char):
         i = 0
         res = ''
         for c in str(input):

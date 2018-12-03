@@ -35,28 +35,28 @@ class EvaluatorTest(SmtagTestCase):
         pred = torch.Tensor(
                     [
                         [# example 1
-                        [1,1,0,1], # channel 1 with 3 p, 1 fp, 0 fn, 2 tp
-                        [1,0,0,0], # channel 2 with 1 p, 0 fp, 1 fn, 1 tp
-                        [0,0,0,1]  # channel 3 with 1 p, 0 fp, 0 fn, 1 tp
+                        [1,1,0,1], # channel 1 with 1 fp, 0 fn, 2 tp
+                        [1,0,0,0], # channel 2 with 0 fp, 1 fn, 1 tp
+                        [0,0,0,1]  # channel 3 with 0 fp, 0 fn, 1 tp
                         ],
                         [# example 2
-                        [0,0,1,0], # 1 p, 1 fp, 2 fn, 0 tp
-                        [1,1,1,1], # 4 p, 2 fp, 0 fn, 2 tp
-                        [1,0,0,1]  # 2 p, 0 fp, 0 fn, 2 tp
+                        [0,0,1,0], # 1 fp, 2 fn, 0 tp
+                        [1,1,1,1], # 2 fp, 0 fn, 2 tp
+                        [1,0,0,1]  # 0 fp, 0 fn, 2 tp
                         ]
                     ]) # 2 x 3 x 4
 
         target = torch.Tensor(
                     [
                      [# example 1
-                      [0,1,0,1], # channel 1
-                      [1,1,0,0], # channel 2
-                      [0,0,0,1]  # channel 3
+                      [0,1,0,1], # channel 1 2p
+                      [1,1,0,0], # channel 2 2p
+                      [0,0,0,1]  # channel 3 1p
                      ],
                      [# example 2
-                      [0,1,0,1],
-                      [1,1,0,0],
-                      [1,0,0,1]
+                      [0,1,0,1], # 2p
+                      [1,1,0,0], # 2p
+                      [1,0,0,1]  # 2p
                      ]
                     ]) # 2 x 3 x 4
  

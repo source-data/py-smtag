@@ -13,3 +13,7 @@ tensorboardX==1.4
 jupyter==1.0.0
 bash_kernel==0.7.1
 IPython==6.5.0
+google-cloud-vision==0.34
+google-auth==1.5.1
+opencv-python==3.4.1.15
+scikit-learn == 0.20.1

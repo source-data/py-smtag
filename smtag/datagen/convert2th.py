@@ -7,42 +7,45 @@ import torch
 import os.path
 import shutil
 import sys
+import re
+import copy
 from string import ascii_letters
-from math import floor
+from math import floor, ceil
 from xml.etree.ElementTree  import XML, parse, tostring
 
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 
-from ..common.mapper import Catalogue, index2concept
+from ..common.mapper import Catalogue, index2concept, NUMBER_OF_ENCODED_FEATURES
 from ..common.converter import TString
 from ..common.utils import cd, timer
-from .. import config
 from ..common.progress import progress
 from .encoder import XMLEncoder, BratEncoder
+from .ocr import OCREncoder
 from .brat import BratImport
-
-# FIX THIS IN mapper
-NUMBER_OF_ENCODED_FEATURES = 22
-
+from .context import VisualContext
+from .. import config
 
 class Sampler():
     """
     A class to sample fragment from text examples, padd and shift the fragments and encode the corresponding text and features into Tensor format.
     """
 
-    def __init__(self, encoded_examples, length, sampling_mode, random_shifting, min_padding, verbose):
-        self.encoded_examples = encoded_examples
+    def __init__(self, path, length, sampling_mode, random_shifting, min_padding, verbose):
+        self.path = path
+        dirnames = os.listdir(self.path)
+        self.dirnames = [d for d in dirnames if os.path.isdir(os.path.join(self.path, d)) and d != '.DS_Store']
         self.mode = sampling_mode
         self.random_shifting = random_shifting
         self.min_padding = min_padding
         self.verbose = verbose
-        self.N = len(encoded_examples)
+        self.N = len(self.dirnames)
         self.length = length # desired length of snippet
-        self.number_of_features = len(Catalogue.standard_channels) # includes the virtual geneprod feature
+        self.number_of_features = NUMBER_OF_ENCODED_FEATURES # includes the virtual geneprod feature
+        self.ocr_cxt_features = config.img_grid_size ** 2 + 2 # square grid + vertical + horizontal
+        # self.viz_cxt_features = config.viz_cxt_features
         print("\n{} examples; desired length:{}\n".format(self.N, self.length))
-        sys.stdout.flush()
 
 
     @staticmethod
@@ -80,30 +83,11 @@ class Sampler():
         padded_text = ' ' * left_padding + text + ' ' * right_padding
         return padded_text, left_padding, right_padding
 
+
     @staticmethod
-    def to_tensor(th, index, features, start, stop, left_padding, right_padding): # should include only terms within the desired sample
-        """
-        Reads the encoded features corresponding to a text fragment being processed.
-        Populates the tensor slice with the appropriate features of the desired fragment and padded accordingly.
-        The tensor is assumed to be initialized (ususally with zeros) and of appropriate dimension.
-
-        Args:
-            th: 3D Tensor (Examples x features x length)
-            index: the index of the example in the tensor
-            features: diactionary with encoded features
-            start,  stop: position of the start and end of the text fragment being processed
-            left_padding, right_padding: padding to add on the left and right of the fragment to fit the desired length
-
-        Returns:
-            Nothing since the tensor modified in place by setting required positions to 1.
-        """
-        for kind in features:
-            for element in features[kind]:
-                for attribute in features[kind][element]:
-                    f = [None] * left_padding + features[kind][element][attribute][start:stop] + [None] * right_padding
-                    for pos, code in enumerate(f):
-                        if code is not None:
-                            th[index][code][pos] = 1
+    def slice_and_pad(th, index, source_tensor, start, stop, left_padding, right_padding):
+        L = stop - start
+        th[index, : , left_padding:left_padding+L] = source_tensor[ : , start:stop]
 
     @staticmethod
     def show_stats(stats, N):
@@ -119,7 +103,7 @@ class Sampler():
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_std, text_min, text_max))
 
     @staticmethod
-    def create_tensors(N, iterations, number_of_features, length, min_padding):
+    def create_tensors(N, iterations, number_of_features, ocr_cxt_features, length, min_padding): # viz_cxt_features, 
         """
         Creates and initializes the tensors needed  to encode text and features.
         Allows to abstract away the specificity of the encoding. This implementation is for longitudinal features.
@@ -139,12 +123,14 @@ class Sampler():
                 features: 3D zero-initialized ByteTensor, N*iterations x number_of_features x full_length, where full_length=length+(2*min_padding)
         """
 
-        textcoded4th = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
-        features4th = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
-        return textcoded4th, features4th
+        textcoded4th   = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
+        features4th    = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
+        ocr_context4th = torch.zeros((N * iterations, ocr_cxt_features, length+(2*min_padding)), dtype = torch.uint8)
+        # viz_context4th = torch.zeros((N * iterations, viz_cxt_features), dtype = torch.uint8)
+        return textcoded4th, features4th, ocr_context4th #, viz_context4th
 
     @staticmethod
-    def display(text4th, tensor4th):
+    def display(text4th, tensor4th, ocr_context4th): #, viz_context4th):
         """
         Display text fragments and extracted features to the console.
         """
@@ -158,6 +144,14 @@ class Sampler():
                 feature = str(index2concept[j])
                 track = [int(tensor4th[i, j, k]) for k in range(L)]
                 print(''.join([['-','+'][x] for x in track]), feature)
+            for j in range(ocr_context4th.size(1)):
+                feature = 'ocr_' + str(j)
+                track = [int(ocr_context4th[i, j, k]) for k in range(L)]
+                print(''.join([['-','+'][ceil(x)] for x in track]), feature)
+            feature = 'viz_' + str(j)
+            track = [int(x) for x in viz_context4th[i]]
+            print(''.join([str(x) for x in track]), feature)
+
 
     @timer
     def run(self, iterations):
@@ -171,62 +165,135 @@ class Sampler():
             {'text4th': text4th,
              'textcoded4th': textcoded4th,
              'provenance4th':provenance4th,
-             'tensor4th': features4th}
+             'tensor4th': features4th,
+             'ocrcontext4th': ocrcontext4th,
+             'vizcontext4th':context4th}
             where:
             text4th: a list with a copy of the padded text of the sample
             textcoded4th: a 3D Tensor (samples x 32 x full length) with the fragment text encoded
             provenance4th: an array with the ids of the example from which the sample was taken
             tensor4th: a 3D Tensor with the encoded features corresponding to the fragment
+            ocr_context4th: a 3D Tensor with location features of text elements extracted from the illustration
+            viz_context4th: 
         """
         text4th = []
         provenance4th = []
-        textcoded4th, features4th = self.create_tensors(self.N, iterations, self.number_of_features, self.length, self.min_padding)
+        # textcoded4th, features4th, ocr_context4th, viz_context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.ocr_cxt_features, self.viz_cxt_features, self.length, self.min_padding)
+        textcoded4th, features4th, ocr_context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.ocr_cxt_features, self.length, self.min_padding)
         length_stats = []
         total = self.N * iterations
         index = 0
 
-        # looping through the examples
-        for i in range(self.N):
-            text = self.encoded_examples[i]['text']
-            encoded = self.encoded_examples[i]['encoded']
-            provenance = self.encoded_examples[i]['provenance']
-            L = len(text)
-            length_stats.append(L)
+        # looping through the examples # loop through directories   
+        with cd(self.path):
+            for i, d in enumerate(self.dirnames):
+                encoded_example = EncodedExample()
+                encoded_example.load(d)
+                text = encoded_example.text
+                encoded = encoded_example.features
+                provenance = encoded_example.provenance
+                ocr_context = encoded_example.ocr_context
+                # viz_context = encoded_example.viz_context
 
-            # randomly sampling each example
-            for j in range(iterations): # j is index of sampling iteration
-                progress(i*iterations+j, total, "sampling example {}".format(i+1))
+                L = len(text)
+                length_stats.append(L)
 
-                # a text fragment is picked randomly from the text example
-                fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
+                # randomly sampling each example
+                for j in range(iterations): # j is index of sampling iteration
+                    progress(i*iterations+j, total, "sampling example {}".format(i+1))
+                    # a text fragment is picked randomly from the text example
+                    fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
+                    # it is randomly shifted and padded to fit the desired length
+                    padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
+                    # the final padded fragment is added to the list of samples
+                    text4th.append(padded_frag)
+                    # the text is encoded using the 32 bit unicode encoding provided by TString
+                    textcoded4th[index] = TString(padded_frag, dtype=torch.uint8).toTensor()
+                    # the provenance of the fragment needs to be recorded for later reference and possible debugging
+                    provenance4th.append(provenance)
+                    # the encoded features of the fragment are added to the feature tensor
+                    Sampler.slice_and_pad(features4th, index, encoded, start, stop, left_padding, right_padding)
+                    # the encoded ocr context features 
+                    if ocr_context is not None:
+                        Sampler.slice_and_pad(ocr_context4th, index, ocr_context, start, stop, left_padding, right_padding)
+                    # the visual context features are independent of the position of the text fragment
+                    # if viz_context is not None:
+                    #     viz_context4th[index] =  viz_context
 
-                # it is randomly shifted and padded to fit the desired length
-                padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
+                    index += 1
 
-                # the final fragment is added to the list of samples
-                text4th.append(padded_frag)
-
-                # the text is encoded using the 32 bit unicode encoding provided by TString
-                textcoded4th[index] = TString(padded_frag, dtype=torch.uint8).toTensor()
-
-                # the provenance of the fragment needs to be recorded for later reference and possible debugging
-                provenance4th.append(provenance)
-
-                # the encoded features of the fragment are added to the feature tensor
-                Sampler.to_tensor(features4th, index, encoded, start, stop, left_padding, right_padding)
-
-                index += 1
+        # PCA of viz_context here
+        # viz_context4th = context.reduce_context(viz_context4th, config.k_principal_components)
 
         Sampler.show_stats(length_stats, self.N)
         if self.verbose:
-            Sampler.display(text4th, features4th)
+            Sampler.display(text4th, features4th, ocr_context4th) #, viz_context4th)
 
         return {
             'text4th': text4th,
             'textcoded4th': textcoded4th,
             'provenance4th':provenance4th,
-            'tensor4th': features4th
+            'tensor4th': features4th,
+            'ocrcontext4th': ocr_context4th
+            # ,
+            # 'vizcontext4th': viz_context4th
         }
+
+class EncodedExample():
+    def __init__(self, provenance='', text='', features=None, ocr_context=None): #, viz_context=None):
+        self._provenance = provenance
+        self._text = text
+        self._features = features
+        self._ocr_context = ocr_context
+        # self._viz_context = viz_context
+
+    def save(self, path):
+        if not os.path.exists(path):
+            os.mkdir(path) 
+            with cd(path):
+                torch.save(self.features, 'features.pyth')
+                if self.ocr_context is not None:
+                    torch.save(self.ocr_context, 'ocr_context.pyth')
+                # if self.viz_context is not None:
+                #     torch.save(self.viz_context, 'viz_context.pyth')
+                with open('provenance.txt', 'w') as f: 
+                    f.write(self.provenance)
+                with open('text.txt', 'w') as f:
+                    f.write(self.text)
+        else:
+            print("EncodedExample detected that {} already exists. Will not overwrite.".format(path))
+
+    def load(self, path):
+        with cd(path):
+            with open('provenance.txt', 'r') as f:
+                self._provenance = f.read()
+            with open('text.txt', 'r') as f:
+                self._text = f.read()
+            self._features = torch.load('features.pyth').byte()
+            if os.path.exists('ocr_context.pyth'):
+                self._ocr_context = torch.load('ocr_context.pyth') # this is float()
+            # if os.path.exists('viz_context.pyth'):
+            #     self._viz_context = torch.load('viz_context.pyth') # this is float()
+
+    @property
+    def provenance(self):
+        return self._provenance
+
+    @property
+    def text(self):
+        return self._text
+
+    @property
+    def features(self):
+        return self._features
+
+    @property
+    def ocr_context(self):
+        return self._ocr_context
+
+    @property
+    def viz_context(self):
+        return self._viz_context
 
 
 class DataPreparator(object):
@@ -243,52 +310,130 @@ class DataPreparator(object):
         self.iterations = options['iterations']
         self.namebase = options['namebase'] # namebase where the converted dataset should be saved
         self.compendium = options['compendium'] # the compendium of source documents to be sampled and converted
+        self.anonymization_xpath = options['anonymize']
+        self.enrichment_xpath = options['enrich'] 
+        self.exclusive_xpath = options['exclusive']
+        self.ocr = options['ocr']
 
-    @staticmethod
-    def encode_examples(examples):
+    def encode_examples(self, subset, examples, anonymize=None):
         """
-        Encodes examples provided as XML Elements.
+        Encodes examples provided as XML Elements and writes them to disk.
         """
 
-        encoded_examples = []
+        if self.ocr:
+            ocr = OCREncoder(config.image_dir, G=config.img_grid_size)
+        viz = VisualContext(config.image_dir)
+        N = len(examples)
+        for i, ex in enumerate(examples):
+            xml = ex['xml']
+            anonymized_xml = ex['anonymized']
+            graphic_filename = ex['graphic']
+            prov = ex['provenance']
+            original_text = ''.join([s for s in xml.itertext()])
+            anonymized_text = ''.join([s for s in anonymized_xml.itertext()])
+            path_to_encoded = os.path.join(config.encoded_dir, self.compendium, subset, prov)
+            progress(i, N, "{}".format(prov))
+            if not os.path.exists(path_to_encoded): #path_to_example):
+                if original_text:
+                    # ENCODING XML
+                    encoded_features = XMLEncoder.encode(anonymized_xml) # convert to tensor already here; 
 
-        for id in examples:
-            text = ''.join([s for s in examples[id].itertext()])
-            if text:
-                encoded_features, _, _ = XMLEncoder.encode(examples[id])
-                example = {
-                    'provenance': id,
-                    'text': text,
-                    'encoded': encoded_features
-                }
-                encoded_examples.append(example)
+                    # OCR CONTEXT HAPPENS HERE ! Needs the unaltered un anonymized original text for alignment
+                    if self.ocr:
+                        ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
+                    else:
+                        ocr_context = None
+
+                    # VISUAL CONTEXT HAPPENS HERE
+                    # viz_context = viz.get_context(graphic_filename)
+                    encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context) #, viz_context)
+                    encoded_example.save(path_to_encoded)
+                else:
+                    print("\nskipping an example in document with id=", prov)
             else:
-                print("\nskipping an example in document with id=", id)
-                print(tostring(examples[id]))
-        return encoded_examples
+                print("{} has already been encoded".format(prov))
+
+    def enrich(self, xml, select):
+        if select:
+            keep = False
+            for xpath in select:
+                xml = copy.deepcopy(xml)
+                found = xml.findall(xpath)
+                if found:
+                    return True
+            if not found: 
+                print(xpath, "not found")
+                print(tostring(xml))
+        else:
+            keep = True
+        return keep
+
+    def exclusive(self, xml, keep_only, element='sd-tag'):
+        if keep_only:
+            xml = copy.deepcopy(xml)
+            for xpath in keep_only:
+                selected = xml.findall(xpath)
+                for e in selected:
+                    e.set('temp_attribute_keep_only_this', '1')
+            all = xml.findall(".//"+element)
+            for e in all:
+                if e.get('temp_attribute_keep_only_this', False):
+                    del e.attrib['temp_attribute_keep_only_this']
+                else:
+                    e.attrib = None
+        return xml
 
 
-    def import_files(self, subset, XPath_to_examples='.//figure-caption'):
+    def anonymize(self, xml, anonymizations):
+        if anonymizations:
+            xml = copy.deepcopy(xml)
+            for xpath in anonymizations:
+                to_be_anonymized = xml.findall(xpath)
+                for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
+                    # FIX PROBLEM WITH MISSING SPACES
+                    innertext = "".join([s for s in e.itertext()])
+                    for sub in list(e):
+                        e.remove(sub)
+                    e.text = config.marking_char * len(innertext)
+        return xml
+
+    def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = './/graphic'):
         """
-        Import xml documents from dir. In each document, extracts examples using XPath.
+        Import xml documents from dir. In each document, extracts examples using XPath_to_examples.
         """
 
         with cd(config.data_dir):
             path = os.path.join(self.compendium, subset)
             print("\nloading from:", path)
-            filenames = [f for f in os.listdir(path) if f.split(".")[-1] == 'xml']
-            examples = {}
+            filenames = [f for f in os.listdir(path) if os.path.splitext(f)[1] == '.xml']
+            examples = []
             for i, filename in enumerate(filenames):
-                try:
+                #try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
-                    for j, e in enumerate(xml.findall(XPath_to_examples)):
-                        id = filename + "-" + str(j) # unique id provided filename is unique (hence limiting to single allowed file extension)
-                        examples[id] = e
-                except Exception as e:
-                    print("problem parsing", os.path.join(path, filename))
-                    print(e)
-                progress(i, len(filenames), "loaded {}".format(filename))
+                        print("\n({}/{}) doi:".format(i, len(filenames)), xml.getroot().get('doi'))
+                    for j, e in enumerate(xml.getroot().findall(XPath_to_examples)):
+                        if self.enrich(e, self.enrichment_xpath):
+                            e = self.exclusive(e, self.exclusive_xpath)
+                            anonymized = self.anonymize(e, self.anonymization_xpath)
+                            provenance = os.path.splitext(filename)[0] + "_" + str(j)
+                            g = e.find(XPath_to_assets)
+                            if g is not None:
+                                basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
+                                graphic_filename = basename + '.jpg'
+                            else:
+                                print('no graphic element found')
+                                graphic_filename = ''
+                            examples.append({
+                                'xml': e,
+                                'anonymized': anonymized,
+                                'provenance': provenance,
+                                'graphic': graphic_filename
+                            })
+                # except Exception as e:
+                #     print("problem parsing", os.path.join(path, filename))
+                #     print(e)
+                # progress(i, len(filenames), "loaded {}".format(filename))
         return examples
 
 
@@ -299,12 +444,15 @@ class DataPreparator(object):
 
         with cd(config.data4th_dir):
             with cd(self.namebase):
-                os.mkdir(subset)
                 with cd(subset):
                     # write feature tensor
                     torch.save(dataset4th['tensor4th'], 'features.pyth')
                     # write encoded text tensor
                     torch.save(dataset4th['textcoded4th'], 'textcoded.pyth')
+                    # write ocr context features
+                    torch.save(dataset4th['ocrcontext4th'], 'ocrcontext.pyth')
+                    # write visual context features
+                    # torch.save(dataset4th['vizcontext4th'], 'vizcontext.pyth')
                     # write text examples into text file
                     with open("text.txt", 'w') as f:
                         for line in dataset4th['text4th']:
@@ -315,20 +463,39 @@ class DataPreparator(object):
                             f.write(line+"\n")
 
     def run_on_dir(self, subset):
+        print("\nImporting files from {}".format(subset))
         examples = self.import_files(subset)
-        encoded_examples = self.encode_examples(examples) # xml elements, attributes and value are encoded into numbered features
-        sampler = Sampler(encoded_examples, self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
+        print("\nEncoding {} examples".format(len(examples)))
+        self.encode_examples(subset, examples) # xml elements, attributes and value are encoded into numbered features
+        print("\nSampling examples from {}".format(subset))
+        path_to_encoded_data = os.path.join(config.encoded_dir, self.compendium, subset)
+        sampler = Sampler(path_to_encoded_data, self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
+        print("\nSaving tensors to {}".format(subset))
         self.save(dataset4th, subset) # save the tensors
 
     def run_on_compendium(self):
+        print("config.data_dir", config.data_dir, os.getcwd())
         with cd(config.data_dir):
             subsets = os.listdir(self.compendium)
             subsets = [s for s in subsets if s != '.DS_Store']
+
+        with cd(config.encoded_dir):
+            if not os.path.isdir(self.compendium):
+                os.mkdir(self.compendium)
+                with cd(self.compendium):
+                    for s in subsets:
+                        os.mkdir(s)
+
         with cd(config.data4th_dir):
+            # overwrite data4th tensors if already there; resampling
             if os.path.isdir(self.namebase):
                 shutil.rmtree(self.namebase)
             os.mkdir(self.namebase)
+            with cd(self.namebase):
+                for s in subsets:
+                    os.mkdir(s)
+
         for train_valid_test in subsets:
             self.run_on_dir(train_valid_test)
 
@@ -343,16 +510,13 @@ class BratDataPreparator(DataPreparator):
             brat_examples = BratImport.from_dir(path)
         return brat_examples
 
-    def encode_examples(self, examples):
-        encoded_examples = []
-        for ex in examples:
-            encoded_features = BratEncoder.encode(ex)
-            encoded_examples.append({
-                'provenance': ex['provenance'],
-                'text': ex['text'],
-                'encoded': encoded_features
-            })
-        return encoded_examples
+    def encode_examples(self, subset, examples):
+        with cd(config.data_dir):
+            path = os.path.join(self.compendium, subset)
+            for ex in examples:
+                encoded_features = BratEncoder.encode(ex)
+                encoded_example = EncodedExample(ex['provenance'], ex['text'], encoded_features)
+                encoded_example.save(path)
 
 
 def main():
@@ -367,8 +531,13 @@ def main():
     parser.add_argument('-W', '--window', action='store_true', help='switches to the sampling fig legends using a random window instead of parsing full sentences')
     parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
     parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
-    parser.add_argument('-p', '--padding', default=20, help='minimum padding added to text')
+    parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
+    parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be anonymized. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('-e', '--exclusive', default='', help='Xpath expressions to keep only specific tags. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('--noocr', action='store_true', default=False, help='Set this flag to prevent OCR analysis of images.')
+
 
     args = parser.parse_args()
 
@@ -379,6 +548,7 @@ def main():
     options['verbose'] = args.verbose
     options['length'] = args.length
     options['path'] = args.path
+    options['ocr'] = not args.noocr
     if args.window:
         options['sampling_mode'] = 'window'
     elif args.start:
@@ -387,15 +557,18 @@ def main():
         options['sampling_mode'] = 'sentence'
     options['random_shifting'] = not args.disable_shifting
     options['padding'] = args.padding
-
+    options['anonymize'] =  [a for a in args.anonymize.split(',') if a] # to make sure list is empty if args is ''
+    options['exclusive'] =  [a for a in args.exclusive.split(',') if a]
+    options['enrich'] =  [a for a in args.enrich.split(',') if a]
+    print(options)
     if args.working_directory:
         config.working_directory = args.working_directory
-    with cd(config.working_directory):
-        if args.brat:
-            prep = BratDataPreparator(options)
-        else:
-            prep = DataPreparator(options)
-        prep.run_on_compendium()
+    # with cd(config.working_directory):
+    if args.brat:
+        prep = BratDataPreparator(options)
+    else:
+        prep = DataPreparator(options)
+    prep.run_on_compendium()
 
 if __name__ == "__main__":
     main()

@@ -64,7 +64,7 @@ class Accuracy(object):
                 bin_pred.binarize_with_token(m.tokenized)
                 p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i], 0.99)
             else:
-                p, tp, fp = self.tpfp(prediction, m_output, self.thresholds) # DEFAULT_THRESHOLD)
+                p, tp, fp = self.tpfp(prediction, m_output, self.thresholds)
 
             self.p_sum += p
             self.tp_sum += tp
