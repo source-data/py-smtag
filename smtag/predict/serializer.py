@@ -60,7 +60,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
         for concept in on_features:
             if concept:
                 for attribute, value in HTMLElementSerializer.map(concept):
-                     html_class = value # "_".join([attribute, value])
+                     html_class = "_".join([attribute, value])
                      if html_class not in html_classes:
                          html_classes.append(html_class)
         html_string = "<span class=\"{} {}\">{}</span>".format(tag, ' '.join(html_classes), inner_text)
