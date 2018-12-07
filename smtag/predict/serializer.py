@@ -29,7 +29,7 @@ class XMLElementSerializer(AbstractElementSerializer):
         for concept in on_features: # what if a features correspond to mixed concepts? features should be linked to set of concepts or there should be a way to 'fuse' features.
             if concept:
                 for attribute, value in XMLElementSerializer.map(concept):
-                    # sometimes prediction is ambiguous and several values are found for a type or a role
+                    # sometimes prediction is ambiguous and several values are found for a type or a role; use scores to make choice
                     if attribute in attribute_list and value != attribute_list[attribute]:
                         attribute_list[attribute] = "{}_{}".format(attribute_list[attribute], value) # not sure this is so great
                     else:
