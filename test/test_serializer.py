@@ -15,13 +15,14 @@ class SerializerTest(unittest.TestCase):
         #tag, on_features, inner_text
         tag = 'sd-tag'
         on_features = [Catalogue.INTERVENTION, None, None, Catalogue.PROTEIN]
+        scores = [10,0,0,10]
         inner_text = 'test text'
         expected_xml_string = '<sd-tag role="intervention" type="protein">test text</sd-tag>'
         expected_html_string = '<span class="sd-tag role_intervention type_protein">test text</span>'
-        xml_string = XMLElementSerializer.make_element(tag, on_features, inner_text)
-        html_string = HTMLElementSerializer.make_element(tag, on_features, inner_text)
-        #print(xml_string)
-        #print(html_string)
+        xml_string = XMLElementSerializer.make_element(tag, on_features, inner_text, scores)
+        html_string = HTMLElementSerializer.make_element(tag, on_features, inner_text, scores)
+        print(xml_string)
+        print(html_string)
         self.assertEqual(expected_xml_string, xml_string)
         self.assertEqual(expected_html_string, html_string)
 
@@ -96,6 +97,31 @@ class SerializerTest(unittest.TestCase):
         expected_xml_string = '<smtag>A <sd-tag type="geneprod">gene </sd-tag><sd-tag type="geneprod" role="assayed">or</sd-tag> <sd-tag role="intervention" type="protein">oth&gt;rs</sd-tag></smtag>'
         print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
+
+
+    def test_serializer_4(self):
+        '''
+        Testing tagging of ambiguous predictions "others" as both intervention and assayed (with lower score)
+        '''
+        input_string = 'A ge ne or others'
+        prediction = torch.Tensor([[#A         g    e         n    e         o    r         o    t    h    e    r    s
+                                    [0   ,0   ,0.99,0.99,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99],
+                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.98,0.98,0.98,0.98,0.98,0.98]
+                                  ]])
+
+        #self, text_examples, prediction, output_semantics
+        b = Binarized([input_string], prediction, Catalogue.from_list(['geneprod','small_molecule','intervention','assayed']))
+        token_list = tokenize(input_string)
+        b.binarize_with_token([token_list])
+        b.fuse_adjascent()
+        serializer = Serializer(tag="sd-tag", format="xml")
+        predicted_xml_string = serializer.serialize(b)[0]
+        expected_xml_string = '<smtag>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag type="small_molecule" role="intervention">others</sd-tag></smtag>'
+        #print(predicted_xml_string)
+        self.assertEqual(predicted_xml_string, expected_xml_string)
+
 
 if __name__ == '__main__':
     unittest.main()

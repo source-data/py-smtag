@@ -10,29 +10,38 @@ from ..common.mapper import Catalogue, Boundary
 
 class AbstractElementSerializer(object): # (ABC)
 
-    def make_element(self, inner_text):
+    @staticmethod
+    def make_element(inner_text):
         pass
 
-    def mark_boundary(self, action):
+    @staticmethod
+    def mark_boundary(action):
         pass
 
-    def map(self, tag, on_features, concept):
+    @staticmethod
+    def map(tag, on_features, concept):
         pass
 
 class XMLElementSerializer(AbstractElementSerializer):
 
     @staticmethod
-    def make_element(tag, on_features, inner_text):
+    def make_element(tag, on_features, inner_text, scores):
 
         attribute_list= {}
-
-        for concept in on_features: # what if a features correspond to mixed concepts? features should be linked to set of concepts or there should be a way to 'fuse' features.
+        attribute_score = {}
+        for i, concept in enumerate(on_features): # what if a features correspond to mixed concepts? features should be linked to set of concepts or there should be a way to 'fuse' features.
             if concept:
                 for attribute, value in XMLElementSerializer.map(concept):
-                    # sometimes prediction is ambiguous and several values are found for a type or a role; use scores to make choice
-                    if attribute in attribute_list and value != attribute_list[attribute]:
-                        attribute_list[attribute] = "{}_{}".format(attribute_list[attribute], value) # not sure this is so great
+                    # sometimes prediction is ambiguous and several values are found for an attibute eg @type or @role; 
+                    # pick the value of the attribute which has the maximum score
+                    # the model could in principle still make semantically inconsistent predictons ge @category="assay" @type"geneprod"
+                    # would need some complicated semantic consistency check
+                    if attribute in attribute_list: #value != attribute_list[attribute]:
+                        if scores[i] > attribute_score[attribute]:
+                            attribute_score[attribute] = scores[i]
+                            attribute_list[attribute] = value
                     else:
+                        attribute_score[attribute] = scores[i]
                         attribute_list[attribute] = value
         xml_attributes = ['{}="{}"'.format(a, attribute_list[a]) for a in attribute_list]
         xml_string = "<{} {}>{}</{}>".format(tag, ' '.join(xml_attributes), inner_text, tag)
@@ -54,15 +63,22 @@ class XMLElementSerializer(AbstractElementSerializer):
 class HTMLElementSerializer(AbstractElementSerializer):
 
     @staticmethod
-    def make_element(tag, on_features, inner_text):
-        html_classes = []
-        html_class = ""
-        for concept in on_features:
+    def make_element(tag, on_features, inner_text, scores):
+        attribute_list = {}
+        attribute_score = {}
+        for i, concept in enumerate(on_features):
             if concept:
                 for attribute, value in HTMLElementSerializer.map(concept):
-                     html_class = "_".join([attribute, value])
-                     if html_class not in html_classes:
-                         html_classes.append(html_class)
+                    # no attribute_score will have no key attribute
+                    if attribute in attribute_list:
+                        if scores[i] > attribute_score[attribute]:
+                            attribute_list[attribute] = value
+                            attribute_score[attribute] = scores[i]
+                    else:
+                        attribute_list[attribute] = value
+                        attribute_score[attribute] = scores[i]
+
+        html_classes = [a + "_" + attribute_list[a] for a in attribute_list]
         html_string = "<span class=\"{} {}\">{}</span>".format(tag, ' '.join(html_classes), inner_text)
         return html_string
 
@@ -174,7 +190,7 @@ class AbstractTagger(AbstractSerializer):
                     # as soon as something new needs to be opened all the rest needs to be closed first with the accumulated inner text
                     if need_to_open_any:
                         if inner_text:
-                            tagged_string = self.serialize_element(current_concepts, inner_text)
+                            tagged_string = self.serialize_element(current_concepts, inner_text, current_scores)
                         else:
                             tagged_string =''
                         inner_text = ''
@@ -201,7 +217,7 @@ class AbstractTagger(AbstractSerializer):
 
                     if need_to_close_any:
                         if inner_text:
-                            tagged_string = self.serialize_element(current_concepts, inner_text)
+                            tagged_string = self.serialize_element(current_concepts, inner_text, current_scores)
                         else:
                             tagged_string = ''
                         inner_text = ''
@@ -223,8 +239,8 @@ class XMLTagger(AbstractTagger):
     def __init__(self, tag):
         super(XMLTagger, self).__init__(tag)
 
-    def serialize_element(self, on_features, inner_text):
-        return XMLElementSerializer.make_element(self.tag, on_features, inner_text)
+    def serialize_element(self, on_features, inner_text, current_scores):
+        return XMLElementSerializer.make_element(self.tag, on_features, inner_text, current_scores)
 
     def serialize_boundary(self, action): # preliminary naive implementation...
         return XMLElementSerializer.mark_boundary(action)
@@ -239,8 +255,8 @@ class HTMLTagger(AbstractTagger):
     def __init__(self, tag):
         super(HTMLTagger, self).__init__(tag)
 
-    def serialize_element(self, on_features, inner_text):
-        return HTMLElementSerializer.make_element(self.tag, on_features, inner_text)
+    def serialize_element(self, on_features, inner_text, current_scores):
+        return HTMLElementSerializer.make_element(self.tag, on_features, inner_text, current_scores)
 
     def serialize_boundary(self, action):
         return HTMLElementSerializer.mark_boundary(action)
