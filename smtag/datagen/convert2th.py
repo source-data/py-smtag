@@ -313,9 +313,11 @@ class DataPreparator(object):
         self.anonymization_xpath = options['anonymize']
         self.enrichment_xpath = options['enrich'] 
         self.exclusive_xpath = options['exclusive']
+        self.XPath_to_examples = options['XPath_to_examples'] # .//sd-panel'
+        self.XPath_to_assets = options['XPath_to_assets'] # .//graphic'
         self.ocr = options['ocr']
 
-    def encode_examples(self, subset, examples, anonymize=None):
+    def encode_examples(self, subset, examples):
         """
         Encodes examples provided as XML Elements and writes them to disk.
         """
@@ -326,19 +328,19 @@ class DataPreparator(object):
         N = len(examples)
         for i, ex in enumerate(examples):
             xml = ex['xml']
-            anonymized_xml = ex['anonymized']
+            processed_xml = ex['processed']
             graphic_filename = ex['graphic']
             prov = ex['provenance']
             original_text = ''.join([s for s in xml.itertext()])
-            anonymized_text = ''.join([s for s in anonymized_xml.itertext()])
+            processed_text = ''.join([s for s in processed_xml.itertext()])
             path_to_encoded = os.path.join(config.encoded_dir, self.compendium, subset, prov)
             progress(i, N, "{}".format(prov))
             if not os.path.exists(path_to_encoded): #path_to_example):
                 if original_text:
                     # ENCODING XML
-                    encoded_features = XMLEncoder.encode(anonymized_xml) # convert to tensor already here; 
+                    encoded_features = XMLEncoder.encode(processed_xml) # convert to tensor already here; 
 
-                    # OCR CONTEXT HAPPENS HERE ! Needs the unaltered un anonymized original text for alignment
+                    # OCR CONTEXT HAPPENS HERE ! Needs the unaltered un processed original text for alignment
                     if self.ocr:
                         ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
                     else:
@@ -346,7 +348,7 @@ class DataPreparator(object):
 
                     # VISUAL CONTEXT HAPPENS HERE
                     # viz_context = viz.get_context(graphic_filename)
-                    encoded_example = EncodedExample(prov, anonymized_text, encoded_features, ocr_context) #, viz_context)
+                    encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context) #, viz_context)
                     encoded_example.save(path_to_encoded)
                 else:
                     print("\nskipping an example in document with id=", prov)
@@ -388,8 +390,8 @@ class DataPreparator(object):
         if anonymizations:
             xml = copy.deepcopy(xml)
             for xpath in anonymizations:
-                to_be_anonymized = xml.findall(xpath)
-                for e in to_be_anonymized: #  # ".//sd-tag[@type='gene']"
+                to_be_processed = xml.findall(xpath)
+                for e in to_be_processed: #  # ".//sd-tag[@type='gene']"
                     # FIX PROBLEM WITH MISSING SPACES
                     innertext = "".join([s for s in e.itertext()])
                     for sub in list(e):
@@ -397,7 +399,7 @@ class DataPreparator(object):
                     e.text = config.marking_char * len(innertext)
         return xml
 
-    def import_files(self, subset, XPath_to_examples='.//sd-panel', XPath_to_assets = './/graphic'):
+    def import_files(self, subset):
         """
         Import xml documents from dir. In each document, extracts examples using XPath_to_examples.
         """
@@ -411,13 +413,13 @@ class DataPreparator(object):
                 #try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
-                        print("\n({}/{}) doi:".format(i, len(filenames)), xml.getroot().get('doi'))
-                    for j, e in enumerate(xml.getroot().findall(XPath_to_examples)):
+                        print("\n({}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'))
+                    for j, e in enumerate(xml.getroot().findall(self.XPath_to_examples)):
                         if self.enrich(e, self.enrichment_xpath):
                             e = self.exclusive(e, self.exclusive_xpath)
-                            anonymized = self.anonymize(e, self.anonymization_xpath)
+                            processed = self.anonymize(e, self.anonymization_xpath)
                             provenance = os.path.splitext(filename)[0] + "_" + str(j)
-                            g = e.find(XPath_to_assets)
+                            g = e.find(self.XPath_to_assets)
                             if g is not None:
                                 basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
                                 graphic_filename = basename + '.jpg'
@@ -426,7 +428,7 @@ class DataPreparator(object):
                                 graphic_filename = ''
                             examples.append({
                                 'xml': e,
-                                'anonymized': anonymized,
+                                'processed': processed, # 
                                 'provenance': provenance,
                                 'graphic': graphic_filename
                             })
@@ -533,10 +535,12 @@ def main():
     parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
     parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
-    parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be anonymized. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be processed. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-e', '--exclusive', default='', help='Xpath expressions to keep only specific tags. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
-    parser.add_argument('--noocr', action='store_true', default=False, help='Set this flag to prevent OCR analysis of images.')
+    parser.add_argument('-E', '--example', default='.//sd-panel', help='Xpath to extract examples from XML documents')
+    parser.add_argument('-G', '--graphic', default='.//graphic', help='Xpath to find link to graphic element in an example.')
+    parser.add_argument('--noocr', action='store_true', default=False, help='Set this flag to prevent use of image-based OCR data.')
 
 
     args = parser.parse_args()
@@ -549,6 +553,8 @@ def main():
     options['length'] = args.length
     options['path'] = args.path
     options['ocr'] = not args.noocr
+    options['XPath_to_examples'] = args.example
+    options['XPath_to_assets'] = args.graphic
     if args.window:
         options['sampling_mode'] = 'window'
     elif args.start:
