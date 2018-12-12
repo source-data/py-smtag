@@ -17,8 +17,8 @@ class SerializerTest(unittest.TestCase):
         on_features = [Catalogue.INTERVENTION, None, None, Catalogue.PROTEIN]
         scores = [10,0,0,10]
         inner_text = 'test text'
-        expected_xml_string = '<sd-tag role="intervention" type="protein">test text</sd-tag>'
-        expected_html_string = '<span class="sd-tag role_intervention type_protein">test text</span>'
+        expected_xml_string = '<sd-tag role="intervention" type="protein" role_score="10" type_score="10">test text</sd-tag>'
+        expected_html_string = '<span class="sd-tag role_intervention type_protein role_score_10 type_score_10">test text</span>'
         xml_string = XMLElementSerializer.make_element(tag, on_features, inner_text, scores)
         html_string = HTMLElementSerializer.make_element(tag, on_features, inner_text, scores)
         print(xml_string)
@@ -44,7 +44,7 @@ class SerializerTest(unittest.TestCase):
         b.binarize_with_token([token_list])
         serializer = Serializer(tag="sd-tag", format="xml")
         predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = '<smtag>A <sd-tag type="gene">gene</sd-tag> or <sd-tag type="protein">protein</sd-tag>.</smtag>'
+        expected_xml_string = '<smtag>A <sd-tag type="gene" type_score="99">gene</sd-tag> or <sd-tag type="protein" type_score="99">protein</sd-tag>.</smtag>'
         #expected_html_string = 'A <span class="sd-tag gene">gene</span> or <span class="sd-tag protein">protein</span>.'
         #print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
@@ -69,7 +69,7 @@ class SerializerTest(unittest.TestCase):
         b.fuse_adjascent()
         serializer = Serializer(tag="sd-tag", format="xml")
         predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = '<smtag>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag role="intervention" type="protein">others</sd-tag></smtag>'
+        expected_xml_string = '<smtag>A <sd-tag type="geneprod" type_score="99">ge ne</sd-tag> or <sd-tag role="intervention" type="protein" role_score="99" type_score="99">others</sd-tag></smtag>'
         #print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
 
@@ -94,7 +94,7 @@ class SerializerTest(unittest.TestCase):
         for _ in range(100):
             serializer = Serializer(tag="sd-tag", format="xml")
             predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = '<smtag>A <sd-tag type="geneprod">gene </sd-tag><sd-tag type="geneprod" role="assayed">or</sd-tag> <sd-tag role="intervention" type="protein">oth&gt;rs</sd-tag></smtag>'
+        expected_xml_string = '<smtag>A <sd-tag type="geneprod" type_score="99">gene </sd-tag><sd-tag type="geneprod" role="assayed" type_score="99" role_score="99">or</sd-tag> <sd-tag role="intervention" type="protein" role_score="99" type_score="99">oth&gt;rs</sd-tag></smtag>'
         print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
 
@@ -118,7 +118,7 @@ class SerializerTest(unittest.TestCase):
         b.fuse_adjascent()
         serializer = Serializer(tag="sd-tag", format="xml")
         predicted_xml_string = serializer.serialize(b)[0]
-        expected_xml_string = '<smtag>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag type="small_molecule" role="intervention">others</sd-tag></smtag>'
+        expected_xml_string = '<smtag>A <sd-tag type="geneprod" type_score="99">ge ne</sd-tag> or <sd-tag type="small_molecule" role="intervention" type_score="99" role_score="99">others</sd-tag></smtag>'
         #print(predicted_xml_string)
         self.assertEqual(predicted_xml_string, expected_xml_string)
 
