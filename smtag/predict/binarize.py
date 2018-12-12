@@ -65,7 +65,7 @@ class Binarized:
                 stop = t.stop
                 token_length = t.length
                 for k in range(self.nf):
-                    avg_score = float(self.prediction[i, k, start:stop].sum()) / token_length
+                    avg_score = self.prediction[i, k, start:stop].sum().item() / token_length
                     concept = self.output_semantics[k]
                     if avg_score >= concept.threshold:
                         self.start[i, k, start] = 1

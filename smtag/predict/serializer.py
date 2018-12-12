@@ -43,8 +43,9 @@ class XMLElementSerializer(AbstractElementSerializer):
                     else:
                         attribute_score[attribute] = scores[i]
                         attribute_list[attribute] = value
-        xml_attributes = ['{}="{}"'.format(a, attribute_list[a]) for a in attribute_list]
-        xml_string = "<{} {}>{}</{}>".format(tag, ' '.join(xml_attributes), inner_text, tag)
+        xml_attributes = ' '.join(['{}="{}"'.format(a, attribute_list[a]) for a in attribute_list])
+        xml_scores = ' '.join(['{}_score="{}"'.format(a, str(int(attribute_score[a]))) for a in attribute_score])
+        xml_string = "<{} {} {}>{}</{}>".format(tag, xml_attributes, xml_scores, inner_text, tag)
         return xml_string # because both HTML and XML handled, working with strings is easier than return ET.tostring(xml_string)
 
     @staticmethod
@@ -77,9 +78,9 @@ class HTMLElementSerializer(AbstractElementSerializer):
                     else:
                         attribute_list[attribute] = value
                         attribute_score[attribute] = scores[i]
-
-        html_classes = [a + "_" + attribute_list[a] for a in attribute_list]
-        html_string = "<span class=\"{} {}\">{}</span>".format(tag, ' '.join(html_classes), inner_text)
+        html_classes = ' '.join([a + "_" + attribute_list[a] for a in attribute_list])
+        score_classes = ' '.join([a + "_score_" + str(int(attribute_score[a])) for a in attribute_score])
+        html_string = "<span class=\"{} {} {}\">{}</span>".format(tag, html_classes, score_classes, inner_text)
         return html_string
 
     @staticmethod
@@ -200,7 +201,7 @@ class AbstractTagger(AbstractSerializer):
                                 need_to_open[f] = False
                                 concept = self.output_semantics[f]
                                 current_concepts[f] = concept
-                                current_scores[f] = binarized.score[i][f][start]
+                                current_scores[f] = binarized.score[i][f][start].item()
                         need_to_open_any = False
 
                     if active_features > 0:
