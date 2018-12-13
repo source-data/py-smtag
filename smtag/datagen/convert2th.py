@@ -333,8 +333,8 @@ class DataPreparator(object):
             prov = ex['provenance']
             original_text = ''.join([s for s in xml.itertext()])
             processed_text = ''.join([s for s in processed_xml.itertext()])
-            path_to_encoded = os.path.join(config.encoded_dir, self.compendium, subset, prov)
-            progress(i, N, "{}".format(prov))
+            path_to_encoded = os.path.join(config.encoded_dir, self.namebase, subset, prov)
+            progress(i, N, "{}".format(prov+"              "))
             if not os.path.exists(path_to_encoded): #path_to_example):
                 if original_text:
                     # ENCODING XML
@@ -470,7 +470,7 @@ class DataPreparator(object):
         print("\nEncoding {} examples".format(len(examples)))
         self.encode_examples(subset, examples) # xml elements, attributes and value are encoded into numbered features
         print("\nSampling examples from {}".format(subset))
-        path_to_encoded_data = os.path.join(config.encoded_dir, self.compendium, subset)
+        path_to_encoded_data = os.path.join(config.encoded_dir, self.namebase, subset)
         sampler = Sampler(path_to_encoded_data, self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         dataset4th = sampler.run(self.iterations) # examples are sampled and transformed into a tensor ready for deep learning
         print("\nSaving tensors to {}".format(subset))
@@ -483,9 +483,9 @@ class DataPreparator(object):
             subsets = [s for s in subsets if s != '.DS_Store']
 
         with cd(config.encoded_dir):
-            if not os.path.isdir(self.compendium):
-                os.mkdir(self.compendium)
-                with cd(self.compendium):
+            if not os.path.isdir(self.namebase):
+                os.mkdir(self.namebase)
+                with cd(self.namebase):
                     for s in subsets:
                         os.mkdir(s)
 
