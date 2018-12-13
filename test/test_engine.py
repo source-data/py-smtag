@@ -10,7 +10,8 @@ from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
 from smtag.predict.engine import SmtagEngine, Combine, Connector
 from smtag.common.progress import progress
-from smtag.common.config import MARKING_CHAR
+from smtag.common.config import config
+MARKING_CHAR = config.marking_char
 
 #maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
 
@@ -62,28 +63,28 @@ class EngineTest(SmtagTestCase):
 
 
     def test_panel(self):
-        ml = self.engine.panelizer(self.text_example)
+        ml = self.engine.panelizer(self.text_example, sdtag='sd-tag', format='xml')
         print(ml)
         expected = '''<smtag><sd-panel>AAA YY</sd-panel><sd-panel>, XXX</sd-panel><sd-panel>, AA</sd-panel></smtag>'''
         self.assertEqual(expected, ml)
 
     def test_entity(self):
-        ml = self.engine.entity(self.text_example)
+        ml = self.engine.entity(self.text_example, sdtag='sd-tag', format='xml')
         print(ml)
-        expected = '''<smtag>AAA <sd-tag type="geneprod">YY</sd-tag>, <sd-tag type="geneprod">XXX</sd-tag>, AA</smtag>'''
+        expected = '''<smtag>AAA <sd-tag type="geneprod" type_score="99">YY</sd-tag>, <sd-tag type="geneprod" type_score="99">XXX</sd-tag>, AA</smtag>'''
         self.assertEqual(expected, ml)
 
     @unittest.skip("unstable reporter toy model")
     def test_tag(self):
-        ml = self.engine.tag(self.text_example)
+        ml = self.engine.tag(self.text_example, sdtag='sd-tag', format='xml')
         print(ml)
-        expected = '''<smtag>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag>, AA</smtag>'''
+        expected = '''<smtag>AAA <sd-tag type="geneprod" role="reporter" type_score="99" role_score="99">YY</sd-tag>, <sd-tag type="geneprod" role="intervention" type_score="99" role_score="99">XXX</sd-tag>, AA</smtag>'''
         self.assertEqual(expected, ml)
 
     @unittest.skip("unstable reporter toy model")
     @timer
     def test_all(self):
-        ml = self.engine.smtag(self.text_example)
+        ml = self.engine.smtag(self.text_example, sdtag='sd-tag', format='xml')
         print(ml)
         expected = '''<smtag><sd-panel>AAA <sd-tag type="geneprod" role="reporter">YY</sd-tag></sd-panel><sd-panel>, <sd-tag type="geneprod" role="intervention">XXX</sd-tag></sd-panel><sd-panel>, AA</sd-panel></smtag>'''
         self.assertEqual(expected, ml)
