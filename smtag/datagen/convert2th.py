@@ -149,7 +149,7 @@ class Sampler():
                 track = [int(ocr_context4th[i, j, k]) for k in range(L)]
                 print(''.join([['-','+'][ceil(x)] for x in track]), feature)
             feature = 'viz_' + str(j)
-            track = [int(x) for x in viz_context4th[i]]
+            # track = [int(x) for x in viz_context4th[i]]
             print(''.join([str(x) for x in track]), feature)
 
 
