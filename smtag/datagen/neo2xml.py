@@ -5,15 +5,19 @@ import re
 import os
 import argparse
 from getpass import getpass
-from xml.etree.ElementTree import fromstring, Element, ElementTree, SubElement, tostring
+from io import open as iopen
+from xml.etree.ElementTree import parse, fromstring, Element, ElementTree, SubElement, tostring
 from neo4jrestclient.client import GraphDatabase, Node
 from random import shuffle
 from math import floor
 import difflib
+import re
+import requests
 from ..common.utils import cd
-from ..common.config import MARKING_CHAR, MARKING_CHAR_ORD  
 from .. import config
 
+MARKING_CHAR = config.marking_char
+MARKING_CHAR_ORD = ord(MARKING_CHAR)
 SD_PANEL_OPEN, SD_PANEL_CLOSE = "<sd-panel>", "</sd-panel>"
 
 class NeoImport():
@@ -35,33 +39,38 @@ class NeoImport():
                         # if tag_text_lo not in mini_index: mini_index.append(tag_text_lo)
                         # mark = unichr(MARKING_CHAR_ORD + mini_index.index(tag_text_lo))
                         # tag_xml.text = mark * len(tag_xml.text)
-                        tag_xml.text = MARKING_CHAR * len(tag_xml.text)
+                        tag_xml.text = config.marking_char * len(tag_xml.text)
             return panel_xml
         
         tag_errors = []
-        #panel_caption = panel_caption.encode('utf-8')
+        # panel_caption = panel_caption.encode('utf-8')
         if safe_mode:
-            #need protection agains missing spaces
+            # need protection agains missing spaces
 
-            #protection against carriage return
+            # protection against carriage return
             if re.search('[\r\n]', panel_caption):
                 print("WARNING: removing return characters")
                 panel_caption = re.sub('[\r\n]','', panel_caption)
 
-            #protection against <br> instead of <br/>
+            # protection against <br> instead of <br/>
             panel_caption = re.sub(r'<br>', r'<br/>', panel_caption)
 
-            #protection against badly formed link elements
+            # protection against badly formed link elements
             panel_caption = re.sub(r'<link href="(.*)">', r'<link href="\1"/>', panel_caption)
             panel_caption = re.sub(r'<link href="(.*)"/>(\n|.)*</link>', r'<link href="\1">\2</link>', panel_caption)
-            #protection agains missing <sd-panel> tags
+            
+            # protection against missing <sd-panel> tags
             if re.search(r'^{}(\n|.)*{}$'.format(SD_PANEL_OPEN, SD_PANEL_CLOSE), panel_caption) is None:
                 print("WARNING: correcting missing <sd-panel> </sd-panel> tags!")
                 print(panel_caption)
                 panel_caption = SD_PANEL_OPEN + panel_caption + SD_PANEL_CLOSE
 
+            # proteection against nested or empty sd-panel
+            panel_caption = re.sub(r'<sd-panel><sd-panel>', r'<sd-panel>', panel_caption)
+            panel_caption = re.sub(r'</sd-panel></sd-panel>', r'</sd-panel>', panel_caption)
+            panel_caption = re.sub(r'<sd-panel/>', '', panel_caption)
 
-        #We may loose a space that separates panels in the actual figure legend...
+        # We may loose a space that separates panels in the actual figure legend...
         panel_caption = re.sub('</sd-panel>$', ' </sd-panel>', panel_caption)
         #and then remove possible runs of spaces
         panel_caption = re.sub(r' +',r' ', panel_caption)
@@ -76,7 +85,24 @@ class NeoImport():
             print(panel_caption)
             tag_errors.append(list(tags_not_found))
 
-        #keep attributes only for the selected tags and clear the rest
+        # protection against nested tags
+        for tag in tags_xml:
+            nested_tag = tag.find('.//sd-tag')
+            if nested_tag is not None:
+                print("WARNING, removing nested tags {}".format(tostring(tag)))
+                text_from_parent = tag.text or ''
+                inner_text = ''.join([s for s in nested_tag.itertext()])
+                tail = nested_tag.tail or ''
+                text_to_recover = text_from_parent + inner_text + tail
+                for k in nested_tag.attrib: # in fact, sometimes more levels of nesting... :-(
+                    if k not in tag.attrib:
+                        tag.attrib[k] = nested_tag.attrib[k]
+                tag.text = text_to_recover
+                for e in list(tag): # tag.remove(nested_tag) would not always work if some <i> are flanking it for example
+                    tag.remove(e)
+                print("cleaned tag: {}".format(tostring(tag)))
+
+        # keep attributes only for the selected tags and clear the rest
         if exclusive_mode:
             for t_xml in tags_xml:
                 if 'id' in t_xml.attrib:
@@ -96,6 +122,7 @@ class NeoImport():
             anonymize_sdtags(panel_xml, tags2anonym)
 
         return panel_xml, tag_errors
+
 
     def neo2xml(self, source):
 
@@ -136,7 +163,7 @@ class NeoImport():
                 q_figures = '''
                     MATCH (a:Article )-->(f:Figure)
                     WHERE id(a) = {}
-                    RETURN id(f), f.fig_label //, f.caption
+                    RETURN id(f), f.fig_label, f.image_link //, f.caption
                     ORDER BY f.fig_label ASC
                     '''.format(a_id)
                 results_figures = DB.query(q_figures)
@@ -147,15 +174,15 @@ class NeoImport():
                 for f in results_figures:
                     f_id = f[0]
                     fig_label = f[1]
+                    fig_img_url = f[2]
 
-                    # ADD: url of image
                     q_panel = '''
                     MATCH (f:Figure)-->(p:Panel)-->(t:Tag)
                     WHERE id(f) = {} AND t.in_caption = true
                     {} //AND t.type = some_entity_type OR some other type
                     {} //AND t.role = some role OR some role
-                    WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, COLLECT(DISTINCT t) AS tags
-                    RETURN formatted_caption, label, panel_id, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
+                    WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, p.image_link As url, COLLECT(DISTINCT t) AS tags
+                    RETURN formatted_caption, label, panel_id, url, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
                     '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
                     results_panels = DB.query(q_panel)
                     print("{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi))
@@ -164,7 +191,7 @@ class NeoImport():
                     if results_panels:
                         figure_xml_element = Element('figure-caption')
                         #panels not in the proper order, need resorting via label
-                        results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'fig_label':fig_label, 'tags':p[3], 'tags2anonym':p[4]} for p in results_panels}
+                        results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'fig_label':fig_label, 'image_link': p[3], 'tags':p[4], 'tags2anonym':p[5]} for p in results_panels}
                         sorted_panel_labels = list(results_labeled.keys())
                         sorted_panel_labels.sort()
 
@@ -172,8 +199,12 @@ class NeoImport():
                             panel_caption = results_labeled[p]['panel_caption']
                             tags = results_labeled[p]['tags']
                             tags2anonym = results_labeled[p]['tags2anonym']
+                            image_link = results_labeled[p]['image_link']
                             try:
                                 panel_xml_element, tag_errors = self.caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
+                                graphic = Element('graphic') # https://jats.nlm.nih.gov/publishing/tag-library/1.2d1/element/graphic.html
+                                graphic.attrib['href'] = image_link
+                                panel_xml_element.append(graphic)
                                 figure_xml_element.append(panel_xml_element)
                                 if tag_errors:
                                     panel_id = results_labeled[p]['panel_id']
@@ -218,11 +249,12 @@ class NeoImport():
             testset.append(self.articles[doi])
         return trainset, validation, testset
 
-    def save(self, split_dataset, data_dir, namebase):
-        with cd(config.data_dir):
+    @staticmethod
+    def save_xml_files(split_dataset, data_dir, namebase):
+        with cd(data_dir):
             print("saving to: ", data_dir)
             if namebase in os.listdir():
-                print("data {} already exists".format(namebase))
+                print("data {} already exists. Will not do anything.".format(namebase))
                 raise(Exception())
             else:
                 os.mkdir(namebase)
@@ -230,11 +262,54 @@ class NeoImport():
                     for subdir in split_dataset:
                         articles = split_dataset[subdir]
                         os.mkdir(subdir) # should we use os.chmod(os.mkdir(os.path.join(stock, subdir), 0o777)with iopen(os.path.join(self.path, str(id)+".jpg"), 'wb') as file:
-                        for i, article in enumerate(articles):
-                            filename = str(i)+'.xml'
-                            file_path = os.path.join(subdir, filename)
-                            print('writing to {}'.format(file_path))
-                            ElementTree(article).write(file_path, encoding='utf-8', xml_declaration=True)
+                        with cd(subdir):
+                            for i, article in enumerate(articles):
+                                doi = article.get('doi')
+                                doi = doi.replace(".","_").replace("/","-")
+                                filename = doi + '.xml'
+                                #file_path = os.path.join(subdir, filename)
+                                print('writing to {}'.format(filename))
+                                ElementTree(article).write(filename, encoding='utf-8', xml_declaration=True)
+
+    @staticmethod
+    def download_images(data_dir, namebase, XPath_to_graphics='.//graphic'):
+        path_to_compendium = os.path.join(data_dir, namebase)
+        if not os.path.isdir(path_to_compendium):
+            print("{} does not exists; nothing to download.".format(namebase))
+        else:
+            print("attempting to download images for the compendium: ", namebase)
+            subsets = [d for d in os.listdir(path_to_compendium) if d != '.DS_Store']
+            for subset in subsets:
+                path_to_subset = os.path.join(path_to_compendium, subset)
+                filenames = os.listdir(path_to_subset)
+                xml_filenames = [f for f in filenames if f.split('.')[-1]=='xml']
+                for filename in xml_filenames:
+                    path_to_xml_file = os.path.join(path_to_subset, filename)
+                    with open(path_to_xml_file) as f:
+                        article = parse(f)
+                        article = article.getroot()
+                        graphics = article.findall(XPath_to_graphics)
+                        print("found {} graphics in {}".format(len(graphics), article.get('doi')))
+                    for g in graphics:
+                        url = g.get('href') # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
+                        id = re.search(r'panel_id=(\d+)', url).group(1)
+                        image_filename = id +".jpg"
+                        path_to_image = os.path.join(config.image_dir, image_filename)
+                        if os.path.exists(path_to_image):
+                            print("image {} already downloaded".format(image_filename))
+                        else:
+                            print("trying to download image {} from {}".format(id, url))
+                            try:
+                                #add authentication here!
+                                resp = requests.get(url, auth=("lemberger", "ONuYev3ydK9L"))
+                                if resp.headers['Content-Type']=='image/jpeg' and resp.status_code == requests.codes.ok:
+                                    with iopen(path_to_image, 'wb') as file:
+                                        file.write(resp.content)
+                                else:
+                                    print("skipped {} ({})".format(url, resp.status_code))
+                            except Exception as e:
+                                print("skipped {}".format(url), e)
+
 
     def log_errors(self, errors):
         """
@@ -249,16 +324,16 @@ class NeoImport():
                 #write log file anyway, even if zero errors, to remove old copy
                 with open('errors_{}.log'.format(e), 'w') as f:
                     for row in errors[e]:
-                        f.write(u"\t".join([str(x) for x in row]))
+                        f.write(u"\t".join([str(x) for x in row]) + "\n")
                 f.close()
 
 def main():
     parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode.')
-    parser.add_argument('-f', '--namebase', default='demo_xml', help='The name of the dataset')
+    parser.add_argument('-f', '--namebase', default='test', help='The name of the dataset')
     parser.add_argument('-A', '--tags2anonymize', default='', help='tag type to anonymise')
     parser.add_argument('-AA','--donotanonymize', default='', help='role of tags that should NOT be anonymized')
-    parser.add_argument('-l', '--limit', default=None, type=int, help='limit number of papers scanned, mainly for testing')
+    parser.add_argument('-l', '--limit', default=10, type=int, help='limit number of papers scanned, mainly for testing')
     parser.add_argument('-Y', '--year_range', default='', help='select papers published in the start:end year range')
     parser.add_argument('-J', '--journals', default='', help='select set of journals, comma delimited')
     parser.add_argument('-D', '--doi', default='', help='restrict to a single doi')
@@ -362,14 +437,16 @@ def main():
 
     with cd(config.working_directory):
         # check first that options['namebase'] does not exist yet
-        if os.path.isdir(os.path.join(config.data_dir, options['namebase'])):
-            print("data {} already exists. Will not do anything.".format(options['namebase']))
-        else:
-            G = NeoImport(options)
+        G = NeoImport(options)
+        if not os.path.isdir(os.path.join(config.data_dir, options['namebase'])):
             errors = G.neo2xml(options['source'])
             trainset, validation, testset = G.split_dataset(options['validation_fraction'], options['testset_fraction'])
-            G.save({'train': trainset, 'valid': validation, 'test': testset}, config.data_dir, options['namebase'])
+            G.save_xml_files({'train': trainset, 'valid': validation, 'test': testset}, config.data_dir, options['namebase'])
             G.log_errors(errors)
+        else:
+            print("data {} already exists. Trying to download images only.".format(options['namebase']))
+        # attempts to finish downloading images
+        G.download_images(config.data_dir, options['namebase'])
 
 if __name__ == "__main__":
     main()

@@ -1,16 +1,28 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-from ..common.mapper import brat_map, xml_map
+import torch
+import json
+from ..common.utils import cd
+from ..common.mapper import brat_map, xml_map, NUMBER_OF_ENCODED_FEATURES
 
-# WIP
-# features should actually be instance of EncodedFeatures()
-# define abstract Encoder class that takes Example and returns EncodedFeatures
 
-class BratEncoder(object):
+class Encoder(object):
+    @classmethod
+    def encode(cls, element):
+        features, L, _ = cls.featurize(element)
+        th = torch.zeros((NUMBER_OF_ENCODED_FEATURES, L), dtype=torch.uint8)
+        for kind in features:
+            for element in features[kind]:
+                for attribute in features[kind][element]:
+                    for pos, code in enumerate(features[kind][element][attribute]):
+                        if code is not None:
+                            th[code][pos] = 1
+        return th
 
+class BratEncoder(Encoder):
     @staticmethod
-    def encode(example):
+    def featurize(example):
         L = len(example['text'])
         annot = example['annot']
         features = {'marks':{'ann':{'type':[None] * L}}}
@@ -21,9 +33,11 @@ class BratEncoder(object):
             code = brat_map[type]
             for pos in range(start, stop):
                 features['marks']['ann']['type'][pos] = code
-        return features
+        return features, L, ""
 
-class XMLEncoder(object):
+
+
+class XMLEncoder(Encoder):
 
     @staticmethod
     def featurize_marks(element, L, features = {}):
@@ -62,7 +76,7 @@ class XMLEncoder(object):
         return features
 
     @staticmethod
-    def encode(element):
+    def featurize(element):
         features = {kind:{el:{attr:[] for attr in xml_map[kind][el]} for el in xml_map[kind]} for kind in xml_map}
 
         if element is not None:
@@ -75,7 +89,7 @@ class XMLEncoder(object):
 
             #add marks recursively
             for child in list(element):
-                child_core, L_child_core, L_child_tail = XMLEncoder.encode(child)
+                child_core, L_child_core, L_child_tail = XMLEncoder.featurize(child)
                 L_tot = L_tot + L_child_core + L_child_tail
                 #adding to child the features inherited from parent element
                 child_core = XMLEncoder.featurize_marks(element, L_child_core, child_core)
@@ -98,3 +112,4 @@ class XMLEncoder(object):
             #add 'virtual' computed features here?
 
         return features, L_tot, L_tail
+

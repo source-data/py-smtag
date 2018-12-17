@@ -211,28 +211,28 @@ class SmtagEngine:
 
         return cumulated_output
 
-    def __serialize(self, output, sdtag="sd-tag"):
-        ml = Serializer(tag=sdtag).serialize(output)
-        return ml[0]
+    def __serialize(self, output, sdtag="sd-tag", format="xml"):
+        ml = Serializer(tag=sdtag, format=format).serialize(output)
+        return ml[0] # engine works with single example
 
     @timer
-    def entity(self, input_string, sdtag):
-        return self.__serialize(self.__entity(TString(input_string)), sdtag)
+    def entity(self, input_string, sdtag, format):
+        return self.__serialize(self.__entity(TString(input_string)), sdtag, format)
 
     @timer
-    def tag(self, input_string, sdtag):
-        return self.__serialize(self.__entity_and_role(TString(input_string)), sdtag)
+    def tag(self, input_string, sdtag, format):
+        return self.__serialize(self.__entity_and_role(TString(input_string)), sdtag, format)
 
     @timer
-    def smtag(self, input_string, sdtag):
-        return self.__serialize(self.__all(input_string), sdtag)
+    def smtag(self, input_string, sdtag, format):
+        return self.__serialize(self.__all(input_string), sdtag, format)
 
     @timer
-    def add_roles(self, input_xml, sdtag):
+    def add_roles(self, input_xml, sdtag, format):
         pass # need to implement an xml updater
 
     @timer
-    def panelizer(self, input_string):
+    def panelizer(self, input_string, format):
         return self.__serialize(self.__panels(TString(input_string)))
 
 def main():
@@ -242,6 +242,7 @@ def main():
     DEBUG = arguments['--debug']
     DEMO = arguments['--demo']
     sdtag = arguments['--tag']
+    format = arguments['--format']
     if arguments['--working_directory']:
         config.working_directory = arguments['--working_directory']
     if DEMO:
@@ -264,13 +265,13 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
     engine.DEBUG = DEBUG
 
     if method == 'smtag':
-        print(engine.smtag(input_string, sdtag))
+        print(engine.smtag(input_string, sdtag, format))
     elif method == 'panelize':
-        print(engine.panelizer(input_string, sdtag))
+        print(engine.panelizer(input_string, format))
     elif method == 'tag':
-        print(engine.tag(input_string, sdtag))
+        print(engine.tag(input_string, sdtag, format))
     elif method == 'entity':
-        print(engine.entity(input_string, sdtag))
+        print(engine.entity(input_string, sdtag, format))
     else:
         print("unknown method {}".format(method))
 

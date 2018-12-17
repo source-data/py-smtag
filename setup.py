@@ -37,6 +37,7 @@ setuptools.setup(
     entry_points = {
         'console_scripts': [
             'smtag-neo2xml=smtag.command_line:neo2xml',
+            'smtag-ocr=smtag.command_line:ocr',
             'smtag-convert2th=smtag.command_line:convert2th',
             'smtag-meta=smtag.command_line:meta',
             'smtag-eval=smtag.command_line:eval',
