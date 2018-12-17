@@ -2,6 +2,14 @@
 #T. Lemberger, 2018
 import os
 
+
+NBITS = 32 # number of bits to encode characters; not very useful since making converter flexible slows it down
+MARKING_CHAR = u'\uE000' # u'\u0000' # special character used to anonymize an entity before learning context-dependent features
+MARKING_CHAR_ORD = ord(MARKING_CHAR)
+MIN_PADDING = 20 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
+MIN_SIZE = 140 # input needs to be of minimal size to survive successive convergent convolutions; ideally, should be calculated analytically
+DEFAULT_THRESHOLD = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
+
 class Config():
     """
     Class that collects all configuration options.
@@ -22,7 +30,7 @@ class Config():
     _scans_dir_name    = "scans" # results of hyperparameter scans
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
     _viz_cxt_features  = 576 # number of features used from pre-trained visual analysis network
-    _nbits             = 32 # number of features use to encode characters 
+    _nbits             = 32 # number of features use to encode characters
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _min_padding       = 20 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
     _min_size          = 140 # input needs to be of minimal size to survive successive convergent convolutions; ideally, should be calculated analytically
