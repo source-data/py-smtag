@@ -90,5 +90,26 @@ class EngineTest(SmtagTestCase):
         self.assertEqual(expected, ml)
 
 
+
+
+from smtag.predict.engine import SmtagEngine
+class SmtagEngineSerializationOutputTest(unittest.TestCase):
+    def setUp(self):
+        pass
+    def test_html(self):
+        input_text = "qweqwe"
+        expected_html = '<ul><li class="sd-panel">qweqwe</li></ul>'
+        engine = SmtagEngine()
+        html_output = engine.smtag(input_text, "sd-tag", "html")
+        # import pdb; pdb.set_trace()
+        self.assertEqual(expected_html, html_output)
+    def test_xml(self):
+        input_text = "qweqwe"
+        expected_xml = '<smtag><sd-panel>qweqwe</sd-panel></smtag>'
+        engine = SmtagEngine()
+        xml_output = engine.smtag(input_text, "sd-tag", "xml")
+        # import pdb; pdb.set_trace()
+        self.assertEqual(expected_xml, xml_output)
+
 if __name__ == '__main__':
     unittest.main()
