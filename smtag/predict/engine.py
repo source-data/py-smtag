@@ -53,7 +53,7 @@ class Combine(nn.Module):#SmtagModel?
             self.add_module(name, model)
             #print("model.output_semantics", ", ".join([str(f) for f in model.output_semantics]))
             self.output_semantics += model.output_semantics # some of them can have > 1 output feature hence += instead of .append
-            self.anonymize_with.append(anonymize_with) # what is anonymize_with is None or empty?
+            self.anonymize_with.append(anonymize_with) # what if anonymize_with is None or empty?
         self.concat = Concat(1)
 
     def forward(self, x):
@@ -97,7 +97,7 @@ class SmtagEngine:
             self.cartridge = cartridge
         else:
             self.cartridge = {
-                # '<model-family>' : [(<model>, <features that needs to be anonimized>), ...]
+                # '<model-family>' : [(<model>, <features that needs to be anonymized>), ...]
                 'entity': [
                     (load_model('small_molecule.zip', config.prod_dir), ''),
                     (load_model('geneprod.zip', config.prod_dir), ''),
@@ -112,7 +112,8 @@ class SmtagEngine:
                     (load_model('reporter_geneprod.zip', config.prod_dir), '')
                 ],
                 'context': [
-                    (load_model('role_geneprod.zip', config.prod_dir), 'geneprod')
+                    (load_model('role_geneprod.zip', config.prod_dir), 'geneprod'),
+                    #(load_model('role_small_molecule.zip', config.prod_dir), 'small_molecule')
                 ],
                 'panelizer': [
                     (load_model('panel_start.zip', config.prod_dir), '')
@@ -157,7 +158,9 @@ class SmtagEngine:
 
         input_t_string = TString(input_string)
         if self.DEBUG:
-            print(input_t_string)
+            show = Show()
+            print("\nText:")
+            print("    "+input_string)
 
         #PREDICT PANELS
         binarized_panels = self.__panels(input_t_string)
@@ -165,30 +168,36 @@ class SmtagEngine:
         # PREDICT ENTITIES
         binarized_entities = self.__entity(input_t_string)
         if self.DEBUG:
-            print("\n0: binarized.marks after entity ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()]))); Show.print_pretty(binarized_entities.marks)
+            print("\n0: binarized.marks after entity ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()])))
+            print(show.print_pretty(binarized_entities.marks))
             print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output = binarized_entities.clone()
         cumulated_output.cat_(binarized_panels)
         if self.DEBUG:
-            print("\n1: cumulated_output.marks after panel and entity ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()]))); Show.print_pretty(cumulated_output.marks)
+            print("\n1: cumulated_output.marks after panel and entity ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])))
+            print(show.print_pretty(cumulated_output.marks))
             print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # PREDICT REPORTERS
         binarized_reporter = self.__reporter(input_t_string)
         if self.DEBUG:
-            print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])));Show.print_pretty(binarized_reporter.marks)
+            print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])))
+            print(show.print_pretty(binarized_reporter.marks))
             print("output semantics: ", "; ".join([str(e) for e in binarized_reporter.output_semantics]))
 
         binarized_entities.erase_(binarized_reporter) # will it erase itself? need to assume output is 1 channel only
         if self.DEBUG:
-            print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])));Show.print_pretty(binarized_reporter.marks)
-            print("\n3: binarized_entities.marks after erase_(reporter) ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()]))); Show.print_pretty(binarized_entities.marks)
+            print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])))
+            print(show.print_pretty(binarized_reporter.marks))
+            print("\n3: binarized_entities.marks after erase_(reporter) ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()])))
+            print(show.print_pretty(binarized_entities.marks))
             print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
 
         cumulated_output.cat_(binarized_reporter) # add reporter prediction to output features
         if self.DEBUG:
-            print("\n4: cumulated_output.marks after cat_(reporter) ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()]))); Show.print_pretty(cumulated_output.marks)
+            print("\n4: cumulated_output.marks after cat_(reporter) ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])))
+            print(show.print_pretty(cumulated_output.marks))
             print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         # select and match by type the predicted entity marks to be fed to the second context_p semantics from context model.
@@ -196,17 +205,19 @@ class SmtagEngine:
         anonymization_marks = rewire.forward(binarized_entities.marks) # should not include reporter marks;
         if self.DEBUG:
             print("\n5: rewiring models['entity'].output_semantics and models['context'].anonymize_with", ", ".join([str(e) for e in self.models['entity'].output_semantics]), ", ".join([str(e) for e in self.models['context'].anonymize_with]))
-            print("anonymization_marks ({})".format(" x ".join([str(s) for s in anonymization_marks.size()]))); Show.print_pretty(anonymization_marks)
+            print("anonymization_marks ({})".format(" x ".join([str(s) for s in anonymization_marks.size()]))); show.print_pretty(anonymization_marks)
 
         # PREDICT ROLES ON NON REPORTER ENTITIES
         context_binarized = self.__context(input_t_string, anonymization_marks)
         if self.DEBUG:
-            print("\n6: context_binarized ({})".format(" x ".join([str(s) for s in context_binarized.marks.size()]))); Show.print_pretty(context_binarized.marks)
+            print("\n6: context_binarized ({})".format(" x ".join([str(s) for s in context_binarized.marks.size()])))
+            print(show.print_pretty(context_binarized.marks))
 
         #concatenate entity and output_semantics before calling Serializer()
         cumulated_output.cat_(context_binarized)
         if self.DEBUG:
-            print("\n7: final cumulated_output.marks ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])));Show.print_pretty(cumulated_output.marks)
+            print("\n7: final cumulated_output.marks ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])))
+            print(show.print_pretty(cumulated_output.marks))
             print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
 
         return cumulated_output
