@@ -32,7 +32,7 @@ class XMLElementSerializer(AbstractElementSerializer):
         for i, concept in enumerate(on_features): # what if a features correspond to mixed concepts? features should be linked to set of concepts or there should be a way to 'fuse' features.
             if concept:
                 for attribute, value in XMLElementSerializer.map(concept):
-                    # sometimes prediction is ambiguous and several values are found for an attibute eg @type or @role; 
+                    # sometimes prediction is ambiguous and several values are found for an attibute eg @type or @role;
                     # pick the value of the attribute which has the maximum score
                     # the model could in principle still make semantically inconsistent predictons ge @category="assay" @type"geneprod"
                     # would need some complicated semantic consistency check
@@ -119,6 +119,14 @@ class AbstractTagger(AbstractSerializer):
     def serialize_boundary(self, action):
         pass
 
+    @property
+    def opening_tag(self):
+        raise NotImplementedError
+
+    @property
+    def closing_tag(self):
+        raise NotImplementedError
+
     def serialize(self, binarized): # binarized contains N examples
         super(AbstractTagger, self).serialize(binarized)
         if Catalogue.PANEL_START in binarized.output_semantics:
@@ -169,7 +177,8 @@ class AbstractTagger(AbstractSerializer):
                 #print("serialize segment", " ".join([t.text for t in token_list]))
                 #WARNING: CHECK BEFORE WHETHER ANY BOUNDARY FEATURES; IF NOT, DO NOT FLANK WITH <sd-panel>
                 if panel_feature is not None:
-                    ml_string += "<sd-panel>" # self.serialize_boundary('open') # problem: left spacer should be put before that
+                    # ml_string += "<sd-panel>" # self.serialize_boundary('open') # problem: left spacer should be put before that
+                    ml_string += self.opening_tag
                 for t in token_list:
                     start = t.start
                     stop = t.stop-1
@@ -230,7 +239,8 @@ class AbstractTagger(AbstractSerializer):
                                 current_scores[f] = 0
                         need_to_close_any = False
                 if panel_feature is not None:
-                    ml_string += "</sd-panel>" #self.serialize_boundary('close')
+                    # ml_string += "</sd-panel>" #self.serialize_boundary('close')
+                    ml_string += self.closing_tag
             #phew!
             self.serialized_examples.append(ml_string)
         return self.serialized_examples
@@ -239,6 +249,14 @@ class XMLTagger(AbstractTagger):
 
     def __init__(self, tag):
         super(XMLTagger, self).__init__(tag)
+
+    @property
+    def opening_tag(self):
+        return '<sd-panel>'
+
+    @property
+    def closing_tag(self):
+        return '</sd-panel>'
 
     def serialize_element(self, on_features, inner_text, current_scores):
         return XMLElementSerializer.make_element(self.tag, on_features, inner_text, current_scores)
@@ -256,6 +274,14 @@ class HTMLTagger(AbstractTagger):
     def __init__(self, tag):
         super(HTMLTagger, self).__init__(tag)
 
+    @property
+    def opening_tag(self):
+        return '<li class="sd-panel">'
+
+    @property
+    def closing_tag(self):
+        return '</li>'
+
     def serialize_element(self, on_features, inner_text, current_scores):
         return HTMLElementSerializer.make_element(self.tag, on_features, inner_text, current_scores)
 
@@ -264,7 +290,7 @@ class HTMLTagger(AbstractTagger):
 
     def serialize(self, binarized_pred):
         html_string_list = super(HTMLTagger, self).serialize(binarized_pred)
-        return ["<div>{}</div>".format(xml_string) for xml_string in html_string_list]
+        return ["<ul>{}</ul>".format(xml_string) for xml_string in html_string_list]
 
 
 class Serializer():
