@@ -13,23 +13,22 @@ AFFINE = True
 BIAS =  True
 
 # class BNL(nn.Module):
-#     def __init__(self, channels, p=2):
+#     def __init__(self, channels, p=32, affine=True):
 #         super(BNL, self).__init__()
-#         #init.uniform_(self.weight)
-#         # init.zeros_(self.bias)
-#         # https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/batchnorm.py#L33-L39
-#         self.eps = 1E-05
 #         self.channels = channels
-#         self.gamma = nn.Parameter(torch.Tensor(1, channels, 1).uniform_())
-#         self.beta = nn.Parameter(torch.Tensor(1, channels, 1).uniform_(0, 0.1))
+#         self.eps = torch.Tensor(1, channels, 1).fill_(1E-05)
+#         if affine:
+#             self.gamma = nn.Parameter(torch.Tensor(1, channels, 1).uniform_())
+#             self.beta = nn.Parameter(torch.zeros(1, channels, 1))
+#         else:
+#             self.gamma = 1.
+#             self.beta = 0.
 #         self.p = p
 
 #     def forward(self, x):
-#         mu = x.mean(2).mean(0)
-#         mu = mu.view(1, self.channels, 1)
+#         mu = x.mean(2, keepdim=True).mean(0, keepdim=True)
 #         z = x - mu
-#         L_p = y.norm(p=self.p, dim=2).mean(0)
-#         L_p = L_p.view(1, self.channels, 1) +
+#         L_p = z.norm(p=self.p, dim=2, keepdim=True).mean(0, keepdim=True)
 #         z = z / (L_p + self.eps)
 #         return self.gamma * z + self.beta
 
@@ -71,7 +70,7 @@ class SmtagModel(nn.Module):
         x = self.unet(x)
         x = self.adapter(x)
         x = self.BN(x)
-        x = F.sigmoid(x)
+        x = torch.sigmoid(x)
         return x
 
 class Concat(nn.Module):
@@ -98,17 +97,17 @@ class Unet2(nn.Module):
            self.padding = floor((self.kernel-1)/2) # TRY WITHOUT ANY PADDING
         self.dropout_rate = dropout_rate
         self.dropout = nn.Dropout(self.dropout_rate)
-        
-        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding, bias=BIAS)
+        stride = 1
+        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, stride, self.padding, bias=BIAS)
         self.BN_down_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_down_B = nn.Conv1d(self.nf_input, self.nf_output, self.kernel, 1, self.padding, bias=BIAS)
+        self.conv_down_B = nn.Conv1d(self.nf_input, self.nf_output, self.kernel, stride, self.padding, bias=BIAS)
         self.BN_down_B = nn.BatchNorm1d(self.nf_output, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, 1, self.padding, bias=BIAS)
+        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, stride, self.padding, bias=BIAS)
         self.BN_up_B = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_up_A = nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding, bias=BIAS)
+        self.conv_up_A = nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, stride, self.padding, bias=BIAS)
         self.BN_up_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
         if len(self.nf_table) > 0:

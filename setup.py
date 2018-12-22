@@ -25,7 +25,7 @@ setuptools.setup(
         'Pillow==4.3.0', #5.1.0 requires Mac OS 10.12; torchvision require at least 4.1.1; GPU EC2 AMI needs >4.3.0
         'PyYAML==3.12',
         'six==1.10.0', # GPU EC2 AMI need 1.10
-        'torch==0.4.0',
+        'torch==0.4.1',
         'torchvision==0.2.0',
         'neo4jrestclient==2.1.1',
         'nltk==3.2.4',
