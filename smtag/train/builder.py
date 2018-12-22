@@ -8,6 +8,31 @@ import torch.nn.functional as F
 from copy import deepcopy
 from ..common.mapper import Concept, Catalogue
 
+BNTRACK = False
+AFFINE = True
+BIAS =  True
+
+# class BNL(nn.Module):
+#     def __init__(self, channels, p=2):
+#         super(BNL, self).__init__()
+#         #init.uniform_(self.weight)
+#         # init.zeros_(self.bias)
+#         # https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/batchnorm.py#L33-L39
+#         self.eps = 1E-05
+#         self.channels = channels
+#         self.gamma = nn.Parameter(torch.Tensor(1, channels, 1).uniform_())
+#         self.beta = nn.Parameter(torch.Tensor(1, channels, 1).uniform_(0, 0.1))
+#         self.p = p
+
+#     def forward(self, x):
+#         mu = x.mean(2).mean(0)
+#         mu = mu.view(1, self.channels, 1)
+#         z = x - mu
+#         L_p = y.norm(p=self.p, dim=2).mean(0)
+#         L_p = L_p.view(1, self.channels, 1) +
+#         z = z / (L_p + self.eps)
+#         return self.gamma * z + self.beta
+
 class SmtagModel(nn.Module):
 
     def __init__(self, opt):
@@ -19,10 +44,10 @@ class SmtagModel(nn.Module):
         pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
         dropout = opt['dropout']
 
-        self.pre = nn.BatchNorm1d(nf_input)
+        self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout)
-        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1) # reduce output features of unet to final desired number of output features
-        self.BN = nn.BatchNorm1d(nf_output)
+        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
+        self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)
 
         self.output_semantics = Catalogue.from_list(opt['selected_features'])
         if 'collapsed_features' in opt:
@@ -73,21 +98,22 @@ class Unet2(nn.Module):
            self.padding = floor((self.kernel-1)/2) # TRY WITHOUT ANY PADDING
         self.dropout_rate = dropout_rate
         self.dropout = nn.Dropout(self.dropout_rate)
+        
+        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding, bias=BIAS)
+        self.BN_down_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding)
-        self.BN_down_A = nn.BatchNorm1d(self.nf_input)
+        self.conv_down_B = nn.Conv1d(self.nf_input, self.nf_output, self.kernel, 1, self.padding, bias=BIAS)
+        self.BN_down_B = nn.BatchNorm1d(self.nf_output, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_down_B = nn.Conv1d(self.nf_input, self.nf_output, self.kernel, 1, self.padding)
-        self.BN_down_B = nn.BatchNorm1d(self.nf_output)
+        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, 1, self.padding, bias=BIAS)
+        self.BN_up_B = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, 1, self.padding)
-        self.BN_up_B = nn.BatchNorm1d(self.nf_input)
-
-        self.conv_up_A = nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding)
-        self.BN_up_A = nn.BatchNorm1d(self.nf_input)
+        self.conv_up_A = nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, 1, self.padding, bias=BIAS)
+        self.BN_up_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
         if len(self.nf_table) > 0:
             self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, self.dropout_rate)
+            self.BN_middle = nn.BatchNorm1d(self.nf_output, track_running_stats=BNTRACK, affine=AFFINE)
         else:
             self.unet2 = None
         self.concat = Concat(1)
@@ -107,6 +133,7 @@ class Unet2(nn.Module):
             y_size_2 = y.size()
             y, pool_2_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
             y = self.unet2(y)
+            y = F.relu(self.BN_middle(y))
             y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_2_indices, y_size_2)
         y = self.dropout(y)
         y = self.conv_up_B(y)
