@@ -569,12 +569,12 @@ def main():
     print(options)
     if args.working_directory:
         config.working_directory = args.working_directory
-    # with cd(config.working_directory):
-    if args.brat:
-        prep = BratDataPreparator(options)
-    else:
-        prep = DataPreparator(options)
-    prep.run_on_compendium()
+    with cd(config.working_directory):
+        if args.brat:
+            prep = BratDataPreparator(options)
+        else:
+            prep = DataPreparator(options)
+        prep.run_on_compendium()
 
 if __name__ == "__main__":
     main()
