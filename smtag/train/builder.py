@@ -69,7 +69,7 @@ class SmtagModel(nn.Module):
         self.opt = opt
 
     def forward(self, x):
-        x = self.pre(x)
+        # x = self.pre(x)
         x = self.unet(x)
         x = self.adapter(x)
         x = self.BN(x)
