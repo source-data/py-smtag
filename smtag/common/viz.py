@@ -97,16 +97,16 @@ class Show():
             out += "__Predicted:__" + self.nl + self.nl
             out += self.print_pretty_color(prediction, text) + self.nl + self.nl
             out += self.print_pretty(prediction) + self.nl + self.nl
-            thresh = torch.Tensor([0.5])
-            if torch.cuda.device_count() > 0:
-                thresh = thresh.cuda()
-            p, tp, fp = Accuracy.tpfp(prediction, target, thresh) # need to put 0.5 as cuda() on GPU
-            precision = tp / (tp + fp)
-            recall = tp / p
-            f1 = 2 * recall * precision / (recall + precision)
-            out += "Accuracy of this example:" + self.nl
-            out += "p={}, tp={}, fp={}, precision={:.2f}, recall={:.2f}, f1={:.2f}".format(float(p), float(tp), float(fp), float(precision), float(recall), float(f1))
-            out += self.nl + self.nl
+            # thresh = torch.Tensor([0.5])
+            # if torch.cuda.device_count() > 0:
+            #     thresh = thresh.cuda()
+            # p, tp, fp = Accuracy.tpfp(prediction, target, thresh) # need to put 0.5 as cuda() on GPU
+            # precision = tp / (tp + fp)
+            # recall = tp / p
+            # f1 = 2 * recall * precision / (recall + precision)
+            # out += "Accuracy of this example:" + self.nl
+            # out += "p={}, tp={}, fp={}, precision={:.2f}, recall={:.2f}, f1={:.2f}".format(float(p), float(tp), float(fp), float(precision), float(recall), float(f1))
+            # out += self.nl + self.nl
 
         out += ""
         return out
