@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 import math
+import torch
 from random import random
 from .converter import Converter
 from ..train.evaluator import Accuracy
