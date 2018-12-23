@@ -101,7 +101,7 @@ class Show():
             recall = tp / p
             f1 = 2 * recall * precision / (recall + precision)
             out += "Accuracy of this example:" + self.nl
-            out += "p={}, tp={}, fp={}, precision={:.2f}, recall={:.2f}, f1={:.2f}".format(p.item(), tp.item(), fp.item(), precision.item(), recall.item(), f1.item())
+            out += "p={}, tp={}, fp={}, precision={:.2f}, recall={:.2f}, f1={:.2f}".format(float(p), float(tp), float(fp), float(precision), float(recall), float(f1)
             out += self.nl + self.nl
 
         out += ""
