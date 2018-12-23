@@ -6,19 +6,20 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from copy import deepcopy
+from math import sqrt
 from ..common.mapper import Concept, Catalogue
 
-BNTRACK = False
+BNTRACK = True
 AFFINE = True
 BIAS =  True
 
 # class BNL(nn.Module):
-#     def __init__(self, channels, p=32, affine=True):
+#     def __init__(self, channels, p=1, affine=AFFINE):
 #         super(BNL, self).__init__()
 #         self.channels = channels
 #         self.eps = torch.Tensor(1, channels, 1).fill_(1E-05)
 #         if affine:
-#             self.gamma = nn.Parameter(torch.Tensor(1, channels, 1).uniform_())
+#             self.gamma = nn.Parameter(torch.Tensor(1, channels, 1).uniform_(0,1))
 #             self.beta = nn.Parameter(torch.zeros(1, channels, 1))
 #         else:
 #             self.gamma = 1.
@@ -27,10 +28,12 @@ BIAS =  True
 
 #     def forward(self, x):
 #         mu = x.mean(2, keepdim=True).mean(0, keepdim=True)
-#         z = x - mu
-#         L_p = z.norm(p=self.p, dim=2, keepdim=True).mean(0, keepdim=True)
-#         z = z / (L_p + self.eps)
-#         return self.gamma * z + self.beta
+#         y = x - mu
+#         L_p = y.norm(p=self.p, dim=2, keepdim=True).mean(0, keepdim=True)
+#         # L_p = y.std(2, keepdim = True).mean(0, keepdim=True)
+#         y = y / (L_p + self.eps)
+#         y = self.gamma * x + self.beta
+#         return y
 
 class SmtagModel(nn.Module):
 
