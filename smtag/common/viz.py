@@ -4,6 +4,7 @@
 import math
 from random import random
 from .converter import Converter
+from ..train.evaluator import Accuracy
 from tensorboardX import SummaryWriter
 from .. import config
 
@@ -95,6 +96,13 @@ class Show():
             out += "__Predicted:__" + self.nl + self.nl
             out += self.print_pretty_color(prediction, text) + self.nl + self.nl
             out += self.print_pretty(prediction) + self.nl + self.nl
+            p, tp, fp = Accuracy.tpfp(prediction, target, 0.5)
+            precision = tp / (tp + fp)
+            recall = tp / p
+            f1 = 2 * recall * precision / (recall + precision)
+            out += "p={}, tp={}, fp={}, precision={}, recall={}, f1={}".format(p.item(), tp.item(), fp.item(), precision.item(), recall.item(), f1.item())
+            out += self.nl + self.nl
+
         out += ""
         return out
     
