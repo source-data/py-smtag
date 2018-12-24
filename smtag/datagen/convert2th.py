@@ -513,11 +513,12 @@ class BratDataPreparator(DataPreparator):
         return brat_examples
 
     def encode_examples(self, subset, examples):
-        for ex in examples:
-            encoded_features = BratEncoder.encode(ex)
-            encoded_example = EncodedExample(ex['provenance'], ex['text'], encoded_features)
-            path = os.path.join(self.compendium, subset, ex['provenance'])
-            encoded_example.save(path)
+        with cd(config.encoded_dir):
+            for ex in examples:
+                encoded_features = BratEncoder.encode(ex)
+                encoded_example = EncodedExample(ex['provenance'], ex['text'], encoded_features)
+                path = os.path.join(self.namebase, subset, ex['provenance'])
+                encoded_example.save(path)
 
 
 def main():
