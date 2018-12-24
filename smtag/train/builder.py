@@ -144,8 +144,8 @@ class Unet2(nn.Module):
         y = self.conv_up_A(y)
         y = F.relu(self.BN_up_A(y))
 
-        #y = x + y # this is the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
-        y = self.concat((x, y)) # merge via concatanation of output layers 
-        y = self.reduce(y) # reducing from 2*nf_output to nf_output
+        # y = x + y # this is the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
+        # y = self.concat((x, y)) # merge via concatanation of output layers 
+        # y = self.reduce(y) # reducing from 2*nf_output to nf_output
 
         return y
