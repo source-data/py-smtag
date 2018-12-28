@@ -9,7 +9,7 @@ from copy import deepcopy
 from math import sqrt
 from ..common.mapper import Concept, Catalogue
 
-BNTRACK = True
+BNTRACK = False
 AFFINE = True
 BIAS =  True
 
