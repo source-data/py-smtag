@@ -64,6 +64,14 @@ class ConverterTest(SmtagTestCase):
         self.assertEqual(expected.s, the_ts.s)
         self.assertTensorEqual(expected.t, the_ts.t)
 
+    def test_empty_string(self):
+        empty_string = ''
+        empty_string_ts = TString('')
+        expected_tensor = torch.Tensor()
+        expected_string = ''
+        self.assertEqual(expected_string, str(empty_string_ts))
+        self.assertTensorEqual(expected_tensor, empty_string_ts.toTensor())
+
     @timer
     def test_timing(self):
         for _ in range(100000):
