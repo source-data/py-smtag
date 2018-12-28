@@ -9,7 +9,7 @@ from copy import deepcopy
 from math import sqrt
 from ..common.mapper import Concept, Catalogue
 
-BNTRACK = False
+BNTRACK = True
 AFFINE = True
 BIAS =  True
 
@@ -69,7 +69,7 @@ class SmtagModel(nn.Module):
         self.opt = opt
 
     def forward(self, x):
-        # x = self.pre(x)
+        x = self.pre(x)
         x = self.unet(x)
         x = self.adapter(x)
         x = self.BN(x)
