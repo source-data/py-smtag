@@ -562,7 +562,7 @@ def main():
     else:
         options['sampling_mode'] = 'sentence'
     options['random_shifting'] = not args.disable_shifting
-    options['padding'] = args.padding
+    options['padding'] = int(args.padding)
     options['anonymize'] =  [a for a in args.anonymize.split(',') if a] # to make sure list is empty if args is ''
     options['exclusive'] =  [a for a in args.exclusive.split(',') if a]
     options['enrich'] =  [a for a in args.enrich.split(',') if a]
