@@ -56,7 +56,7 @@ class Predictor: #(nn.Module?)
         bin_pred = Binarized([str(input_string)], prediction, output_semantics) # this is where the transfer of the output semantics from the model to the binarized prediction happen; will be used for serializing
         token_list = tokenize(str(input_string)) # needs to be string, change TString to keep string?
         bin_pred.binarize_with_token([token_list])
-        bin_pred.fuse_adjascent(regex=" ")
+        bin_pred.fuse_adjascent(regex="[ -–—]")
         return bin_pred
 
 

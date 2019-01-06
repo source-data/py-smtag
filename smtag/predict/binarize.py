@@ -35,7 +35,7 @@ class Binarized:
     '''
     def __init__(self, text_examples, prediction, output_semantics): # will need a concept map to set feature-specific thresholds Object Prediction with inputstring, input concept output concept and output tensor
         self.text_examples = text_examples
-        self.prediction = prediction
+        self.prediction = prediction.float()
         self.output_semantics = output_semantics
 
         self.N = prediction.size(0)
@@ -53,6 +53,7 @@ class Binarized:
         # in the scenario of pretagged xml, only marks will be used for anonymization; might not be true for other applications
         # no need to have start, stop, scores; marks are sufficient and are identical to the pseudo-prediction directly obtained by encoding xml into tensor
         self.marks = self.prediction
+        self.marks = self.marks.float()
     
     def binarize_with_token(self, tokenized_examples):
         '''
@@ -106,7 +107,7 @@ class Binarized:
                 if t.stop < self.L - 1:
                     for k in range(self.nf):
                         # simple implementation for fusing only 2 adjascent token; should be a loop that finds all consecutive token to be fused
-                        if self.start[i, k, t.start] > 0.99 and self.prediction[i, k, t.stop] >= 0.3 and self.start[i, k, t.stop+1] > 0.99 and re.match(test, input_string[t.stop]):
+                        if self.start[i, k, t.start] > 0.99 and self.prediction[i, k, t.stop] >= 0.2 and self.start[i, k, t.stop+1] > 0.99 and re.match(test, input_string[t.stop]):
                             self.stop[i, k, t.stop-1] = 0 # remove the stop boundary of first term; in binarized, stop is last character of token!
                             self.marks[i, k, t.stop] = 1 # fill the gap by marking the space as part of the tagged term
                             self.start[i, k, t.stop+1] = 0 # remove the start boundary of next term
