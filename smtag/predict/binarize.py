@@ -48,6 +48,12 @@ class Binarized:
         self.score = torch.zeros(dim)
         self.tokenized = []
         
+    def binarize_from_pretagged_xml(self):
+        # minimal implementation
+        # in the scenario of pretagged xml, only marks will be used for anonymization; might not be true for other applications
+        # no need to have start, stop, scores; marks are sufficient and are identical to the pseudo-prediction directly obtained by encoding xml into tensor
+        self.marks = self.prediction
+    
     def binarize_with_token(self, tokenized_examples):
         '''
         Takes pre-tokenized examples and thresholds the prediction tensor to computes start, stop, marks and scores members..

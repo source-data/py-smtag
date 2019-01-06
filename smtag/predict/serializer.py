@@ -220,7 +220,7 @@ class AbstractTagger(AbstractSerializer):
 
                     #scan features that need to be closed
                     for f in range(self.nf):
-                        if  not isinstance(self.output_semantics[f], Boundary) and binarized.stop[i][f][stop] != 0:
+                        if not isinstance(self.output_semantics[f], Boundary) and binarized.stop[i][f][stop] != 0:
                             need_to_close[f] = True
                             need_to_close_any = True
                             active_features -= 1

@@ -9,7 +9,7 @@ Usage:
 
 Options:
 
-  -m <str>, --method <str>                Method to call (smtag|tag|entity|panelize) [default: smtag]
+  -m <str>, --method <str>                Method to call (smtag|tag|entity|role|panelize) [default: smtag]
   -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
   -w <str>, --working_directory <str>     Working directory where to read cartrigdes from (i.e. path where the `rack` folder is located)
@@ -24,14 +24,17 @@ import re
 from torch import nn
 import torch
 from docopt import docopt
+from xml.etree.ElementTree import tostring, fromstring
 from ..common.importexport import load_model
 from ..common.utils import tokenize, timer
 from ..train.builder import Concat
 from ..common.converter import TString
 from ..common.mapper import Catalogue
+from ..datagen.encoder import XMLEncoder
 from .binarize import Binarized
 from .predictor import SimplePredictor, ContextualPredictor
 from .serializer import Serializer
+from .updatexml import updatexml_
 from .. import config
 from ..common.viz import Show
 
@@ -106,7 +109,7 @@ class SmtagEngine:
                     (load_model('tissue.zip', config.prod_dir), ''),
                     (load_model('organism.zip', config.prod_dir), ''),
                     (load_model('exp_assay.zip', config.prod_dir), ''),
-                    (load_model('disease.zip', config.prod_dir), '')
+                    # (load_model('disease.zip', config.prod_dir), '')
                 ],
                 'only_once': [
                     (load_model('reporter_geneprod.zip', config.prod_dir), '')
@@ -153,6 +156,19 @@ class SmtagEngine:
         context_binarized = self.__context(input_t_string, anonymization_marks)
         binarized.cat_(context_binarized)
         return binarized
+
+    def __role_from_pretagged(self, input_xml): # input_xml is an xml.etree.ElementTree.Element object 
+        input_string = ''.join([s for s in input_xml.itertext()])
+        input_t_string = TString(input_string)
+        import pdb;pdb.set_trace()
+        encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
+        encoded.unsqueeze_(0)
+        binarized = Binarized([input_string], encoded, Catalogue.standard_channels)
+        binarized.binarize_from_pretagged_xml()
+        rewire = Connector(Catalogue.standard_channels, self.models['context'].anonymize_with)
+        anonymization_marks = rewire.forward(binarized.marks)
+        context_binarized = self.__context(input_t_string, anonymization_marks)
+        return context_binarized
 
     def __all(self, input_string):
 
@@ -239,12 +255,14 @@ class SmtagEngine:
         return self.__serialize(self.__all(input_string), sdtag, format)
 
     @timer
-    def add_roles(self, input_xml, sdtag, format):
-        pass # need to implement an xml updater
+    def add_roles(self, input_xml_string, sdtag, format):
+        input_xml = fromstring(input_xml_string)
+        updatexml_(input_xml, self.__role_from_pretagged(input_xml))
+        return tostring(input_xml)
 
     @timer
     def panelizer(self, input_string, format):
-        return self.__serialize(self.__panels(TString(input_string)))
+        return self.__serialize(self.__panels(TString(input_string)), format=format)
 
 def main():
     arguments = docopt(__doc__, version='0.1')
@@ -283,6 +301,8 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
         print(engine.tag(input_string, sdtag, format))
     elif method == 'entity':
         print(engine.entity(input_string, sdtag, format))
+    elif method == 'role':
+        print(engine.add_roles(input_string, sdtag, format))
     else:
         print("unknown method {}".format(method))
 
