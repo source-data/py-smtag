@@ -168,7 +168,6 @@ class SmtagEngine:
         binarized_reporter = self.__reporter(input_t_string)
         binarized_entities.erase_(binarized_reporter)
         cumulated_output = binarized_reporter.clone()
-        #cumulated_output.cat_(binarized_reporter)
         rewire = Connector(Catalogue.standard_channels, self.models['context'].anonymize_with)
         anonymization_marks = rewire.forward(binarized_entities.marks)
         context_binarized = self.__context(input_t_string, anonymization_marks)
