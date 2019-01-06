@@ -47,7 +47,7 @@ class Binarized:
         self.marks = torch.zeros(dim) #.byte()
         self.score = torch.zeros(dim)
         self.tokenized = []
-
+        
     def binarize_with_token(self, tokenized_examples):
         '''
         Takes pre-tokenized examples and thresholds the prediction tensor to computes start, stop, marks and scores members..
@@ -89,21 +89,23 @@ class Binarized:
             #    pos_iter = PositionIter(input_string)
             #for pos, _ in pos_iter:
             for t in self.tokenized[i]['token_list']:
-                stop_mark = t.stop-1
                 #s = "this is the black cat"
                 #                 ||||| |||
                 #     0123456789012345678901
-                #                 ^    |       s[start:stop] => s[12:17] == 'black'
-                #                       ^  |   s[start:stop] => s[18:21] == 'cat'
-                # pos = 17: stop[, ,17] > 0.99 and start[,,18] > 0.99 [,,17]==" "
-                if stop_mark < self.L - 2: #
+                #                 ^    |         s[start:stop] => s[12:17] == 'black'
+                #                       ^  |     s[start:stop] => s[18:21] == 'cat'
+                # t.stop = 17: stop[i,k,16] >= 0.99 marks[i,k,17] > 0 and start[i,k,18] > 0.99 input_string[17]==" "
+                # the original scores from the model are accessible in self.prediction
+               
+                if t.stop < self.L - 1:
                     for k in range(self.nf):
-                        # TODO: add a test on self.marks[i, k, stop_mark+1] > threshold
-                        if self.stop[i, k, stop_mark] > 0.99 and self.start[i, k, stop_mark+2] > 0.99 and re.match(test, input_string[stop_mark+1]):
-                            self.stop[i, k, stop_mark] = 0 # remove the stop boundary of first term
-                            self.start[i, k, stop_mark+2] = 0 # remove the start boundary of next term
-                            self.marks[i, k, stop_mark+1] = 1 # fill the gap by marking the space as part of the tagged term
-                            self.score[i, k, stop_mark] = 0 #ideally the average of the score of the fused words but would ned to find start of upstream word
+                        # simple implementation for fusing only 2 adjascent token; should be a loop that finds all consecutive token to be fused
+                        if self.start[i, k, t.start] > 0.99 and self.prediction[i, k, t.stop] >= 0.3 and self.start[i, k, t.stop+1] > 0.99 and re.match(test, input_string[t.stop]):
+                            self.stop[i, k, t.stop-1] = 0 # remove the stop boundary of first term; in binarized, stop is last character of token!
+                            self.marks[i, k, t.stop] = 1 # fill the gap by marking the space as part of the tagged term
+                            self.start[i, k, t.stop+1] = 0 # remove the start boundary of next term
+                            self.score[i, k, t.start] = (self.score[i, k, t.start] + self.score[i, k, t.stop+1]) / 2
+                            self.score[i, k, t.stop+1] = 0 # remove score from downstream token
 
     def cat_(self, other):
         # self.text_examples stays untouched, assumed to be the same, could be tested
