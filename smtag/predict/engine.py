@@ -150,7 +150,7 @@ class SmtagEngine:
         binarized_entities = self.__entity(input_t_string)
         cumulated_output = binarized_entities.clone()
         binarized_reporter = self.__reporter(input_t_string)
-        cumulated_output.erase_(binarized_reporter)
+        binarized_entities.erase_(binarized_reporter)
         cumulated_output.cat_(binarized_reporter)
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
         anonymization_marks = rewire.forward(binarized_entities.marks)
@@ -163,12 +163,17 @@ class SmtagEngine:
         input_t_string = TString(input_string)
         encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
         encoded.unsqueeze_(0)
-        binarized = Binarized([input_string], encoded, Catalogue.standard_channels)
-        binarized.binarize_from_pretagged_xml()
+        binarized_entities = Binarized([input_string], encoded, Catalogue.standard_channels)
+        binarized_entities.binarize_from_pretagged_xml()
+        binarized_reporter = self.__reporter(input_t_string)
+        binarized_entities.erase_(binarized_reporter)
+        cumulated_output = binarized_reporter.clone()
+        #cumulated_output.cat_(binarized_reporter)
         rewire = Connector(Catalogue.standard_channels, self.models['context'].anonymize_with)
-        anonymization_marks = rewire.forward(binarized.marks)
+        anonymization_marks = rewire.forward(binarized_entities.marks)
         context_binarized = self.__context(input_t_string, anonymization_marks)
-        return context_binarized
+        cumulated_output.cat_(context_binarized)
+        return cumulated_output
 
     def __all(self, input_string):
 
