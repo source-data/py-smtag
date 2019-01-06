@@ -128,19 +128,16 @@ class SerializerTest(unittest.TestCase):
         '''
         Test the update of a pretagged xml object
         '''
-        xml_string = '<sd-panel>A <sd-tag>ge ne</sd-tag> or <sd-tag>others</sd-tag></sd-panel>'
+        xml_string = '<sd-panel>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag type="protein">others</sd-tag></sd-panel>'
         xml = fromstring(xml_string)
-        expected_xml_string = tostring(fromstring('<sd-panel>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag role="intervention" type="protein">others</sd-tag></sd-panel>'))
+        expected_xml_string = tostring(fromstring('<sd-panel>A <sd-tag type="geneprod">ge ne</sd-tag> or <sd-tag role="intervention" type="protein" role_score="99">others</sd-tag></sd-panel>'))
         input_string = 'A ge ne or others'
         prediction = torch.Tensor([[#A         g    e         n    e         o    r         o    t    h    e    r    s
-                                    [0   ,0   ,0.99,0.99,0   ,0.99,0.99,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
-                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
-                                    [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99],
                                     [0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0.99,0.99,0.99,0.99,0.99,0.99]
                                   ]])
 
         #self, text_examples, prediction, output_semantics
-        b = Binarized([input_string], prediction, Catalogue.from_list(['geneprod','small_molecule','intervention','protein']))
+        b = Binarized([input_string], prediction, Catalogue.from_list(['intervention']))
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         b.fuse_adjascent()

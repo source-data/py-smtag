@@ -24,6 +24,9 @@ def updatexml_(xml, bin_pred, position=0, pretag=DEFAULT_PRETAG):
                         # overwrite if predicted score above threshold and above previous best score for same attribute
                         xml.attrib[attribute] = value
                         max_score[attribute] = bin_pred.score[0, i, position]
+                        score_attribute = attribute + "_score"
+                        score_value = str(int(bin_pred.score[0, i, position].item()))
+                        xml.attrib[score_attribute] = score_value
                     # elif not attribute in xml.attrib: 
                     #    xml.attrib[attribute] = default
 
