@@ -9,8 +9,8 @@ from ..common.mapper import brat_map, xml_map, NUMBER_OF_ENCODED_FEATURES
 
 class Encoder(object):
     @classmethod
-    def encode(cls, element):
-        features, L, _ = cls.featurize(element)
+    def encode(cls, xml_element):
+        features, L, _ = cls.featurize(xml_element)
         th = torch.zeros((NUMBER_OF_ENCODED_FEATURES, L), dtype=torch.uint8)
         for kind in features:
             for element in features[kind]:

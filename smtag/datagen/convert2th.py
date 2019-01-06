@@ -199,6 +199,7 @@ class Sampler():
                 length_stats.append(L)
 
                 # randomly sampling each example
+                # range(max(1.0, L / self.length) * iterations)
                 for j in range(iterations): # j is index of sampling iteration
                     progress(i*iterations+j, total, "sampling example {}".format(i+1))
                     # a text fragment is picked randomly from the text example
