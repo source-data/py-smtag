@@ -109,7 +109,7 @@ class SmtagEngine:
                     (load_model('tissue.zip', config.prod_dir), ''),
                     (load_model('organism.zip', config.prod_dir), ''),
                     (load_model('exp_assay.zip', config.prod_dir), ''),
-                    # (load_model('disease.zip', config.prod_dir), '')
+                    (load_model('disease.zip', config.prod_dir), '')
                 ],
                 'only_once': [
                     (load_model('reporter_geneprod.zip', config.prod_dir), '')
