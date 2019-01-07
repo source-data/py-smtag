@@ -80,39 +80,44 @@ class Binarized:
                         self.score[i, k, start] = round(100*avg_score)
                         self.marks[i, k, start:stop].fill_(1)
 
-    def fuse_adjascent(self, regex=" "):
+    def fuse_adjascent(self):
         '''
         When to adjascent terms are marked with the same feature, their marking is 'fused' by updating start (of first term), stop (of last term) and marks (encompassing both terms and spacer).
 
         Args:
             regext (str default=" "): a regex pattern that is used to identify spacers between token that
         '''
-        test = re.compile(regex)
         for i in range(self.N):
-            input_string = self.text_examples[i]
-            #if self.tokenized:
-            #    pos_iter = PositionIter(token=self.tokenized[i], mode='stop')
-            #else:
-            #    pos_iter = PositionIter(input_string)
-            #for pos, _ in pos_iter:
-            for t in self.tokenized[i]['token_list']:
-                #s = "this is the black cat"
-                #                 ||||| |||
-                #     0123456789012345678901
-                #                 ^    |         s[start:stop] => s[12:17] == 'black'
-                #                       ^  |     s[start:stop] => s[18:21] == 'cat'
-                # t.stop = 17: stop[i,k,16] >= 0.99 marks[i,k,17] > 0 and start[i,k,18] > 0.99 input_string[17]==" "
-                # the original scores from the model are accessible in self.prediction
-               
-                if t.stop < self.L - 1:
-                    for k in range(self.nf):
-                        # simple implementation for fusing only 2 adjascent token; should be a loop that finds all consecutive token to be fused
-                        if self.start[i, k, t.start] > 0.99 and self.prediction[i, k, t.stop] >= 0.2 and self.start[i, k, t.stop+1] > 0.99 and re.match(test, input_string[t.stop]):
-                            self.stop[i, k, t.stop-1] = 0 # remove the stop boundary of first term; in binarized, stop is last character of token!
-                            self.marks[i, k, t.stop] = 1 # fill the gap by marking the space as part of the tagged term
-                            self.start[i, k, t.stop+1] = 0 # remove the start boundary of next term
-                            self.score[i, k, t.start] = (self.score[i, k, t.start] + self.score[i, k, t.stop+1]) / 2
-                            self.score[i, k, t.stop+1] = 0 # remove score from downstream token
+            #s = "this is the black cat"
+            #                 ||||| |||
+            #     0123456789012345678901
+            #                 ^    |         s[start:stop] => s[12:17] == 'black'
+            #                       ^  |     s[start:stop] => s[18:21] == 'cat'
+            #                 ^     ^        self.start
+            #                     |   |      self.stop (YES! it is one character shifted to the left, see WARNING)
+            # t.start==12 t.stop==16 next.start==18 next.stop==20
+            # start[i,k,12] >= 0.99 prediction[i,k,17] > 0 and start[i,k,18] > 0.99
+            # the original scores from the model are accessible in self.prediction
+            # WARNING: in a Token t, t.stop is the character _after_ the token whereas in self.stop, it is the last character of the token. APOLOGIES!
+            for k in range(self.nf):
+                token = deepcopy(self.tokenized[i]['token_list'])
+                next_t = token.pop(0)  
+                start_mark_at_next_t_start = self.start[i, k, next_t.start].item()
+                while token:
+                    t = next_t
+                    start_mark_at_t_start = start_mark_at_next_t_start # need to use old start_mark, since they might have been updated in the process of fustion
+                    next_t = token.pop(0)
+                    start_mark_at_next_t_start = self.start[i, k, next_t.start].item()
+                    spacer_length = next_t.start - t.stop
+                    score_spacer = 0
+                    if spacer_length > 0:
+                        score_spacer = self.prediction[i, k, t.stop:next_t.start].mean().item()
+                    if start_mark_at_t_start > 0.99 and start_mark_at_next_t_start > 0.99 and (spacer_length == 0 or score_spacer > 0.1):
+                        self.stop[i, k, t.stop-1] = 0 # remove the stop boundary of first term; in binarized, stop is last character of token!
+                        self.marks[i, k, t.stop:next_t.start] = 1 # fill the gap by marking the space as part of the tagged term
+                        self.start[i, k, next_t.start] = 0 # remove the start boundary of next term
+                        self.score[i, k, t.start] = (self.score[i, k, t.start] + self.score[i, k, next_t.start]) / 2
+                        self.score[i, k, next_t.start] = 0 # remove score from downstream token
 
     def cat_(self, other):
         # self.text_examples stays untouched, assumed to be the same, could be tested

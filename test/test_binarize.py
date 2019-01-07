@@ -63,8 +63,8 @@ class BinarizeTest(SmtagTestCase):
         b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
-        b.fuse_adjascent(regex="\t")
-        print("\n")
+        b.fuse_adjascent()
+        print("\nFuse with spacer")
         print("".join([str(int(x)) for x in list(b.start.view(b.start.numel()))]))
         print("".join([str(int(x)) for x in list(b.stop.view(b.stop.numel()))]))
         print("".join([str(int(x)) for x in list(b.marks.view(b.marks.numel()))]))
@@ -98,7 +98,41 @@ class BinarizeTest(SmtagTestCase):
         b.binarize_with_token([token_list])
         b.fuse_adjascent()
         
-        print("\n")
+        print("\n fuse at the end")
+        print("".join([str(int(x)) for x in list(b.start.view(b.start.numel()))]))
+        print("".join([str(int(x)) for x in list(b.stop.view(b.stop.numel()))]))
+        print("".join([str(int(x)) for x in list(b.marks.view(b.marks.numel()))]))
+        print(",".join([str(int(x)) for x in list(b.score.view(b.marks.numel()))]))
+
+        self.assertTensorEqual(expected_start, b.start)
+        self.assertTensorEqual(expected_stop, b.stop)
+        self.assertTensorEqual(expected_marks, b.marks)
+
+    def test_fuse_adjascent_3(self):
+        '''
+        Testing the fusion of two terms separated by nothing at the end of the string.
+        '''
+        input_string = 'A ge-n'
+        prediction = torch.Tensor([[#A         g    e    -   n 
+                                    [0   ,0   ,0.99,0.99,0.99,0.99]
+                                  ]])
+        expected_start = torch.Tensor([[
+                                    [0.  ,0.  ,1.   ,0.  ,0. ,0. ]
+                                     ]])
+        expected_stop = torch.Tensor([[
+                                    [0.  ,0.  ,0.   ,0.  ,0.  ,1.  ]
+                                     ]])
+        expected_marks = torch.Tensor([[
+                                    [0.  ,0.  ,1.   ,1.  ,1.  ,1.  ]
+                                     ]])
+
+        b = Binarized([input_string], prediction, [Catalogue.GENEPROD])
+        token_list = tokenize(input_string)
+        print(token_list)
+        b.binarize_with_token([token_list])
+        b.fuse_adjascent()
+        
+        print("\nfuse with no spacer and at the end")
         print("".join([str(int(x)) for x in list(b.start.view(b.start.numel()))]))
         print("".join([str(int(x)) for x in list(b.stop.view(b.stop.numel()))]))
         print("".join([str(int(x)) for x in list(b.marks.view(b.marks.numel()))]))
