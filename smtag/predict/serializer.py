@@ -159,7 +159,7 @@ class AbstractTagger(AbstractSerializer):
             segments = []
             if len(boundaries.nonzero()) != 0: # if example i has a position where boundaries[i] is 1, we need to segment
                 for b in boundaries: # what if multiple kind of boundaries? this would be too complicated for the moment!!
-                    if b in token_start_positions:
+                    if b in token_start_positions and b > 0: # ignore 'trivial' boundary if it is at the very start of the text
                         #find index of corresponding token
                         next_token_index = token_start_positions.index(b)
                         # add token from previous start to token before next
@@ -220,7 +220,7 @@ class AbstractTagger(AbstractSerializer):
 
                     #scan features that need to be closed
                     for f in range(self.nf):
-                        if  not isinstance(self.output_semantics[f], Boundary) and binarized.stop[i][f][stop] != 0:
+                        if not isinstance(self.output_semantics[f], Boundary) and binarized.stop[i][f][stop] != 0:
                             need_to_close[f] = True
                             need_to_close_any = True
                             active_features -= 1

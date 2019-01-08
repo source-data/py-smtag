@@ -16,6 +16,7 @@ def xml_escape(s):
 def cleanup(text):
     text = re.sub('[\r\n\t]', ' ', text)
     text = re.sub(' +', ' ', text)
+    text = re.sub(r'[–—‐−]', '-', text) # controversial!!!
     return text
 
 

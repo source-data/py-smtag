@@ -2,8 +2,10 @@
 #T. Lemberger, 2018
 
 import math
+import torch
 from random import random
 from .converter import Converter
+from ..train.evaluator import Accuracy
 from tensorboardX import SummaryWriter
 from .. import config
 
@@ -86,7 +88,7 @@ class Show():
             out += "\nAdditional input features:"+self.nl+self.nl
             out += "    "+self.print_pretty(input[[0], 32:nf_input, : ]) + self.nl + self.nl
 
-        out+= "__Expected:__" + "({})".format(provenance.strip()) + self.nl + self.nl
+        out+= "\n__Expected:__" + "({})".format(provenance.strip()) + self.nl + self.nl
         # out += self.print_pretty_color(target, original_text) + self.nl + self.nl# visualize anonymized characters with a symbol
         out += self.print_pretty_color(target, text) + self.nl + self.nl# visualize anonymized characters with a symbol
         out += self.print_pretty(target) + self.nl + self.nl
@@ -95,6 +97,17 @@ class Show():
             out += "__Predicted:__" + self.nl + self.nl
             out += self.print_pretty_color(prediction, text) + self.nl + self.nl
             out += self.print_pretty(prediction) + self.nl + self.nl
+            # thresh = torch.Tensor([0.5])
+            # if torch.cuda.device_count() > 0:
+            #     thresh = thresh.cuda()
+            # p, tp, fp = Accuracy.tpfp(prediction, target, thresh) # need to put 0.5 as cuda() on GPU
+            # precision = tp / (tp + fp)
+            # recall = tp / p
+            # f1 = 2 * recall * precision / (recall + precision)
+            # out += "Accuracy of this example:" + self.nl
+            # out += "p={}, tp={}, fp={}, precision={:.2f}, recall={:.2f}, f1={:.2f}".format(float(p), float(tp), float(fp), float(precision), float(recall), float(f1))
+            # out += self.nl + self.nl
+
         out += ""
         return out
     
@@ -121,7 +134,11 @@ class Show():
             max  = 1
             max_f = -1
             for f in range(nf): # range(2) is 0, 1 should be blue red
-                score = math.floor(features[0, f, pos]*10)
+                score = 0
+                if not math.isnan(features[0, f, pos]): # can be NaN
+                    score = math.floor(features[0, f, pos]*10)
+                else:
+                    print("NaN value!!!", features[0, f, : ])
                 if score > max:
                      max = score
                      max_f = f

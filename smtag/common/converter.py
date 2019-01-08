@@ -22,19 +22,21 @@ class Converter():
         """
 
         L = len(input_string)
-        t = torch.zeros(1, 32, L, dtype=dtype)
-        for i in range(L):
-            code = ord(input_string[i])
-            # the integer is first represented as binary in a padded string with bin(code) and [2:] to remove "0b"
-            # to fill the tensor, the bits need to be read from right to left, so string or array needs to be reversed
-            # the array is then reversed using [::-1] or the string with reversed()
-            # in this way the bits from right to left populate the final Tensor (column) from left (top) to right (bottom)
-            # bits = torch.Tensor([int(b) for b in "{0:032b}".format(code)][::-1]) # slower!! 2.425s for 1E5 conversions; thank you: https://stackoverflow.com/questions/10321978/integer-to-bitfield-as-a-list
-            # bits = torch.Tensor([1 if b=='1' else 0 for b in "{0:032b}".format(code)][::-1]) # faster: 1.721s
-            # bits = torch.Tensor([1 if b=='1' else 0 for b in f"{code:032b}"][::-1]) # elegant but 1.7s and only python 3.6
-            #bits = torch.Tensor([1 if b=='1' else 0 for b in "%32s" % bin(code)[2:]][::-1]) # even faster 1.653s with % formatting
-            bits = torch.Tensor([1 if b=='1' else 0 for b in reversed("%32s" % bin(code)[2:])]) # more elegant
-            t[0, : , i] = bits
+        t = torch.Tensor(0)
+        if L > 0:
+            t = torch.zeros(1, 32, L, dtype=dtype)
+            for i in range(L):
+                code = ord(input_string[i])
+                # the integer is first represented as binary in a padded string with bin(code) and [2:] to remove "0b"
+                # to fill the tensor, the bits need to be read from right to left, so string or array needs to be reversed
+                # the array is then reversed using [::-1] or the string with reversed()
+                # in this way the bits from right to left populate the final Tensor (column) from left (top) to right (bottom)
+                # bits = torch.Tensor([int(b) for b in "{0:032b}".format(code)][::-1]) # slower!! 2.425s for 1E5 conversions; thank you: https://stackoverflow.com/questions/10321978/integer-to-bitfield-as-a-list
+                # bits = torch.Tensor([1 if b=='1' else 0 for b in "{0:032b}".format(code)][::-1]) # faster: 1.721s
+                # bits = torch.Tensor([1 if b=='1' else 0 for b in f"{code:032b}"][::-1]) # elegant but 1.7s and only python 3.6
+                #bits = torch.Tensor([1 if b=='1' else 0 for b in "%32s" % bin(code)[2:]][::-1]) # even faster 1.653s with % formatting
+                bits = torch.Tensor([1 if b=='1' else 0 for b in reversed("%32s" % bin(code)[2:])]) # more elegant
+                t[0, : , i] = bits
         return t
 
     @staticmethod

@@ -108,7 +108,7 @@ class Boundary(Concept):
 
 class Catalogue():
 
-    SMALL_MOLECULE = Entity('small_molecule', [('type', 'small_molecule')], 0.3)
+    SMALL_MOLECULE = Entity('small_molecule', [('type', 'small_molecule')], 0.6)
     GENE = Entity('gene', [('type', 'gene')], 0.4)
     PROTEIN = Entity('protein', [('type', 'protein')], 0.4)
     SUBCELLULAR = Entity('subcellular', [('type', 'subcellular')], 0.4)
@@ -126,8 +126,8 @@ class Catalogue():
     ENTITY = Category('entity', [('category', 'entity')], 0.5)
     TIME = Category('time', [('category', 'assay')], 0.5)
     PHYSICAL_VAR = Category('physical', [('category', 'physical')], 0.5)
-    DISEASE = Category('disease', [('category', 'disease')], 0.4)
-    PANEL_START = Boundary('panel_start','sd-panel',  0.7)
+    DISEASE = Category('disease', [('category', 'disease')], 0.5)
+    PANEL_START = Boundary('panel_start','sd-panel',  0.5)
     PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
     GENEPROD = Entity('geneprod', [('type', 'geneprod')], 0.4)
 

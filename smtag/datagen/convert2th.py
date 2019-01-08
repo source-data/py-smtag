@@ -199,6 +199,7 @@ class Sampler():
                 length_stats.append(L)
 
                 # randomly sampling each example
+                # range(max(1.0, L / self.length) * iterations)
                 for j in range(iterations): # j is index of sampling iteration
                     progress(i*iterations+j, total, "sampling example {}".format(i+1))
                     # a text fragment is picked randomly from the text example
@@ -517,7 +518,7 @@ class BratDataPreparator(DataPreparator):
             for ex in examples:
                 encoded_features = BratEncoder.encode(ex)
                 encoded_example = EncodedExample(ex['provenance'], ex['text'], encoded_features)
-                path = os.path.join(self.compendium, subset, ex['provenance'])
+                path = os.path.join(self.namebase, subset, ex['provenance'])
                 encoded_example.save(path)
 
 
@@ -562,19 +563,19 @@ def main():
     else:
         options['sampling_mode'] = 'sentence'
     options['random_shifting'] = not args.disable_shifting
-    options['padding'] = args.padding
+    options['padding'] = int(args.padding)
     options['anonymize'] =  [a for a in args.anonymize.split(',') if a] # to make sure list is empty if args is ''
     options['exclusive'] =  [a for a in args.exclusive.split(',') if a]
     options['enrich'] =  [a for a in args.enrich.split(',') if a]
     print(options)
     if args.working_directory:
         config.working_directory = args.working_directory
-    # with cd(config.working_directory):
-    if args.brat:
-        prep = BratDataPreparator(options)
-    else:
-        prep = DataPreparator(options)
-    prep.run_on_compendium()
+    with cd(config.working_directory):
+        if args.brat:
+            prep = BratDataPreparator(options)
+        else:
+            prep = DataPreparator(options)
+        prep.run_on_compendium()
 
 if __name__ == "__main__":
     main()

@@ -9,7 +9,7 @@ Usage:
 
 Options:
 
-  -m <str>, --method <str>                Method to call (smtag|tag|entity|panelize) [default: smtag]
+  -m <str>, --method <str>                Method to call (smtag|tag|entity|role|panelize) [default: smtag]
   -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
   -w <str>, --working_directory <str>     Working directory where to read cartrigdes from (i.e. path where the `rack` folder is located)
@@ -24,14 +24,17 @@ import re
 from torch import nn
 import torch
 from docopt import docopt
+from xml.etree.ElementTree import tostring, fromstring
 from ..common.importexport import load_model
 from ..common.utils import tokenize, timer
 from ..train.builder import Concat
 from ..common.converter import TString
 from ..common.mapper import Catalogue
+from ..datagen.encoder import XMLEncoder
 from .binarize import Binarized
 from .predictor import SimplePredictor, ContextualPredictor
 from .serializer import Serializer
+from .updatexml import updatexml_
 from .. import config
 from ..common.viz import Show
 
@@ -143,16 +146,33 @@ class SmtagEngine:
         binarized = context_p.pred_binarized(input_t_string, anonymization_marks, self.models['context'].output_semantics)
         return binarized
 
-    def __entity_and_role(self, input_t_string):
-        binarized = self.__entity(input_t_string)
-        binarized_reporter =self.__reporter(input_t_string)
-        binarized.erase_(binarized_reporter)
-        binarized.cat_(binarized_reporter)
+    def __entity_and_role(self, input_t_string): # THERE IS A BUG HERE: CHANGES THE ORDER OF MODELS/OUTPUT SEMANTICS; REPORTER IS MISTAKEN FOR PANEL
+        binarized_entities = self.__entity(input_t_string)
+        cumulated_output = binarized_entities.clone()
+        binarized_reporter = self.__reporter(input_t_string)
+        binarized_entities.erase_(binarized_reporter)
+        cumulated_output.cat_(binarized_reporter)
         rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
-        anonymization_marks = rewire.forward(binarized.marks)
+        anonymization_marks = rewire.forward(binarized_entities.marks)
         context_binarized = self.__context(input_t_string, anonymization_marks)
-        binarized.cat_(context_binarized)
-        return binarized
+        cumulated_output.cat_(context_binarized)
+        return cumulated_output
+
+    def __role_from_pretagged(self, input_xml): # input_xml is an xml.etree.ElementTree.Element object 
+        input_string = ''.join([s for s in input_xml.itertext()])
+        input_t_string = TString(input_string)
+        encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
+        encoded.unsqueeze_(0)
+        binarized_entities = Binarized([input_string], encoded, Catalogue.standard_channels)
+        binarized_entities.binarize_from_pretagged_xml()
+        binarized_reporter = self.__reporter(input_t_string)
+        binarized_entities.erase_(binarized_reporter)
+        cumulated_output = binarized_reporter.clone()
+        rewire = Connector(Catalogue.standard_channels, self.models['context'].anonymize_with)
+        anonymization_marks = rewire.forward(binarized_entities.marks)
+        context_binarized = self.__context(input_t_string, anonymization_marks)
+        cumulated_output.cat_(context_binarized)
+        return cumulated_output
 
     def __all(self, input_string):
 
@@ -239,12 +259,14 @@ class SmtagEngine:
         return self.__serialize(self.__all(input_string), sdtag, format)
 
     @timer
-    def add_roles(self, input_xml, sdtag, format):
-        pass # need to implement an xml updater
+    def role(self, input_xml_string, sdtag):
+        input_xml = fromstring(input_xml_string)
+        updatexml_(input_xml, self.__role_from_pretagged(input_xml), pretag=fromstring('<'+sdtag+'/>'))
+        return tostring(input_xml)
 
     @timer
     def panelizer(self, input_string, format):
-        return self.__serialize(self.__panels(TString(input_string)))
+        return self.__serialize(self.__panels(TString(input_string)), format=format)
 
 def main():
     arguments = docopt(__doc__, version='0.1')
@@ -283,6 +305,8 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
         print(engine.tag(input_string, sdtag, format))
     elif method == 'entity':
         print(engine.entity(input_string, sdtag, format))
+    elif method == 'role':
+        print(engine.role(input_string, sdtag)) # can only be xml format
     else:
         print("unknown method {}".format(method))
 

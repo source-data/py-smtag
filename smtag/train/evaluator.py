@@ -84,8 +84,8 @@ class Accuracy(object):
 
         Args:
             threshold (0..1): to call a character as tagged ('hit')
-            prediction (4D Tensor): the prediction for which the accuracy has to be computed
-            target (4D Tensor): the target to which the prediction has to be compared to 
+            prediction (3D Tensor): the prediction for which the accuracy has to be computed
+            target (3D Tensor): the target to which the prediction has to be compared to 
 
         Returns:
             Three 1D Tensors with the number per feature of positives, true positives and false positives, respectively
