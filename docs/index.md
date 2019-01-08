@@ -6,6 +6,8 @@ Make sure to have `python3` available and run from to root of the project https:
 
     python3 -m venv .venv
     source .venv/bin/activate
+    pip install --upgrade pip
+    pip install --upgrade setuptools
     pip install -r requirements.txt
     pip install --upgrade tensorflow # see doc/tensorboard.md
 
