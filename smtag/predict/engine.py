@@ -116,7 +116,7 @@ class SmtagEngine:
                 ],
                 'context': [
                     (load_model('role_geneprod.zip', config.prod_dir), 'geneprod'),
-                    #(load_model('role_small_molecule.zip', config.prod_dir), 'small_molecule')
+                    (load_model('role_small_molecule.zip', config.prod_dir), 'small_molecule')
                 ],
                 'panelizer': [
                     (load_model('panel_start.zip', config.prod_dir), '')
