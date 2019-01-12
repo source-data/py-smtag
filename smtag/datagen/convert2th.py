@@ -85,12 +85,15 @@ class Sampler():
 
 
     @staticmethod
-    def slice_and_pad(th, index, source_tensor, start, stop, left_padding, right_padding):
-        L = stop - start
-        th[index, : , left_padding:left_padding+L] = source_tensor[ : , start:stop]
+    def slice_and_pad(desired_length, source_tensor, start, stop, min_padding, left_padding, right_padding):
+        L = stop - start # length of the chunk
+        channels = source_tensor.size(0)
+        t = torch.zeros(channels, desired_length+(2*min_padding), dtype=torch.uint8)
+        t[  : , left_padding:left_padding+L] = source_tensor[ : , start:stop]
+        return t.unsqueeze(0)
 
     @staticmethod
-    def show_stats(stats, N):
+    def show_stats(stats, skipped_examples, N):
         text_avg = floor(float(sum(stats) / N))
         text_std = torch.Tensor(stats).std()
         if N > 1:
@@ -99,7 +102,7 @@ class Sampler():
             text_std = 0
         text_max = max(stats)
         text_min = min(stats)
-        print("\nlength of the {} examples selected:".format(N))
+        print("\nlength of the {} examples selected ({} skipped because too short):".format(N, skipped_examples))
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_std, text_min, text_max))
 
     @staticmethod
@@ -176,13 +179,19 @@ class Sampler():
             ocr_context4th: a 3D Tensor with location features of text elements extracted from the illustration
             viz_context4th: 
         """
+        
+        length_stats = []
+        skipped_examples = 0
+        N = 0 # number of included examples
         text4th = []
         provenance4th = []
-        # textcoded4th, features4th, ocr_context4th, viz_context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.ocr_cxt_features, self.viz_cxt_features, self.length, self.min_padding)
-        textcoded4th, features4th, ocr_context4th = self.create_tensors(self.N, iterations, self.number_of_features, self.ocr_cxt_features, self.length, self.min_padding)
-        length_stats = []
-        total = self.N * iterations
-        index = 0
+        # with the adaptive iteration sampling, we do not know in advance the number of samples
+        # so, we start with lists of tensors and convert the lists at the end into the final 3D N x C x L tensors using torch.cat()
+        # MAJOR DRAWBACK: VERY SLOW
+        # WOULD BE FASTER TO ALLOCATE 3x too large tensors, put a ceiling interations adn trim them at the end
+        textcoded4th =[]
+        features4th =[]
+        ocr_context4th = []
 
         # looping through the examples # loop through directories   
         with cd(self.path):
@@ -194,39 +203,48 @@ class Sampler():
                 provenance = encoded_example.provenance
                 ocr_context = encoded_example.ocr_context
                 # viz_context = encoded_example.viz_context
-
                 L = len(text)
-                length_stats.append(L)
 
-                # randomly sampling each example
-                # range(max(1.0, L / self.length) * iterations)
-                for j in range(iterations): # j is index of sampling iteration
-                    progress(i*iterations+j, total, "sampling example {}".format(i+1))
-                    # a text fragment is picked randomly from the text example
-                    fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
-                    # it is randomly shifted and padded to fit the desired length
-                    padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
-                    # the final padded fragment is added to the list of samples
-                    text4th.append(padded_frag)
-                    # the text is encoded using the 32 bit unicode encoding provided by TString
-                    textcoded4th[index] = TString(padded_frag, dtype=torch.uint8).toTensor()
-                    # the provenance of the fragment needs to be recorded for later reference and possible debugging
-                    provenance4th.append(provenance)
-                    # the encoded features of the fragment are added to the feature tensor
-                    Sampler.slice_and_pad(features4th, index, encoded, start, stop, left_padding, right_padding)
-                    # the encoded ocr context features 
-                    if ocr_context is not None:
-                        Sampler.slice_and_pad(ocr_context4th, index, ocr_context, start, stop, left_padding, right_padding)
-                    # the visual context features are independent of the position of the text fragment
-                    # if viz_context is not None:
-                    #     viz_context4th[index] =  viz_context
-
-                    index += 1
+                if L < 0.7 * self.length: # skip examples that are too short
+                    print("\nskipping example of size {} < 30% of desired length {}".format(L, self.length))
+                    skipped_examples += 1
+                else:
+                    length_stats.append(L)
+                    N += 1
+                    # randomly sampling each example
+                    adaptive_iterations = int(max(1.0, L / self.length) * iterations)
+                    for j in range(adaptive_iterations): # j is index of sampling iteration
+                        print("{:3d}/{:4d} sampling of example #{:6d} of {:6d}     ".format(j+1, adaptive_iterations, i+1, self.N), end='\r')
+                        # a text fragment is picked randomly from the text example
+                        fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
+                        # it is randomly shifted and padded to fit the desired length
+                        padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
+                        # the final padded fragment is added to the list of samples
+                        text4th.append(padded_frag)
+                        # the text is encoded using the 32 bit unicode encoding provided by TString
+                        textcoded4th.append(TString(padded_frag, dtype=torch.uint8).toTensor())
+                        # the provenance of the fragment needs to be recorded for later reference and possible debugging
+                        provenance4th.append(provenance)
+                        # the encoded features of the fragment are added to the feature tensor
+                        features4th.append(Sampler.slice_and_pad(self.length, encoded, start, stop, self.min_padding, left_padding, right_padding))
+                        # the encoded ocr context features 
+                        if ocr_context is not None:
+                            ocr_context4th.append(Sampler.slice_and_pad(self.length, ocr_context, start, stop, self.min_padding, left_padding, right_padding))
+                        else:
+                            ocr_context4th.append(torch.zeros(1, self.ocr_cxt_features, self.length)) # not very elegant...
+                        # the visual context features are independent of the position of the text fragment
+                        # if viz_context is not None:
+                        #     viz_context4th[index] =  viz_context
 
         # PCA of viz_context here
         # viz_context4th = context.reduce_context(viz_context4th, config.k_principal_components)
 
-        Sampler.show_stats(length_stats, self.N)
+        # transform list of tensors into final 3D tensors N x C x L
+        textcoded4th = torch.cat(textcoded4th, 0)
+        features4th = torch.cat(features4th, 0)
+        ocr_context4th = torch.cat(ocr_context4th, 0)
+
+        Sampler.show_stats(length_stats, skipped_examples, N)
         if self.verbose:
             Sampler.display(text4th, features4th, ocr_context4th) #, viz_context4th)
 
@@ -342,15 +360,17 @@ class DataPreparator(object):
                     encoded_features = XMLEncoder.encode(processed_xml) # convert to tensor already here; 
 
                     # OCR CONTEXT HAPPENS HERE ! Needs the unaltered un processed original text for alignment
-                    if self.ocr:
+                    ocr_context = None
+                    if self.ocr and graphic_filename: # don't try ocr encoding if graphic_filename empty
                         ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
-                    else:
-                        ocr_context = None
 
                     # VISUAL CONTEXT HAPPENS HERE
                     # viz_context = viz.get_context(graphic_filename)
-                    encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context) #, viz_context)
-                    encoded_example.save(path_to_encoded)
+                    if self.ocr and ocr_context is None: # if ocr required, skip examples where no graphic file or no ocr provided
+                        print("skipped example id={}: no graphic file info")
+                    else:
+                        encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context) #, viz_context)
+                        encoded_example.save(path_to_encoded)
                 else:
                     print("\nskipping an example in document with id=", prov)
             else:
@@ -364,9 +384,9 @@ class DataPreparator(object):
                 found = xml.findall(xpath)
                 if found:
                     return True
-            if not found: 
-                print(xpath, "not found")
-                print(tostring(xml))
+            # if not found: 
+            #     print(xpath, "not found")
+            #     print(tostring(xml))
         else:
             keep = True
         return keep
@@ -410,22 +430,25 @@ class DataPreparator(object):
             print("\nloading from:", path)
             filenames = [f for f in os.listdir(path) if os.path.splitext(f)[1] == '.xml']
             examples = []
+            excluded = []
             for i, filename in enumerate(filenames):
                 #try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
-                        print("\n({}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'))
+                        print("{}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'), end='\r')
                     for j, e in enumerate(xml.getroot().findall(self.XPath_to_examples)):
-                        if self.enrich(e, self.enrichment_xpath):
+                        provenance = os.path.splitext(filename)[0] + "_" + str(j)
+                        if not self.enrich(e, self.enrichment_xpath):
+                            excluded.append(provenance)
+                        else:
                             e = self.exclusive(e, self.exclusive_xpath)
                             processed = self.anonymize(e, self.anonymization_xpath)
-                            provenance = os.path.splitext(filename)[0] + "_" + str(j)
                             g = e.find(self.XPath_to_assets)
                             if g is not None:
                                 basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
                                 graphic_filename = basename + '.jpg'
                             else:
-                                print('no graphic element found')
+                                print('\nno graphic element found')
                                 graphic_filename = ''
                             examples.append({
                                 'xml': e,
@@ -437,6 +460,7 @@ class DataPreparator(object):
                 #     print("problem parsing", os.path.join(path, filename))
                 #     print(e)
                 # progress(i, len(filenames), "loaded {}".format(filename))
+            print("\nnumber of examples excluded because of enrichment: {}".format(len(excluded)))
         return examples
 
 
