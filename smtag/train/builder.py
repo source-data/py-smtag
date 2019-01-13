@@ -94,23 +94,24 @@ class Unet2(nn.Module):
         self.pool = pool_table.pop(0)
         self.kernel_table = kernel_table
         self.kernel = kernel_table.pop(0)
-        if self.kernel % 2 == 0:
-           self.padding = int(self.kernel/2)
-        else:
-           self.padding = floor((self.kernel-1)/2) # TRY WITHOUT ANY PADDING
+        # if self.kernel % 2 == 0:
+        #    self.padding = int(self.kernel/2)
+        # else:
+        #    self.padding = floor((self.kernel-1)/2) # TRY WITHOUT ANY PADDING
+        self.padding = 0 
+        self.stride = 1
         self.dropout_rate = dropout_rate
         self.dropout = nn.Dropout(self.dropout_rate)
-        stride = 1
-        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, stride, self.padding, bias=BIAS)
+        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_down_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_down_B = nn.Conv1d(self.nf_input, self.nf_output, self.kernel, stride, self.padding, bias=BIAS)
+        self.conv_down_B = nn.Conv1d(self.nf_input, self.nf_output, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_down_B = nn.BatchNorm1d(self.nf_output, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, stride, self.padding, bias=BIAS)
+        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_up_B = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_up_A = nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, stride, self.padding, bias=BIAS)
+        self.conv_up_A = nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_up_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
         if len(self.nf_table) > 0:
