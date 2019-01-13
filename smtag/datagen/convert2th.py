@@ -68,6 +68,8 @@ class Sampler():
         Adds space padding on the left and the right and shifts randomly unless deactivated.
         Returns the padded text.
         """
+        # min_padding + text + filler + min_padding
+        # len(filler) = desired_length - len(text)
         # 20 + (150-129) + 20
         # 20 + 11+129+10 + 20
         # left_padding + text + right_padding
@@ -205,7 +207,7 @@ class Sampler():
                 # viz_context = encoded_example.viz_context
                 L = len(text)
 
-                if L < 0.7 * self.length: # skip examples that are too short
+                if L < 0.3 * self.length: # skip examples that are too short
                     print("\nskipping example of size {} < 30% of desired length {}".format(L, self.length))
                     skipped_examples += 1
                 else:
@@ -214,7 +216,7 @@ class Sampler():
                     # randomly sampling each example
                     adaptive_iterations = int(max(1.0, L / self.length) * iterations)
                     for j in range(adaptive_iterations): # j is index of sampling iteration
-                        print("{:3d}/{:4d} sampling of example #{:6d} of {:6d}     ".format(j+1, adaptive_iterations, i+1, self.N), end='\r')
+                        print("{:3d}/{:3d} samples of example #{:6d} of {:6d}     ".format(j+1, adaptive_iterations, i+1, self.N), end='\r')
                         # a text fragment is picked randomly from the text example
                         fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
                         # it is randomly shifted and padded to fit the desired length
@@ -269,30 +271,28 @@ class EncodedExample():
     def save(self, path):
         if not os.path.exists(path):
             os.mkdir(path) 
-            with cd(path):
-                torch.save(self.features, 'features.pyth')
-                if self.ocr_context is not None:
-                    torch.save(self.ocr_context, 'ocr_context.pyth')
-                # if self.viz_context is not None:
-                #     torch.save(self.viz_context, 'viz_context.pyth')
-                with open('provenance.txt', 'w') as f: 
-                    f.write(self.provenance)
-                with open('text.txt', 'w') as f:
-                    f.write(self.text)
+            torch.save(self.features, os.path.join(path, 'features.pyth'))
+            if self.ocr_context is not None:
+                torch.save(self.ocr_context, os.path.join(path, 'ocr_context.pyth'))
+            # if self.viz_context is not None:
+            #     torch.save(self.viz_context, os.path.join(path, 'viz_context.pyth'))
+            with open(os.path.join(path, 'provenance.txt'), 'w') as f: 
+                f.write(self.provenance)
+            with open(os.path.join(path, 'text.txt'), 'w') as f:
+                f.write(self.text)
         else:
             print("EncodedExample detected that {} already exists. Will not overwrite.".format(path))
 
     def load(self, path):
-        with cd(path):
-            with open('provenance.txt', 'r') as f:
-                self._provenance = f.read()
-            with open('text.txt', 'r') as f:
-                self._text = f.read()
-            self._features = torch.load('features.pyth').byte()
-            if os.path.exists('ocr_context.pyth'):
-                self._ocr_context = torch.load('ocr_context.pyth') # this is float()
-            # if os.path.exists('viz_context.pyth'):
-            #     self._viz_context = torch.load('viz_context.pyth') # this is float()
+        with open(os.path.join(path, 'provenance.txt'), 'r') as f:
+            self._provenance = f.read()
+        with open(os.path.join(path, 'text.txt'), 'r') as f:
+            self._text = f.read()
+        self._features = torch.load(os.path.join(path, 'features.pyth')).byte()
+        if os.path.exists(os.path.join(path, 'ocr_context.pyth')):
+            self._ocr_context = torch.load(os.path.join(path, 'ocr_context.pyth')) # this is float()
+        # if os.path.exists(os.path.join('viz_context.pyth')):
+        #     self._viz_context = torch.load(os.path.join('viz_context.pyth')) # this is float()
 
     @property
     def provenance(self):
@@ -310,9 +310,9 @@ class EncodedExample():
     def ocr_context(self):
         return self._ocr_context
 
-    @property
-    def viz_context(self):
-        return self._viz_context
+    # @property
+    # def viz_context(self):
+    #     return self._viz_context
 
 
 class DataPreparator(object):
@@ -361,18 +361,18 @@ class DataPreparator(object):
 
                     # OCR CONTEXT HAPPENS HERE ! Needs the unaltered un processed original text for alignment
                     ocr_context = None
-                    if self.ocr and graphic_filename: # don't try ocr encoding if graphic_filename empty
+                    if self.ocr and graphic_filename is not None: # don't try ocr encoding if graphic_filename empty
                         ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
 
                     # VISUAL CONTEXT HAPPENS HERE
                     # viz_context = viz.get_context(graphic_filename)
                     if self.ocr and ocr_context is None: # if ocr required, skip examples where no graphic file or no ocr provided
-                        print("skipped example id={}: no graphic file info")
+                        print("\nskipped example prov={}: no graphic file info".format(prov))
                     else:
                         encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context) #, viz_context)
                         encoded_example.save(path_to_encoded)
                 else:
-                    print("\nskipping an example in document with id=", prov)
+                    print("\nskipping an example without text in document with id=", prov)
             else:
                 print("{} has already been encoded".format(prov))
 
@@ -435,7 +435,7 @@ class DataPreparator(object):
                 #try:
                     with open(os.path.join(path, filename)) as f: 
                         xml = parse(f)
-                        print("{}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'), end='\r')
+                        print("({}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'), end='\r')
                     for j, e in enumerate(xml.getroot().findall(self.XPath_to_examples)):
                         provenance = os.path.splitext(filename)[0] + "_" + str(j)
                         if not self.enrich(e, self.enrichment_xpath):
@@ -449,7 +449,7 @@ class DataPreparator(object):
                                 graphic_filename = basename + '.jpg'
                             else:
                                 print('\nno graphic element found')
-                                graphic_filename = ''
+                                graphic_filename = None
                             examples.append({
                                 'xml': e,
                                 'processed': processed, # 
