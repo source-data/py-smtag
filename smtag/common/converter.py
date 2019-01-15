@@ -35,7 +35,8 @@ class Converter():
                 # bits = torch.Tensor([1 if b=='1' else 0 for b in "{0:032b}".format(code)][::-1]) # faster: 1.721s
                 # bits = torch.Tensor([1 if b=='1' else 0 for b in f"{code:032b}"][::-1]) # elegant but 1.7s and only python 3.6
                 #bits = torch.Tensor([1 if b=='1' else 0 for b in "%32s" % bin(code)[2:]][::-1]) # even faster 1.653s with % formatting
-                bits = torch.Tensor([1 if b=='1' else 0 for b in reversed("%32s" % bin(code)[2:])]) # more elegant
+                bits = torch.Tensor([1 if b=='1' else 0 for b in reversed("%32s" % bin(code)[2:])]) # fast and more elegant
+                #bits = torch.Tensor([code >> i & 1 for i in range(32)]) # the beloved bitwise operation, not faster: 1.902 sec :-)
                 t[0, : , i] = bits
         return t
 
