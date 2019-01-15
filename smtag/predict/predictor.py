@@ -20,9 +20,17 @@ class Predictor: #(nn.Module?)
         self.format = format
 
     def padding(self, input):
-        padding_length = ceil(max(config.min_size - len(input), config.min_padding)/2)
+        # 123456789012345678901234567890
+        #        this cat               len(input)==8, min_size==10, min_padding=5
+        #       +this cat+              pad to bring to min_size
+        #  _____+this cat+_____         add min_padding on both sides
+        min_size= config.min_size
+        min_padding = config.min_padding
+        padding_length = ceil(max(min_size - len(input), 0)/2) + min_padding
         pad = SPACE_ENCODED.repeat(padding_length)
-        return pad + input + pad
+        padded_string = pad + input + pad
+        print(len(padded_string))
+        return padded_string
 
     def combine_with_input_features(self, input, additional_input_features=None):
         #CAUTION: should additional_input_features be cloned before modifying it?
