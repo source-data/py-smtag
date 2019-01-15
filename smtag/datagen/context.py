@@ -17,6 +17,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 from ..common.utils import cd
 from ..common.progress import progress
+from .. import config
 
 from torchvision.models.resnet import model_urls as resnet_urls
 from torchvision.models.vgg import model_urls as vgg_urls
@@ -53,18 +54,20 @@ for m in vgg_urls:
 # m(x).size() # -->torch.Size([1, 2048, 2, 2])
 # x.numel() # --> 8192
 
+ALLOWED_FILE_EXTENSIONS =['.jpg', '.jpeg']
 
 class VisualContext(object):
 
     def __init__(self, path, selected_output_module=28):
         self.path = path
+        print("loading modules of the vgg19 network")
         modules = list(vgg19(pretrained=True).features) # children() for resnet
         self.net = nn.Sequential(*modules[:selected_output_module])
+        print("done!")
 
     def open(self, img_filename):
         try:
-            with cd(self.path):
-                cv_image = cv.imread(img_filename) #H x W x C, BGR
+            cv_image = cv.imread(img_filename) #H x W x C, BGR
         except Exception as e:
             print("{} not loaded".format(img_filename), e)
             cv_image = None
@@ -107,6 +110,29 @@ class VisualContext(object):
             output = self.net(normalized)
         return output # 4D 1 x 512 x 14 x 14
 
+    @staticmethod
+    def load_viz_context(graphic_filename):
+        viz_context_filename = os.path.splitext(graphic_filename)[0]
+        viz_tensor = torch.load(viz_context_filename)
+        return viz_tensor
+
+    def run(self):
+        with cd(self.path):
+            filenames = [f for f in os.listdir() if os.path.splitext(f)[-1] in ALLOWED_FILE_EXTENSIONS]
+            N = len(filenames)
+            for i, filename in enumerate(filenames):
+                basename = os.path.splitext(filename)[0]
+                viz_filename = basename +'.pyth'
+                if os.path.exists(viz_filename):
+                    msg = "{} already analyzed".format(filename)
+                else: # never analyzed before
+                    viz_context = self.get_context(filename)
+                    torch.save(viz_context, viz_filename)
+                    msg = "saved {}".format(viz_filename)
+                progress(i, N, msg+"                   ")
+        print()
+
+
 class PCA_reducer():
     def __init__(self, k, path, N):
         filenames = [f for f in os.listdir(path) if os.path.splitext(f)[-1] == '.jpg']
@@ -134,31 +160,39 @@ class PCA_reducer():
         x_np = x.numpy()
         return x_np
 
-    def reduce(self, x):
+    def reduce(self, x, grid_size=config.img_grid_size):
         B, C, H, W = x.size()
         x_np = self.convert2np(x) # B*W*H x C
+        print("reducing using PCA ({} components)".format(self.k))
         p_np = self.pca.transform(x_np) # B*W*H x k
         p_th = torch.from_numpy(p_np)
         p_th.resize_(B, W, H, self.k) # B x W x H x k
         p_th.transpose_(1, 3) # B x k x H x W
         print("reducing resolution by adaptive max pool")
-        x_reduced = F.adaptive_max_pool2d(p_th, 3)
-        return x_reduced # 4D B x k x 3 x3
+        x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
+        return x_reduced # 4D B x k x 3 x 3
 
 def main():
     parser = argparse.ArgumentParser(description='Exracting visual context vectors from images', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-f', '--dir', default='img_test', help='Path to image directory')
-    parser.add_argument('-k' , '--k_components',  default=8, type=int, help='Number of components of the reduced dataset')
-    parser.add_argument('-N', '--max_file', type=int, default=100, help='Maximum number of images to analyze')
-    
-    arguments = parser.parse_args()
-    path = arguments.dir
-    k = arguments.k_components
-    N = arguments.max_file
-    p = PCA_reducer(k, path, N)
-    print("explained variance:")
-    print(p.pca.explained_variance_ratio_)
-    print("sum", p.pca.explained_variance_ratio_.sum())
+    parser.add_argument('-d', '--image_dir', default='', help='Path to image directory')
+    parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
+
+    args = parser.parse_args()
+    image_dir = args.image_dir or config.image_dir
+    if args.working_directory:
+        config.working_directory = args.working_directory
+    with cd(config.working_directory):
+        print("running perceptual vision from {} on {}".format(os.getcwd(), image_dir))
+        viz = VisualContext(image_dir, selected_output_module=28)
+        viz.run()
+
+
+    # k = arguments.k_components
+    # N = arguments.max_file
+    # p = PCA_reducer(k, path, N)
+    # print("explained variance:")
+    # print(p.pca.explained_variance_ratio_)
+    # print("sum", p.pca.explained_variance_ratio_.sum())
 
 if __name__ == '__main__':
     main()
