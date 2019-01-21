@@ -27,6 +27,8 @@ from .brat import BratImport
 from .context import VisualContext
 from .. import config
 
+NBITS = config.nbits
+
 class Sampler():
     """
     A class to sample fragment from text examples, padd and shift the fragments and encode the corresponding text and features into Tensor format.
@@ -113,7 +115,7 @@ class Sampler():
         Creates and initializes the tensors needed  to encode text and features.
         Allows to abstract away the specificity of the encoding. This implementation is for longitudinal features.
         But some other implementation could need several encoding tensors.
-        The text is encoded in a 32 feature tensor using the binary representation of the unicode code of each character (see smtag.common.TString)
+        The text is encoded in a NBITS feature tensor using the binary representation of the unicode code of each character (see smtag.common.TString)
 
         Args:
             N: the number of examples
@@ -124,11 +126,11 @@ class Sampler():
 
         Returns:
             (textcoded4th, features) where
-                textcoded4th: 3D zero-initialized ByteTensor, N*iterations x 32 x full_length, where full_length=length+(2*min_padding)
+                textcoded4th: 3D zero-initialized ByteTensor, N*iterations x NBITS x full_length, where full_length=length+(2*min_padding)
                 features: 3D zero-initialized ByteTensor, N*iterations x number_of_features x full_length, where full_length=length+(2*min_padding)
         """
 
-        textcoded4th   = torch.zeros((N * iterations, 32, length+(2*min_padding)), dtype=torch.uint8)
+        textcoded4th   = torch.zeros((N * iterations, NBITS, length+(2*min_padding)), dtype=torch.uint8)
         features4th    = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
         ocr_context4th = torch.zeros((N * iterations, ocr_cxt_features, length+(2*min_padding)), dtype = torch.uint8)
         # viz_context4th = torch.zeros((N * iterations, viz_cxt_features), dtype = torch.uint8)
@@ -175,7 +177,7 @@ class Sampler():
              'vizcontext4th':context4th}
             where:
             text4th: a list with a copy of the padded text of the sample
-            textcoded4th: a 3D Tensor (samples x 32 x full length) with the fragment text encoded
+            textcoded4th: a 3D Tensor (samples x NBITS x full length) with the fragment text encoded
             provenance4th: an array with the ids of the example from which the sample was taken
             tensor4th: a 3D Tensor with the encoded features corresponding to the fragment
             ocr_context4th: a 3D Tensor with location features of text elements extracted from the illustration
@@ -223,7 +225,7 @@ class Sampler():
                         padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
                         # the final padded fragment is added to the list of samples
                         text4th.append(padded_frag)
-                        # the text is encoded using the 32 bit unicode encoding provided by TString
+                        # the text is encoded using the NBITS bit unicode encoding provided by TString
                         textcoded4th.append(TString(padded_frag, dtype=torch.uint8).toTensor())
                         # the provenance of the fragment needs to be recorded for later reference and possible debugging
                         provenance4th.append(provenance)
@@ -365,7 +367,7 @@ class DataPreparator(object):
                         ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
 
                     # VISUAL CONTEXT HAPPENS HERE
-                    # viz_context = viz.get_context(graphic_filename)
+                    # viz_context = viz.load_viz_context(graphic_filename)
                     if self.ocr and ocr_context is None: # if ocr required, skip examples where no graphic file or no ocr provided
                         print("\nskipped example prov={}: no graphic file info".format(prov))
                     else:

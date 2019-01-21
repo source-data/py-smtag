@@ -23,7 +23,7 @@ class Config():
     _scans_dir_name    = "scans" # results of hyperparameter scans
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
     _viz_cxt_features  = 576 # number of features used from pre-trained visual analysis network
-    _nbits             = 32 # number of features use to encode characters
+    _nbits             = 32 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _min_padding       = 380 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
     _min_size          = 380 # input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
