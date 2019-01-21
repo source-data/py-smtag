@@ -39,9 +39,9 @@ from .. import config
 from ..common.viz import Show
 
 
-from test.test_max_window_unet import test_model
+# from test.test_max_window_unet import test_model
 
-# maybe should be in buidler.py
+# maybe should be in builder.py
 class Combine(nn.Module):#SmtagModel?
     '''
     This module takes a list of SmtagModels and concatenates their output along the second dimension (feature axe).
@@ -105,14 +105,14 @@ class SmtagEngine:
             self.cartridge = {
                 # '<model-family>' : [(<model>, <features that needs to be anonymized>), ...]
                 'entity': [
-                    #(load_model('small_molecule.zip', config.prod_dir), ''),
+                    (load_model('small_molecule.zip', config.prod_dir), ''),
                     (load_model('geneprod.zip', config.prod_dir), ''),
-                    #(load_model('subcellular.zip', config.prod_dir), ''),
-                    #(load_model('cell.zip', config.prod_dir), ''),
-                    #(load_model('tissue.zip', config.prod_dir), ''),
-                    #(load_model('organism.zip', config.prod_dir), ''),
-                    #(load_model('exp_assay.zip', config.prod_dir), ''),
-                    #(load_model('disease.zip', config.prod_dir), '')
+                    (load_model('subcellular.zip', config.prod_dir), ''),
+                    (load_model('cell.zip', config.prod_dir), ''),
+                    (load_model('tissue.zip', config.prod_dir), ''),
+                    (load_model('organism.zip', config.prod_dir), ''),
+                    (load_model('exp_assay.zip', config.prod_dir), ''),
+                    (load_model('disease.zip', config.prod_dir), '')
                 ],
                 'only_once': [
                     (load_model('reporter_geneprod.zip', config.prod_dir), '')
@@ -128,9 +128,9 @@ class SmtagEngine:
         self.models = {}
         for model_family in self.cartridge:
             self.models[model_family] = Combine([(model, Catalogue.from_label(anonymize_with)) for model, anonymize_with in self.cartridge[model_family]])
-            if self.DEBUG:
-                print(self.models[model_family])
-                print("min length for", model_family, test_model(self.models[model_family]))
+            # if self.DEBUG:
+            #     print(self.models[model_family])
+            #     print("min length for", model_family, test_model(self.models[model_family]))
             
     def __panels(self, input_t_string):
         p = SimplePredictor(self.models['panelizer'])

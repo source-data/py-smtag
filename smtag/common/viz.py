@@ -4,11 +4,12 @@
 import math
 import torch
 from random import random
-from .converter import Converter
+from .converter import TString
 from ..train.evaluator import Accuracy
 from tensorboardX import SummaryWriter
 from .. import config
 
+NBITS = config.nbits
 MARKING_CHAR = config.marking_char
 
 #for code in {1..256}; do printf "\e[38;5;${code}m"$code"\e[0m";echo; done
@@ -83,10 +84,10 @@ class Show():
             prediction = model(input)
             model.train()
 
-        text = Converter.t_decode(input[[0], 0:config.nbits, : ]) #sometimes input has more than 32 features if feature2input option was chosen
+        text = str(TString(input[[0], 0:config.nbits, : ])) #sometimes input has more than NBITS features if feature2input option was chosen
         if nf_input > config.nbits:
             out += "\nAdditional input features:"+self.nl+self.nl
-            out += "    "+self.print_pretty(input[[0], 32:nf_input, : ]) + self.nl + self.nl
+            out += "    "+self.print_pretty(input[[0], NBITS:nf_input, : ]) + self.nl + self.nl
 
         out+= "\n__Expected:__" + "({})".format(provenance.strip()) + self.nl + self.nl
         # out += self.print_pretty_color(target, original_text) + self.nl + self.nl# visualize anonymized characters with a symbol

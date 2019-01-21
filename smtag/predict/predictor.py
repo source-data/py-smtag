@@ -20,7 +20,7 @@ class Predictor: #(nn.Module?)
         self.format = format
 
     def padding(self, input):
-        # 123456789012345678901234567890
+        # 0123456789012345678901234567890
         #        this cat               len(input)==8, min_size==10, min_padding=5
         #       +this cat+              pad to bring to min_size
         #  _____+this cat+_____         add min_padding on both sides
@@ -29,7 +29,6 @@ class Predictor: #(nn.Module?)
         padding_length = ceil(max(min_size - len(input), 0)/2) + min_padding
         pad = SPACE_ENCODED.repeat(padding_length)
         padded_string = pad + input + pad
-        print(len(padded_string))
         return padded_string
 
     def combine_with_input_features(self, input, additional_input_features=None):
