@@ -22,7 +22,8 @@ class Config():
     _runs_log_dir_name = "runs" # dir for tensorboard logs
     _scans_dir_name    = "scans" # results of hyperparameter scans
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
-    _viz_cxt_features  = 576 # number of features used from pre-trained visual analysis network
+    _k_pca_components = 10 # number of PCA components to reduce visual context features
+    _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
     _nbits             = 32 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _min_padding       = 380 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
@@ -70,11 +71,23 @@ class Config():
         """
         return self._img_grid_size
     @property
+    def k_pca_components(self):
+        """
+        The number of components of the PCA model used to reduce visual context features.
+        """
+        return self._k_pca_components
+    @property
     def viz_cxt_features(self):
         """
-        Number of features used from output of pre-trained visual analysis network
+        The number of visual context features used (the number of PCA components * positions on the image grid)
         """
-        return self._viz_cxt_features
+        return self.k_pca_components * (self.img_grid_size ** 2)
+    @property
+    def fraction_images_pca_model(self):
+        """
+        Fraction of the available visual context files to use to train the PCA model that reduces visual context features.
+        """
+        return self._fraction_images_pca_model
     @property
     def nbits(self):
         """

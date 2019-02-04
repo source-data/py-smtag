@@ -9,14 +9,25 @@ from .. import config
 
 NBITS = config.nbits
 
-
 class Converter():
     """
-    Conversion operations between unicode strings and tensors.
+    Conversion operations between strings and tensors.
     """
+    def __init__(self, dtype:torch.dtype=torch.float):
+        self.dtype = dtype
 
-    @staticmethod
-    def t_encode(input_string: str, dtype:torch.dtype=torch.float) -> torch.Tensor:
+    def encode(self, input_string:str) -> torch.Tensor:
+        raise NotImplementedError
+
+    def decode(self, t: torch.Tensor) -> str:
+        raise NotImplementedError
+
+class ConverterNBITS(Converter):
+
+    def __init__(self, dtype:torch.dtype=torch.float):
+       super(ConverterNBITS, self).__init__(dtype)
+
+    def encode(self, input_string: str) -> torch.Tensor:
         """
         Static method that encodes an input string into a 3D tensor.
         Args
@@ -28,15 +39,14 @@ class Converter():
         L = len(input_string)
         t = torch.Tensor(0)
         if L > 0:
-            t = torch.zeros(1, NBITS, L, dtype=dtype)
+            t = torch.zeros(1, NBITS, L, dtype=self.dtype)
             for i in range(L):
                 code = ord(input_string[i])
                 bits = torch.Tensor([code >> i & 1 for i in range(NBITS)]) # the beloved bitwise operation, not faster but not slower: 1.902 sec :-)
                 t[0, : , i] = bits
         return t
 
-    @staticmethod
-    def t_decode(t: torch.Tensor) -> str:
+    def decode(self, t: torch.Tensor) -> str:
         """
         Static method that decodes a 3D tensor into a unicode string.
         Args:
@@ -54,6 +64,7 @@ class Converter():
                 try:
                     bit = int(bit)
                 except Exception as e:
+                    print(f"{e} in converter module.")
                     print(e)
                     bit = 0
                 code += bit*(2**j)
@@ -69,13 +80,14 @@ class Converter():
                 str += '?'
         return str
 
-class TString: # (str) or (torch.Tensor)?
+class TString:
     '''
-    Class to represent strings simultaneously as Tensor and as str. String is encoded into a 3D (1 example x NBITS bits x L characters) Tensor.
+    Class to represent strings simultaneously as Tensor and as str. String is encoded into a 3D Tensor.
+    The number of feature is NBITS.
 
     Args:
         x: either a string, in in which case it is converted into the corresonding Tensor;
-        or a Tensor, in which case it does not need conversion but needs to be 3 dim with size(1)==NBITS (NBITS).
+        or a Tensor, in which case it does not need conversion but needs to be 3 dim .
         If no argument is provided, TString is initialized with an empty string.
 
     Methods:
@@ -84,66 +96,74 @@ class TString: # (str) or (torch.Tensor)?
         __add__(TString): concatenates TString and returns a TString; allow operation like tstring_1 + tstring_2
         __getitem(i): gets the i-th element of the string and of the underlying tensor and returns a TString; allows to slice with tstring[start:stop]
         repeat(N): repeats the TString N time
-        toTensor(): returns the 3D (1 x NBITS x L) torch.Tensor representation of the encoded string
+        tensor: returns the 3D (1 x NBITS x L) torch.Tensor representation of the encoded string
         all the remaining methods from torch.Tensor
     '''
 
     def __init__(self, x:str='', dtype:torch.dtype=torch.float):
         #super(TString, self).__init__()
         self.dtype = dtype
-        self.t = torch.zeros([], dtype=self.dtype) # empty tensor
+        self._t = torch.zeros([], dtype=self.dtype) # empty tensor
+        self._s = ''
         if isinstance(x, str):
-            self.t = Converter.t_encode(x, dtype=self.dtype)
-            self.s = x
+            converter = ConverterNBITS(dtype=self.dtype)
+            self._t = converter.encode(x)
+            self._s = x
         elif isinstance(x, torch.Tensor):
             assert x.dim() == 3 and x.size(1) == NBITS
-            self.t = x
-            self.s = Converter.t_decode(x)
+            converter = ConverterNBITS(dtype=self.dtype)
+            self._t = x
+            self._s = converter.decode(x)
 
     def __str__(self) -> str:
-        return self.s
+        return self._s
 
     def __len__(self) -> int:
-        return len(self.s)
+        return len(self._s)
 
-    def __add__(self, x: 'TString') -> 'TString': # using string as type because python 3.6 does not allow using class as type before it is defined
+    def __add__(self, x: 'TString') -> 'TString': # using string as type hint because python 3.6 does not allow using class as type before it is defined
         # overwrites tensor adding operator to make it a tensor concatenation like for strings
         if len(x) == 0:
             return self # or should it return a cloned self?
-        elif len(self.s) == 0:
+        elif len(self._s) == 0:
             return x # or should it return a cloned x?
         else:
             concatenated = TString(dtype=self.dtype)
-            concatenated.t = torch.cat((self.toTensor(), x.toTensor()), 2)
-            concatenated.s = str(self) + str(x)
+            concatenated._t = torch.cat((self.tensor, x.tensor), 2)
+            concatenated._s = str(self) + str(x)
             return concatenated
 
     def __getitem__(self, i: int) -> 'TString':
-        if len(self.s) == 0:
+        if len(self._s) == 0:
             return TString()
         else:
             item = TString(dtype=self.dtype)
-            item.s = self.s[i]
-            item.t = self.t[ : , : , i]
+            item._s = self._s[i]
+            item._t = self._t[ : , : , i]
             return item
 
     def repeat(self, N: int) -> 'TString':
         repeated = TString(dtype=self.dtype)
-        repeated.t = self.t.repeat(1, 1, N) # WARNING: if N == 0, returned tensor is 2D !!!
-        repeated.s = self.s * N
+        repeated._t = self._t.repeat(1, 1, N) # WARNING: if N == 0, returned tensor is 2D !!!
+        repeated._s = self._s * N
         return repeated
 
-    def toTensor(self) -> torch.Tensor:
-        return self.t
+    @property
+    def tensor(self) -> torch.Tensor:
+        return self._t
+
+    def toTensor(self) -> torch.Tensor: # legacy method
+        return self._t
 
     def __getattr__(self, attr: str): # class composition with tensor.Torch
-        return getattr(self.t, attr)
+        return getattr(self._t, attr)
 
 
 def self_test(input_string: str):
-    decode_encoded = Converter.t_decode(Converter.t_encode(input_string))
+    encoded = ConverterNBITS().encode(input_string)
+    decode_encoded = ConverterNBITS().decode(encoded)
+    print("the decoded of the encoded:", str(TString(TString(input_string).tensor)))
     assert input_string == decode_encoded, f"{input_string}<>{decode_encoded}"
-    print("This seems to work!")
 
 def main():
     # more systematic tests in test.test_converter
@@ -151,8 +171,8 @@ def main():
     parser.add_argument('input_string', nargs='?', default= "αβγ∂this is so ☾😎 😎 L ‼️" + u'\uE000', help="The string to convert")
     args = parser.parse_args()
     input_string = args.input_string#.encode('utf-8')
-    print(f"NBITS={NBITS}")
-    print("the decoded of the encoded:", Converter.t_decode(Converter.t_encode(input_string)))
+    NBITS = 17
+    print(f"set to NBITS={NBITS}")
     self_test(input_string)
 
 if __name__ == "__main__":

@@ -203,7 +203,7 @@ class Loader:
 
             # INPUT: IMAGE VISUAL CONTEXT FEATURES AS ADDITIONAL INPUT
             if self.use_viz_context:
-                dataset.input[index, supp_input:supp_input+self.nf_viz_context, : ] = viz_context[index, : , : ]
+                dataset.input[index, supp_input:supp_input+self.nf_viz_context, : ] = viz_context[index, : ].repeat(1, 1, L)
                 supp_input += self.nf_viz_context
 
             # INPUT: FEATURES AS ADDITIONAL INPUT

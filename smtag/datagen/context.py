@@ -5,6 +5,7 @@
 import os
 import argparse
 from random import shuffle
+import pickle
 import cv2 as cv
 import torch
 from torch import nn
@@ -110,9 +111,10 @@ class VisualContext(object):
             output = self.net(normalized)
         return output # 4D 1 x 512 x 14 x 14
 
-    @staticmethod
-    def load_viz_context(graphic_filename):
-        viz_context_filename = os.path.splitext(graphic_filename)[0]
+    def load_viz_context(self, graphic_filename):
+        basename = os.path.basename(graphic_filename)
+        basename = os.path.splitext(basename)[0]
+        viz_context_filename = os.path.join(self.path, basename, '.pyth')
         viz_tensor = torch.load(viz_context_filename)
         return viz_tensor
 
@@ -126,7 +128,7 @@ class VisualContext(object):
                 if os.path.exists(viz_filename):
                     msg = "{} already analyzed".format(filename)
                 else: # never analyzed before
-                    viz_context = self.get_context(filename)
+                    viz_context = self.get_context(filename) # 4D tensor!
                     torch.save(viz_context, viz_filename)
                     msg = "saved {}".format(viz_filename)
                 progress(i, N, msg+"                   ")
@@ -134,22 +136,31 @@ class VisualContext(object):
 
 
 class PCA_reducer():
-    def __init__(self, k, path, N):
-        filenames = [f for f in os.listdir(path) if os.path.splitext(f)[-1] == '.jpg']
-        print("{} image files available".format(len(filenames)))
-        shuffle(filenames)
-        viz = VisualContext(path=path, selected_output_module=-1)
-        _, C, H, W = viz.net(torch.zeros(1, 3, 224, 224)).size()
-        print("visual context has dimensions (C x H x W):", " x ".join([str(C), str(H), str(W)]))
-        t = torch.Tensor(N, C, H, W)
-        print("processing {} image files to build fitting dataset".format(N))
-        for i in range(N):
-            progress(i, N, filenames[i])
-            t[i] = viz.get_context(filenames[i])
-            # t[i] = torch.load('viz_context.pyth') # instead of passing images every time through vgg
-        print("fitting PCA model")
+    def __init__(self, k, path):
+        self.path = path
         self.k = k
-        self.pca = PCA(n_components=self.k, svd_solver='randomized').fit(self.convert2np(t)) # approximation for large datasets
+        self.pca_model = PCA()
+
+    def train(self, fraction_images_pca_model=config.fraction_images_pca_model): # path to pre-processed viz context tensors for pca training set
+        filenames = [f for f in os.listdir(self.path) if os.path.splitext(f)[-1] == '.pyth']
+        shuffle(filenames)
+        N = int(len(filenames) * fraction_images_pca_model)
+        print(f"training pca model on {N} viz context files")
+        filenames = filenames[:N]
+        # viz = VisualContext(path=path, selected_output_module=-1)
+        # _, C, H, W = viz.net(torch.zeros(1, 3, 224, 224)).size()
+        # print("visual context has dimensions (C x H x W):", " x ".join([str(C), str(H), str(W)]))
+        # t = torch.Tensor(N, C, H, W)
+        t = []
+        for i, filename in enumerate(filenames):
+            progress(i, len(filenames), filename)
+            # t[i] = viz.get_context(filenames[i])
+            t.append(torch.load(os.path.join(self.path, filename))) # instead of passing images every time through vgg
+        print()
+        t = torch.cat(t, 0)
+        print("Fitting PCA model")
+        self.pca_model = PCA(n_components=self.k, svd_solver='randomized').fit(self.convert2np(t)) # approximation for large datasets
+        print("Done!")
 
     def convert2np(self, x):
         B, C, H, W = x.size()
@@ -164,21 +175,21 @@ class PCA_reducer():
         B, C, H, W = x.size()
         x_np = self.convert2np(x) # B*W*H x C
         print("reducing using PCA ({} components)".format(self.k))
-        p_np = self.pca.transform(x_np) # B*W*H x k
+        p_np = self.pca_model.transform(x_np) # B*W*H x k
         p_th = torch.from_numpy(p_np)
         p_th.resize_(B, W, H, self.k) # B x W x H x k
         p_th.transpose_(1, 3) # B x k x H x W
         print("reducing resolution by adaptive max pool")
         x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
-        return x_reduced # 4D B x k x 3 x 3
+        return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3 NEED TO VECTORIZE IT?
 
 def main():
     parser = argparse.ArgumentParser(description='Exracting visual context vectors from images', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--image_dir', default='', help='Path to image directory')
+    parser.add_argument('-d', '--image_dir', default=config.image_dir, help='Path to image directory')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
 
     args = parser.parse_args()
-    image_dir = args.image_dir or config.image_dir
+    image_dir = args.image_dir
     if args.working_directory:
         config.working_directory = args.working_directory
     with cd(config.working_directory):
@@ -186,13 +197,12 @@ def main():
         viz = VisualContext(image_dir, selected_output_module=28)
         viz.run()
 
-
-    # k = arguments.k_components
-    # N = arguments.max_file
-    # p = PCA_reducer(k, path, N)
-    # print("explained variance:")
-    # print(p.pca.explained_variance_ratio_)
-    # print("sum", p.pca.explained_variance_ratio_.sum())
+        pca = PCA_reducer(config.k_pca_components, image_dir)
+        pca.train()
+        pca_reducer_filename = os.path.join(pca.path, "pca_model.pickle")
+        with open(pca_reducer_filename, "wb") as f:
+            pickle.dump(pca, f)
+            print("PCA model saved to {}")
 
 if __name__ == '__main__':
     main()
