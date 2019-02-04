@@ -3,21 +3,25 @@ import argparse
 from smtag.train.builder import Unet2
 from smtag.common.progress import progress
 
+from smtag import config
+
+NBITS = config.nbits
+
 def find_min_length(D=4, k=6, p=2, L=2000):
     min_length = []
     for n in range(D):
         d = n+1
-        U = Unet2(32, [1]*d, [k]*d, [p]*d, 0.1)
+        U = Unet2(NBITS, [1]*d, [k]*d, [p]*d, 0.1)
         print(U, L)
         m = test_model(U, L)
         min_length.append((d,m))
-        print(f"\nUnet2 with depth {d} can accept minimal length: {m}")
+        print(f"\nUnet2 with depth {d} can accept minimal length: {m+1}")
     return min_length
 
 def test_model(U, L=2000):
     for l in range(L, 0, -1):
         progress(L-l-1, L, f"{l}")
-        x = torch.zeros(1, 32, l)
+        x = torch.zeros(1, NBITS, l)
         try:
             U(x)
         except Exception as e:

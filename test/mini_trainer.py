@@ -18,6 +18,7 @@ def toy_model(x, y, selected_features = ['geneprod'], overlap_features = [], col
         opt['dropout'] = 0.1
         opt['nf_input'] = x.size(1)
         opt['nf_output'] =  y.size(1)
+        opt['skip'] = True
         model = SmtagModel(opt)
         # test if on GPU
         if torch.cuda.device_count() > 1:
