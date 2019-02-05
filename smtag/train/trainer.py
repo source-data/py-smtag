@@ -27,12 +27,14 @@ class Trainer:
         self.output_semantics = model.output_semantics #
         model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
         print(model_descriptor)
+        self.weight = torch.Tensor(config.weight) # weigths for each classes in the dataset# temporary hack for entities
         # wrap model into nn.DataParallel if we are on a GPU machine
-        if torch.cuda.device_count() > 0:
+        if torch.cuda.is_available():
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
             self.model.cuda()
             self.model.output_semantics = self.output_semantics
+            self.weight = self.weight.cuda()
             self.cuda_on = True
         else:
             self.cuda_on = False
@@ -42,7 +44,7 @@ class Trainer:
         self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
         self.loss_fn = nn.BCELoss()
         self.console = Show('console')
-        self.weight = torch.Tensor(config.weight) # weigths for each classes in the dataset# temporary hack for entities
+        
 
     def validate(self):
         m = self.validation_minibatches[randrange(self.validation_minibatches.minibatch_number)]
