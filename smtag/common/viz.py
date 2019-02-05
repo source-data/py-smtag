@@ -118,7 +118,10 @@ class Show():
     SYMBOLS = ["_",".",":","^","|"] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1
 
     def print_pretty(self, features):
-        f = F.softmax(features, 1)
+        f = features
+        # f = F.softmax(f, 1)
+        f -= f.min()
+        f /= f.max()
         out = ""
         N = len(Show.SYMBOLS) # = 5
         for i in range(features.size(1)):
