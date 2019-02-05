@@ -44,7 +44,6 @@ class Trainer:
         self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
         self.loss_fn = nn.BCELoss()
         self.console = Show('console')
-        
 
     def validate(self):
         m = self.validation_minibatches[randrange(self.validation_minibatches.minibatch_number)]
@@ -57,7 +56,7 @@ class Trainer:
             self.model.eval()
             prediction = self.model(m_input)
             self.model.train()
-            loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
+            loss = F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight)
             # loss += self.loss_fn(prediction, m_output)
         return loss
 
@@ -80,7 +79,7 @@ class Trainer:
                     m_output = m_output.cuda()
                 self.optimizer.zero_grad()
                 prediction = self.model(m_input)
-                loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
+                loss = F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight)
                 # loss = self.loss_fn(prediction, m_output)
                 loss.backward()
                 avg_train_loss += loss
