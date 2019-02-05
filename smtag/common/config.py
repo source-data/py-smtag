@@ -21,7 +21,16 @@ class Config():
     _log_dir_name      = "log" # general logging dir
     _runs_log_dir_name = "runs" # dir for tensorboard logs
     _scans_dir_name    = "scans" # results of hyperparameter scans
-    _weight = [1/fraction for fraction in [0.8*0.123, 0.8*0.561, 0.8*0.069, 0.8*0.099, 0.8*0.058, 0.8*0.080, 0.2]] # mol:0.123 gene: 0.231 prot:0.330 subcell:0.069 cell:0.099 tissue: 0.058 organism:0.080
+    # type	COUNT(t)
+    # organism	19239
+    # gene	55775
+    # subcellular	16663
+    # molecule	29687
+    # protein	79656
+    # cell	23971
+    # tissue	13884
+    # sum = 238875
+    _weight = [1/fraction for fraction in [0.8*29687/238875, 0.8*(55775+79656)/238875, 0.8*16663/238875, 0.8*23971/238875, 0.8*13884/238875, 0.8*19239/238875, 0.2]]
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
     _k_pca_components = 10 # number of PCA components to reduce visual context features
     _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
