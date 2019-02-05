@@ -21,12 +21,13 @@ class Config():
     _log_dir_name      = "log" # general logging dir
     _runs_log_dir_name = "runs" # dir for tensorboard logs
     _scans_dir_name    = "scans" # results of hyperparameter scans
+    _weight = [0.10/5, 0.46/5, 0.056/5, 0.081/5, 0.047/5, 0.065/5, 4.0/5]
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
     _k_pca_components = 10 # number of PCA components to reduce visual context features
     _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
     _nbits             = 32 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
-    _min_padding       = 380 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
+    _min_padding       = 20 # 380 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
     _min_size          = 380 # input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
     _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
 
@@ -64,6 +65,9 @@ class Config():
         Path to results of hyperparameter scans.
         """
         return os.path.join(self.working_directory, self._scans_dir_name)
+    @property
+    def weight(self):
+        return self._weight
     @property
     def img_grid_size(self):
         """

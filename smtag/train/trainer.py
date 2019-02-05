@@ -3,7 +3,7 @@
 
 import sys
 import resource
-import gc
+from random import randrange
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
@@ -13,6 +13,8 @@ from ..common.importexport import export_model
 from ..common.viz import Show, Plotter
 from ..common.progress import progress
 from .evaluator import Accuracy
+
+from .. import config
 
 class Trainer:
 
@@ -39,25 +41,23 @@ class Trainer:
         self.validation_minibatches = validation_minibatches
         self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
         self.loss_fn = nn.BCELoss()
-        self.markdown = Show('markdown')
         self.console = Show('console')
+        self.weight = torch.Tensor(config.weight) # weigths for each classes in the dataset# temporary hack for entities
 
     def validate(self):
-        loss = 0
-        for m in self.validation_minibatches: # alternatively PICK one random minibatch, probably enough
-            m_input = m.input
-            m_output = m.output
-            if self.cuda_on:
-                m_input = m_input.cuda()
-                m_output = m_output.cuda()
+        m = self.validation_minibatches[randrange(self.validation_minibatches.minibatch_number)]
+        m_input = m.input
+        m_output = m.output
+        if self.cuda_on:
+            m_input = m_input.cuda()
+            m_output = m_output.cuda()
+        with torch.no_grad():
             self.model.eval()
-            with torch.no_grad():
-                prediction = self.model(m_input)
-                loss = F.cross_entropy(prediction, m_output.argmax(1))
-                # loss += self.loss_fn(prediction, m_output)
-        self.model.train()
-        avg_loss = loss / self.validation_minibatches.minibatch_number
-        return avg_loss
+            prediction = self.model(m_input)
+            self.model.train()
+            loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
+            # loss += self.loss_fn(prediction, m_output)
+        return loss
 
     def train(self):
         self.learning_rate = self.opt['learning_rate']
@@ -78,7 +78,7 @@ class Trainer:
                     m_output = m_output.cuda()
                 self.optimizer.zero_grad()
                 prediction = self.model(m_input)
-                loss = F.cross_entropy(prediction, m_output.argmax(1))
+                loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
                 # loss = self.loss_fn(prediction, m_output)
                 loss.backward()
                 avg_train_loss += loss

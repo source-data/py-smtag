@@ -5,6 +5,7 @@ import os
 import torch
 import argparse
 import numpy as np
+from random import randrange
 from .minibatches import Minibatches
 from .loader import Loader
 from ..predict.binarize import Binarized
@@ -37,66 +38,53 @@ class Accuracy(object):
                 b.binarize_with_token(m.tokenized)
                 self.bin_target_start.append(b.start)
         epsilon = 1e-12
-        self.p_sum = torch.Tensor(self.nf).fill_(epsilon)
-        self.tp_sum = torch.Tensor(self.nf).fill_(epsilon)
-        self.fp_sum = torch.Tensor(self.nf).fill_(epsilon)
         thresh = [concept.threshold for concept in self.model.output_semantics]
         self.thresholds = torch.Tensor(thresh).resize_(1, self.nf , 1 )
         if self.cuda_on:
-            self.p_sum = self.p_sum.cuda()
-            self.tp_sum = self.tp_sum.cuda()
-            self.fp_sum = self.fp_sum.cuda()
             self.thresholds = self.thresholds.cuda()
             self.bin_target_start = [b.cuda() for b in self.bin_target_start]
 
     def run(self):
-        for i, m in enumerate(self.minibatches):
-            self.model.eval()
-            m_input = m.input
-            m_output = m.output
-            if self.cuda_on:
-                m_input = m_input.cuda()
-                m_output = m_output.cuda()
-            with torch.no_grad():
-                prediction = self.model(m_input)
-            if self.tokenize: 
-                bin_pred = Binarized(m.text, prediction, self.model.output_semantics)
-                bin_pred.binarize_with_token(m.tokenized)
-                p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i], 0.99)
-            else:
-                p, tp, fp = self.tpfp(prediction, m_output, self.thresholds)
-
-            self.p_sum += p
-            self.tp_sum += tp
-            self.fp_sum += fp
-
+        m = self.minibatches[randrange(self.minibatches.minibatch_number)]
+        m_input = m.input
+        m_output = m.output
+        if self.cuda_on:
+            m_input = m_input.cuda()
+            m_output = m_output.cuda()
+        with torch.no_grad():
+            prediction = self.model(m_input)
+        if self.tokenize: 
+            bin_pred = Binarized(m.text, prediction, self.model.output_semantics)
+            bin_pred.binarize_with_token(m.tokenized)
+            p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i])
+        else:
+            p, tp, fp = self.tpfp(prediction, m_output)
         self.model.train()
-        precision = self.tp_sum / (self.tp_sum + self.fp_sum)
-        recall = self.tp_sum / self.p_sum
+        precision = tp / (tp + fp)
+        recall = tp / p
         f1 = 2 * recall * precision / (recall + precision)
-
         return precision, recall, f1
 
     @staticmethod
-    def tpfp(prediction, target, thresholds):
+    def tpfp(prediction, target):
         """
-        Computes accuracy at the level of individual characters.
-
         Args:
-            threshold (0..1): to call a character as tagged ('hit')
-            prediction (3D Tensor): the prediction for which the accuracy has to be computed
-            target (3D Tensor): the target to which the prediction has to be compared to 
-
-        Returns:
-            Three 1D Tensors with the number per feature of positives, true positives and false positives, respectively
+            prediction (3D Tensor): predicted class features
+            target (3D Tensor): target classes
         """
-        # https://en.wikipedia.org/wiki/Precision_and_recall
-        nf = target.size(1)
-        p = target.sum(2).sum(0) # sum over the characters on a line and sum of these over all examples of the batch
-        predx = (prediction - thresholds).clamp(0).ceil() # threshold prediction to binarize in 0 (no hit) or 1 (hit)
-        fp = (predx - target).clamp(0).sum(2).sum(0) # false positives when prediction is 1 but target is 0
-        tp = predx.sum(2).sum(0) - fp 
-        return p.view(nf), tp.view(nf), fp.view(nf) # output as 1 dim tensor with one metric per output feature
+
+        nf = prediction.size(1)
+        p = torch.zeros(nf)
+        tp = torch.zeros(nf)
+        fp = torch.zeros(nf)
+        predicted_classes = prediction.argmax(1)
+        target_classes = target.argmax(1)
+        for f in range(nf):
+            p[f] = (target_classes == f).sum()
+            tp[f] = ((target_classes == f) * (predicted_classes == f)).sum()
+            fp[f] = (predicted_classes == f).sum() - tp[f].to(torch.long) # crap for GPU, need to be .cuda()!!
+        return p, tp, fp
+
 
 class Benchmark():
 
