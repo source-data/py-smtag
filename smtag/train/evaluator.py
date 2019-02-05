@@ -74,15 +74,22 @@ class Accuracy(object):
         """
 
         nf = prediction.size(1)
-        p = torch.zeros(nf)
-        tp = torch.zeros(nf)
-        fp = torch.zeros(nf)
+        p = torch.zeros(nf).to(torch.float)
+        tp = torch.zeros(nf).to(torch.float)
+        fp = torch.zeros(nf).to(torch.float)
+        if torch.cuda.is_available():
+            p = p.cuda()
+            tp = tp.cuda()
+            fp = fp.cuda()
         predicted_classes = prediction.argmax(1)
         target_classes = target.argmax(1)
         for f in range(nf):
-            p[f] = (target_classes == f).sum()
-            tp[f] = ((target_classes == f) * (predicted_classes == f)).sum()
-            fp[f] = (predicted_classes == f).sum() - tp[f].to(torch.long) # crap for GPU, need to be .cuda()!!
+            cond_pos = (target_classes == f)
+            pred_pos = (predicted_classes == f)
+            true_pos = cond_pos * pred_pos # element-wise multiply ByteTensors to find overlap
+            p[f] = cond_pos.sum() * 1.0 # trick to conver to float irrespective on whether cuda or not
+            tp[f] = true_pos.sum() * 1.0
+            fp[f] = p[f] - tp[f]
         return p, tp, fp
 
 
