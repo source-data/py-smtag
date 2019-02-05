@@ -74,7 +74,7 @@ class SmtagModel(nn.Module):
         x = self.unet(x)
         x = self.adapter(x)
         x = self.BN(x)
-        x = torch.sigmoid(x)
+        # x = torch.sigmoid(x)
         return x
 
 class Concat(nn.Module):

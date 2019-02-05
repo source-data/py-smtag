@@ -105,6 +105,7 @@ class Loader:
         self.features_as_input = Catalogue.from_list(opt['features_as_input'])
         self.use_ocr_context = opt['use_ocr_context']
         self.use_viz_context = opt['use_viz_context']
+        self.softmax_mode = opt['softmax_mode']
         self.nf_input = config.nbits
         if self.use_ocr_context == 'ocr1':
             self.nf_ocr_context = 1 # fusing horizontal and vertial into single detected-on-image feature
@@ -126,15 +127,20 @@ class Loader:
         if self.features_as_input:
             self.nf_input += len(self.features_as_input)
         if self.collapsed_features:
+            self.index_of_collapsed_feature = self.nf_output
             self.nf_output += 1
-            self.index_of_collapsed_feature = self.nf_output - 1
         else:
             self.index_of_collapsed_feature = None
         if self.overlap_features:
+            self.index_of_overlap_feature = self.nf_output
             self.nf_output += 1
-            self.index_of_overlap_feature = self.nf_output - 1
         else:
             self.index_of_overlap_feature = None
+        if self.softmax_mode:
+            self.index_of_notag_class = self.nf_output
+            self.nf_output += 1
+        else:
+            self.index_of_notag_class =  None
 
         # debugging
         print("nf.output=", self.nf_output)
@@ -212,8 +218,7 @@ class Loader:
                 dataset.input[index, supp_input + j, : ] = raw_dataset.output[i, concept2index[f], : ]
 
             # OUTPUT SELECTION AND COMBINATION OF FEATURES
-            for f in self.selected_features:
-                j = self.selected_features.index(f)
+            for j, f in enumerate(self.selected_features):
                 dataset.output[index, j, : ] = raw_dataset.output[i, concept2index[f], : ]
 
             # dataset.output[index, nf_collapsed_feature,:] is already initialized with zeros
@@ -225,6 +230,12 @@ class Loader:
                 dataset.output[index, self.index_of_overlap_feature, : ].fill_(1)
             for f in self.overlap_features:
                 dataset.output[index, self.index_of_overlap_feature, : ] *= raw_dataset.output[i, concept2index[f], : ]
+
+            # add a feature for untagged characters
+            if self.index_of_notag_class:
+                no_tag_feature = dataset.output[index].sum(0) # dataset[index] is 2D C x L and is superposition of all features so far
+                no_tag_feature = no_tag_feature == 0 # set to 1 for chart not tagged and to 0 for tagged characters
+                dataset.output[index, self.index_of_notag_class, : ] = no_tag_feature.unsqueeze(0).unsqueeze(0)
 
         print("\ndone\n")
         return dataset
