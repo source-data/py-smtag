@@ -64,7 +64,7 @@ class Trainer:
                 self.model.eval()
                 prediction = self.model(m_input)
                 self.model.train()
-                loss += F.cross_entropy(prediction, m_output.argmax(1)) #, weight=self.weight)
+                loss += F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
         loss /= self.validation_minibatches.minibatch_number
         return loss
 
@@ -87,7 +87,7 @@ class Trainer:
                     m_output = m_output.cuda()
                 self.optimizer.zero_grad()
                 prediction = self.model(m_input)
-                loss = F.cross_entropy(prediction, m_output.argmax(1)) #, weight=self.weight)
+                loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
