@@ -45,9 +45,9 @@ class Accuracy(object):
             self.bin_target_start = [b.cuda() for b in self.bin_target_start]
 
     def run(self):
-        p_sum = torch.Tensor(self.nf)
-        tp_sum = torch.Tensor(self.nf)
-        fp_sum = torch.Tensor(self.nf)
+        p_sum = torch.zeros(self.nf)
+        tp_sum = torch.zeros(self.nf)
+        fp_sum = torch.zeros(self.nf)
         if torch.cuda.is_available():
             p_sum = p_sum.cuda()
             tp_sum = tp_sum.cuda()
