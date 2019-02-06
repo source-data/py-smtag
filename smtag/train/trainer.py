@@ -64,7 +64,7 @@ class Trainer:
                 self.model.eval()
                 prediction = self.model(m_input)
                 self.model.train()
-                loss += F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
+                loss += F.cross_entropy(prediction, m_output.argmax(1)) #, weight=self.weight)
         loss /= self.validation_minibatches.minibatch_number
         return loss
 
@@ -87,7 +87,7 @@ class Trainer:
                     m_output = m_output.cuda()
                 self.optimizer.zero_grad()
                 prediction = self.model(m_input)
-                loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
+                loss = F.cross_entropy(prediction, m_output.argmax(1)) #, weight=self.weight)
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
@@ -98,7 +98,9 @@ class Trainer:
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
             precision, recall, f1 = self.evaluator.run()
-            self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
+            self.plot.add_scalars("f1", {str(i): f1[i] for i in range(self.validation_minibatches.nf_output)}, e)
+            self.plot.add_scalars("precision", {str(i): precision[i] for i in range(self.validation_minibatches.nf_output)}, e)
+            self.plot.add_scalars("recall", {str(i): recall[i] for i in range(self.validation_minibatches.nf_output)}, e)
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
             print(self.console.example(self.validation_minibatches, self.model))
             # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
