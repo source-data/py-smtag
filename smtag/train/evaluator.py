@@ -45,23 +45,34 @@ class Accuracy(object):
             self.bin_target_start = [b.cuda() for b in self.bin_target_start]
 
     def run(self):
-        m = self.minibatches[randrange(self.minibatches.minibatch_number)]
-        m_input = m.input
-        m_output = m.output
-        if self.cuda_on:
-            m_input = m_input.cuda()
-            m_output = m_output.cuda()
-        with torch.no_grad():
-            prediction = self.model(m_input)
-        if self.tokenize: 
-            bin_pred = Binarized(m.text, prediction, self.model.output_semantics)
-            bin_pred.binarize_with_token(m.tokenized)
-            p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i])
-        else:
-            p, tp, fp = self.tpfp(prediction, m_output)
-        self.model.train()
-        precision = tp / (tp + fp)
-        recall = tp / p
+        p_sum = torch.Tensor(self.nf)
+        tp_sum = torch.Tensor(self.nf)
+        fp_sum = torch.Tensor(self.nf)
+        if torch.cuda.is_available():
+            p_sum = p_sum.cuda()
+            tp_sum = tp_sum.cuda()
+            fp_sum = fp_sum.cuda()
+        for m in self.minibatches:
+            m_input = m.input
+            m_output = m.output
+            if torch.cuda.is_available():
+                m_input = m_input.cuda()
+                m_output = m_output.cuda()
+            with torch.no_grad():
+                self.model.eval()
+                prediction = self.model(m_input)
+                self.model.train()
+            if self.tokenize: 
+                bin_pred = Binarized(m.text, prediction, self.model.output_semantics)
+                bin_pred.binarize_with_token(m.tokenized)
+                p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i])
+            else:
+                p, tp, fp = self.tpfp(prediction, m_output)
+            p_sum += p
+            tp_sum += tp
+            fp_sum += fp
+        precision = tp_sum / (tp_sum + fp_sum)
+        recall = tp_sum / p_sum
         f1 = 2 * recall * precision / (recall + precision)
         return precision, recall, f1
 

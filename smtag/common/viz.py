@@ -119,9 +119,9 @@ class Show():
 
     def print_pretty(self, features):
         f = features
-        # f = F.softmax(f, 1)
-        f -= f.min()
-        f /= f.max()
+        f = F.softmax(f, 1)
+        # f -= f.min()
+        # f /= f.max()
         out = ""
         N = len(Show.SYMBOLS) # = 5
         for i in range(features.size(1)):
@@ -139,7 +139,7 @@ class Show():
         nf = features.size(1)
         codes = features.argmax(1).view(-1)
         for code, c in zip(codes, text):
-            colored_track += "{}{}{}".format(self.col[int(code.item())], c, self.close)
+            colored_track += "{}{}{}".format(self.col[nf - 1 - int(code.item())], c, self.close)
         return colored_track
 
 class Plotter(SummaryWriter):

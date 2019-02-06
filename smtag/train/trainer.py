@@ -53,17 +53,19 @@ class Trainer:
         self.console = Show('console')
 
     def validate(self):
-        m = self.validation_minibatches[randrange(self.validation_minibatches.minibatch_number)]
-        m_input = m.input
-        m_output = m.output
-        if self.cuda_on:
-            m_input = m_input.cuda()
-            m_output = m_output.cuda()
-        with torch.no_grad():
-            self.model.eval()
-            prediction = self.model(m_input)
-            self.model.train()
-            loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
+        loss = 0
+        for m in self.validation_minibatches:
+            m_input = m.input
+            m_output = m.output
+            if self.cuda_on:
+                m_input = m_input.cuda()
+                m_output = m_output.cuda()
+            with torch.no_grad():
+                self.model.eval()
+                prediction = self.model(m_input)
+                self.model.train()
+                loss += F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
+        loss /= self.validation_minibatches.minibatch_number
         return loss
 
     def train(self):
