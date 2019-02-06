@@ -139,7 +139,7 @@ class Show():
         nf = features.size(1)
         codes = features.argmax(1).view(-1)
         for code, c in zip(codes, text):
-            colored_track += "{}{}{}".format(self.col[int(code.item()) % (nf-1)], c, self.close)
+            colored_track += "{}{}{}".format(self.col[int(code.item())], c, self.close)
         return colored_track
 
 class Plotter(SummaryWriter):
