@@ -24,10 +24,18 @@ class Trainer:
         # in case we will need them during accuracy monitoring (for example to binarize output with feature-specific thresholds)
         # on a GPU machine, the model is wrapped into a nn.DataParallel object and the opt and output_semantics attributes would not be directly accessible
         self.opt = model.opt
-        self.output_semantics = model.output_semantics #
+        self.output_semantics = model.output_semantics
+        N = len(training_minibatches)
+        B, C, L = training_minibatches[0].output.size()
+        freq = [0] * C 
+        for m in training_minibatches:
+            for j in range(C):
+                f = m.output[ : , j, : ]
+                freq[j] += f.sum()
+        freq = [f/(N*B*L) for f in freq]
+        self.weight = torch.Tensor([1/f for f in freq])
         model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
         print(model_descriptor)
-        self.weight = torch.Tensor(config.weight) # weigths for each classes in the dataset# temporary hack for entities
         # wrap model into nn.DataParallel if we are on a GPU machine
         if torch.cuda.is_available():
             print(torch.cuda.device_count(), "GPUs available.")
@@ -56,7 +64,7 @@ class Trainer:
             self.model.eval()
             prediction = self.model(m_input)
             self.model.train()
-            loss = F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight)
+            loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
             # loss += self.loss_fn(prediction, m_output)
         return loss
 
@@ -79,7 +87,7 @@ class Trainer:
                     m_output = m_output.cuda()
                 self.optimizer.zero_grad()
                 prediction = self.model(m_input)
-                loss = F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight)
+                loss = F.cross_entropy(prediction, m_output.argmax(1), weight=self.weight)
                 # loss = self.loss_fn(prediction, m_output)
                 loss.backward()
                 avg_train_loss += loss
