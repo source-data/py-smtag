@@ -85,11 +85,13 @@ class Accuracy(object):
         """
 
         nf = prediction.size(1)
-        p = torch.zeros(nf).to(torch.float)
+        cond_p = torch.zeros(nf).to(torch.float)
+        pred_p = torch.zeros(nf).to(torch.float)
         tp = torch.zeros(nf).to(torch.float)
         fp = torch.zeros(nf).to(torch.float)
         if torch.cuda.is_available():
-            p = p.cuda()
+            cond_p = cond_p.cuda()
+            pred_p = pred_p.cuda()
             tp = tp.cuda()
             fp = fp.cuda()
         predicted_classes = prediction.argmax(1)
@@ -98,10 +100,11 @@ class Accuracy(object):
             cond_pos = (target_classes == f)
             pred_pos = (predicted_classes == f)
             true_pos = cond_pos * pred_pos # element-wise multiply ByteTensors to find overlap
-            p[f] = cond_pos.sum() * 1.0 # trick to conver to float irrespective on whether cuda or not
-            tp[f] = true_pos.sum() * 1.0
-            fp[f] = p[f] - tp[f]
-        return p, tp, fp
+            cond_p[f] = cond_pos.sum()
+            pred_p[f] = pred_pos.sum()
+            tp[f] = true_pos.sum()
+            fp[f] =  pred_p[f] - tp[f]
+        return cond_p, tp, fp
 
 
 class Benchmark():
