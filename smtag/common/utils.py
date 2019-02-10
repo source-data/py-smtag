@@ -20,7 +20,7 @@ def cleanup(text):
     return text
 
 
-Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer'])
+Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer']) # should be a proper object with __len__ method
 
 def tokenize(s):
     #patterns derived from python nltk library http://www.nltk.org/_modules/nltk/tokenize/punkt.html#PunktLanguageVars.word_tokenize

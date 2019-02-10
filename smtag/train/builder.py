@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 from math import floor
+from collections import OrderedDict
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -54,6 +55,7 @@ class SmtagModel(nn.Module):
         self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)
 
         self.output_semantics = Catalogue.from_list(opt['selected_features'])
+
         if 'collapsed_features' in opt:
             if opt['collapsed_features']:
                 concepts = [Catalogue.from_label(f) for f in opt['collapsed_features']]
@@ -68,6 +70,7 @@ class SmtagModel(nn.Module):
                 for c in concepts:
                     overlap_features += c # __add__ operation defined in mapper, complements or concatenates types, roles and serialization recipes; maybe misleading because not commutative?
                 self.output_semantics.append(overlap_features)
+        self.output_semantics.append(Catalogue.UNTAGGED)
         self.opt = opt
 
     def forward(self, x):

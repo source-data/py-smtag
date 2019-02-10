@@ -2,21 +2,23 @@
 #T. Lemberger, 2018
 
 import unittest
+from math import ceil
+from collections import OrderedDict
 import torch
 from torch import nn, optim
 from smtag.common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
-from smtag.common.converter import Converter, TString
-from smtag.predict.binarize import Binarized
+from smtag.common.converter import TString
+from smtag.predict.decode import Decoder
 from smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
-from smtag.predict.predictor import SimplePredictor, ContextualPredictor
+from smtag.predict.predictor import Predictor, ContextualPredictor
 from smtag.common.mapper import Catalogue
 from smtag.common.viz import Show
 from smtag.common.importexport import load_model
-from smtag.common.config import MARKING_CHAR
 from smtag import config
 
+MARKING_CHAR = config.marking_char
 
 class PredictorTest(SmtagTestCase):
 
@@ -25,22 +27,26 @@ class PredictorTest(SmtagTestCase):
         self.text_example = "AAAAAAA XXX AAA"
         self.x = TString(self.text_example)
         self.y = torch.Tensor(# A A A A A A A   X X X   A A A
-                             [[[0,0,0,0,0,0,0,0,1,1,1,0,0,0,0]]])
+                             [[[0,0,0,0,0,0,0,0,1,1,1,0,0,0,0],
+                               [1,1,1,1,1,1,1,1,0,0,0,1,1,1,1]
+                             ]])
         self.selected_features = ["geneprod"]
-        self.entity_model = toy_model(self.x.toTensor(), self.y)
+        self.entity_model = toy_model(self.x.tensor, self.y)
         self.entity_model.eval()
         self.anonymized_text_example = self.text_example.replace("X", MARKING_CHAR)
         self.z = TString(self.anonymized_text_example)
-        self.context_model = toy_model(self.z.toTensor(), self.y, selected_features=['intervention'])
+        self.context_model = toy_model(self.z.tensor, self.y, selected_features=['intervention'])
         self.context_model.eval()
 
+    @unittest.skip("not relevant")
     def test_model_stability(self):
+        pass
         '''
         Testing that test model returns the same result for same input. 
         '''
         self.entity_model.eval()
         iterations = 10
-        x = self.x.toTensor()
+        x = self.x.tensor
         y_1 = self.entity_model(x)
         print(0, "\n")
         print(y_1)
@@ -52,73 +58,37 @@ class PredictorTest(SmtagTestCase):
             self.assertTensorEqual(y_1, y_2)
 
     def test_predictor_padding(self):
-        p = SimplePredictor(self.entity_model)
+        p = Predictor(self.entity_model)
         test_string_200 = "a"*200
         test_string_200_encoded = TString(test_string_200)
         padded_string_200_encoded = p.padding(test_string_200_encoded)
-        expected_padded_string_200_encoded = TString(" "*10 + test_string_200 + " "*10)
-        self.assertTensorEqual(expected_padded_string_200_encoded.t, padded_string_200_encoded.t)
-
-        test_string_20 = "a"*20
-        test_string_20_encoded = TString(test_string_20)
-        padded_string_20_encoded = p.padding(test_string_20_encoded)
-        expected_padded_string_20_encoded = TString(" "*60 + test_string_20 + " "*60)
-        self.assertTensorEqual(expected_padded_string_20_encoded.t, padded_string_20_encoded.t)
+        padding_length = ceil(max(config.min_size - 200, 0)/2) + config.min_padding
+        print("config.min_size, config.min_size, padding_length", config.min_size, config.min_size, padding_length)
+        expected_padded_string_200_encoded = TString(config.padding_char*padding_length + test_string_200 + config.padding_char*padding_length)
+        self.assertTensorEqual(expected_padded_string_200_encoded.tensor, padded_string_200_encoded.tensor)
 
     def test_entity_predictor_1(self):
-        p = SimplePredictor(self.entity_model)
+        p = Predictor(self.entity_model)
         output = p.forward(TString(self.text_example))
         self.assertEqual(list(self.y.size()), list(output.size()))
 
-    @unittest.skip('need to be changed')
-    def test_entity_predictor_2(self):
-        p = SimplePredictor(self.entity_model)
-        ml = p.markup(TString(self.text_example))
-        #print(ml)
-        expected_ml = 'AAAAAAA <sd-tag type="geneprod">XXX</sd-tag> AAA'
-        self.assertEqual(expected_ml, ml[0])
-
-    @unittest.skip('need to be changed')
-    def test_entity_predictor_3(self):
-        real_model = load_model('geneprod.zip', config.prod_dir)
-        #real_example = "fluorescent images of 200‐cell‐stage embryos from the indicated strains stained by both anti‐SEPA‐1 and anti‐LGG‐1 antibody"
-        real_example = "stained by anti‐SEPA‐1"
-        p = SimplePredictor(real_model)
-        binarized = p.pred_binarized(TString(real_example), [Catalogue.GENEPROD])
-        ml = Serializer().serialize(binarized)
-        print(ml[0])
-        input = Converter.t_encode(real_example)
-        # compare visually with the direct ouput of the model
-        real_model.eval()
-        prediction = real_model(input)
-        Show.print_pretty_color(prediction, real_example)
-        Show.print_pretty(prediction)
-
     def test_context_predictor_anonymization(self):
-        input_string = "the cat with a hat"
-        input_string_encoded = TString(input_string)
-        marks = torch.Tensor(
-            # t h e   c a t   w i t h   a   h a t
-            [[0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0]]
-        )
+        input_string = 'A ge ne or others'
+        prediction = torch.Tensor([[#A         g    e         n    e         o    r         o    t    h    e    r    s
+                                    [0   ,0   ,1.0 ,1.0 ,0.2  ,1.0 ,1.0 ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
+                                    [1.0 ,1.0 ,0   ,0   ,0.8  ,0   ,0   ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ]
+                                  ]])
+        group = 'test'
+        concepts = [Catalogue.GENEPROD, Catalogue.UNTAGGED]
+        semantic_groups = OrderedDict([(group, concepts)])
+        d = Decoder(input_string, prediction, semantic_groups)
+        d.decode()
+        d.fuse_adjacent()
         p = ContextualPredictor(self.context_model)
-        anonymized_encoded = p.anonymize(input_string_encoded, marks, replacement = "$")
+        anonymized_encoded = p.anonymize(d, 'test', Catalogue.GENEPROD)
         anonymized = str(anonymized_encoded)
-        expected = "the $$$ with a hat"
+        expected = "A "+config.marking_char*len("ge ne") + " or others"
         self.assertEqual(expected, anonymized)
-
-    def test_context_predictor(self):
-        entity_p = SimplePredictor(self.entity_model)
-        prediction_1 = entity_p.forward(TString(self.text_example))
-        bin_pred = Binarized([self.text_example], prediction_1, [Catalogue.GENEPROD])
-        tokenized = tokenize(self.text_example)
-        bin_pred.binarize_with_token([tokenized])
-
-        context_p = ContextualPredictor(self.context_model)
-        prediction_2 = context_p.forward(TString(self.text_example), bin_pred.marks)
-        Show.print_pretty_color(prediction_1, self.text_example)
-        Show.print_pretty_color(prediction_2, self.anonymized_text_example)
-        Show.print_pretty(torch.cat((prediction_1, prediction_2),1))
 
 if __name__ == '__main__':
     unittest.main()

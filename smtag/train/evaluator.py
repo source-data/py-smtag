@@ -27,22 +27,22 @@ class Accuracy(object):
             self.cuda_on = True
         else:
             self.cuda_on = False
-        if self.tokenize:
-            for i, m in enumerate(self.minibatches):
-                progress(i, self.minibatches.minibatch_number, "tokenizing minibatch {}".format(i))
-                m_output = m.output
-                if self.cuda_on:
-                    m_output = m_output.cuda()
-                m.add_token_lists()
-                b = Binarized(m.text, m_output, self.model.output_semantics)
-                b.binarize_with_token(m.tokenized)
-                self.bin_target_start.append(b.start)
-        epsilon = 1e-12
-        thresh = [concept.threshold for concept in self.model.output_semantics]
-        self.thresholds = torch.Tensor(thresh).resize_(1, self.nf , 1 )
-        if self.cuda_on:
-            self.thresholds = self.thresholds.cuda()
-            self.bin_target_start = [b.cuda() for b in self.bin_target_start]
+        # if self.tokenize:
+        #     for i, m in enumerate(self.minibatches):
+        #         progress(i, self.minibatches.minibatch_number, "tokenizing minibatch {}".format(i))
+        #         m_output = m.output
+        #         if self.cuda_on:
+        #             m_output = m_output.cuda()
+        #         m.add_token_lists()
+        #         b = Binarized(m.text, m_output, self.model.output_semantics)
+        #         b.binarize_with_token(m.tokenized)
+        #         self.bin_target_start.append(b.start)
+        # epsilon = 1e-12
+        # thresh = [concept.threshold for concept in self.model.output_semantics]
+        # self.thresholds = torch.Tensor(thresh).resize_(1, self.nf , 1 )
+        # if self.cuda_on:
+        #     self.thresholds = self.thresholds.cuda()
+        #     self.bin_target_start = [b.cuda() for b in self.bin_target_start]
 
     def run(self):
         p_sum = torch.zeros(self.nf)
@@ -62,12 +62,12 @@ class Accuracy(object):
                 self.model.eval()
                 prediction = self.model(m_input)
                 self.model.train()
-            if self.tokenize: 
-                bin_pred = Binarized(m.text, prediction, self.model.output_semantics)
-                bin_pred.binarize_with_token(m.tokenized)
-                p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i])
-            else:
-                p, tp, fp = self.tpfp(prediction, m_output)
+            # if self.tokenize: 
+            #     bin_pred = Binarized(m.text, prediction, self.model.output_semantics)
+            #     bin_pred.binarize_with_token(m.tokenized)
+            #     p, tp, fp = self.tpfp(bin_pred.start, self.bin_target_start[i])
+            # else:
+            p, tp, fp = self.tpfp(prediction, m_output)
             p_sum += p
             tp_sum += tp
             fp_sum += fp

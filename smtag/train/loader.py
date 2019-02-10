@@ -234,8 +234,12 @@ class Loader:
             # add a feature for untagged characters
             if self.index_of_notag_class:
                 no_tag_feature = dataset.output[index].sum(0) # dataset[index] is 2D C x L and is superposition of all features so far
-                no_tag_feature = no_tag_feature == 0 # set to 1 for chart not tagged and to 0 for tagged characters
+                no_tag_feature = no_tag_feature == 0 # set to 1 for char not tagged and to 0 for tagged characters
                 dataset.output[index, self.index_of_notag_class, : ] = no_tag_feature.unsqueeze(0).unsqueeze(0)
+
+            # TAKE ARGMAX OF OUTPUT HERE
+            # dataset.output = dataset.output.argmax(1)
+            # dataset.output.nf = 1
 
         print("\ndone\n")
         return dataset

@@ -26,9 +26,11 @@ class Config():
     _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
     _nbits             = 32 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
+    _padding_char      = " " # character used to padd strings; would be smarter to use character different from space
     _min_padding       = 20 # 380 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
     _min_size          = 380 # input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
     _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
+    _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
 
 
     def __init__(self):
@@ -104,6 +106,12 @@ class Config():
         """
         return self._marking_char
     @property
+    def padding_char(self):
+        """
+        Special character used to pad strings.
+        """
+        return self._padding_char
+    @property
     def min_padding(self):
         """
         The number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
@@ -121,5 +129,11 @@ class Config():
         Threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
         """
         return self._default_threshold
+    @property
+    def fusion_threshold(self):
+        """
+        Threshold to allow adjascent token with identical features to be fused
+        """
+        return self._fusion_threshold
 
 config = Config()
