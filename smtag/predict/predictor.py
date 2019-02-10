@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 import torch
+from torch.nn import functional as F
 from math import ceil
 from collections import namedtuple
 from ..common.converter import TString
@@ -55,6 +56,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(input.toTensor()) #.float() # prediction is 3D 1 x C x L
+            prediction = F.sigmoid(prediction)
             self.model.train()
 
         #remove safety padding
@@ -76,7 +78,9 @@ class ContextualPredictor(Predictor):
     def __init__(self, model: 'ContextCombinedModel', tag='sd-tag', format='xml') -> TString:
         super(ContextualPredictor, self).__init__(model, tag, format)
 
-    def anonymize(self, for_anonymization, group, concept_to_anonymize, mark_char = config.marking_char):
+    @staticmethod
+    def anonymize(for_anonymization, group, concept_to_anonymize, mark_char = config.marking_char):
+        # there should be a concept_to_anonymize and a concept_for_anonymization
         concepts = for_anonymization.concepts[group]
         token_list = for_anonymization.token_list
         res = list(for_anonymization.input_string)

@@ -16,11 +16,11 @@ class SerializerTest(unittest.TestCase):
 
     def test_element_serializer(self):
         tag = 'sd-tag'
-        current_concepts = OrderedDict([('role', Catalogue.INTERVENTION), ('crap', None), ('crap2', None), ('entities', Catalogue.PROTEIN)])
+        current_concepts = OrderedDict([('role', Catalogue.INTERVENTION), ('crap', Catalogue.UNTAGGED), ('crap2', Catalogue.UNTAGGED), ('entities', Catalogue.PROTEIN)])
         inner_text = 'test text'
-        scores = OrderedDict([('role', 10.), ('crap', 10.), ('crap2', 10.), ('entities', 10.)])
-        expected_xml_string = '<sd-tag role="intervention" type="protein" role_score="10" type_score="10">test text</sd-tag>'
-        expected_html_string = '<span class="sd-tag role_intervention type_protein role_score_10 type_score_10">test text</span>'
+        scores = OrderedDict([('role', 0.1), ('crap', 0.2), ('crap2', 0.01), ('entities', 0.9)])
+        expected_xml_string = '<sd-tag role="intervention" type="protein" role_score="10" type_score="90">test text</sd-tag>'
+        expected_html_string = '<span class="sd-tag role_intervention type_protein role_score_10 type_score_90">test text</span>'
         xml_string = XMLElementSerializer.make_element(tag, current_concepts, inner_text, scores)
         html_string = HTMLElementSerializer.make_element(tag, current_concepts, inner_text, scores)
         print(xml_string)

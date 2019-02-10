@@ -51,7 +51,7 @@ class CombinedModel(nn.Module):#SmtagModel?
 
     def __init__(self, models: OrderedDict):
         super(CombinedModel, self).__init__()
-        self.semantic_group = OrderedDict()
+        self.semantic_groups = OrderedDict()
         for group in models: # replace by self.module_list = nn.ModuleList() in torch 1.0.0
             model = models[group]
             name = 'unet2__'+ str(group)
@@ -71,10 +71,10 @@ class ContextCombinedModel(CombinedModel):
 
     def __init__(self, models: OrderedDict):
         model_list = OrderedDict()
-        self.anonymize_with = []
+        self.anonymize_with = OrderedDict()
         for group in models:
-            model, anonymize_with = model[group]
-            self.anonymize_with[group] = anonymize_with
+            model, anonymization = models[group]
+            self.anonymize_with[anonymization['group']] = anonymization['concept']
             model_list[group] = model
         super(ContextCombinedModel, self).__init__(model_list)
 
@@ -85,21 +85,21 @@ class SmtagEngine:
 
     def __init__(self):
         self.entity_models = CombinedModel(OrderedDict([
-            ('entities', load_model('entities.zip', config.prod_dir)),
+            ('entities', load_model('entities.test.zip', config.prod_dir)),
             #('diseases', load_model('diseases.zip', config.prod_dir)),
             #('exp_assay', load_model('exp_assay.zip', config.prod_dir)) # can in fact be co-trained with entities since mutually exclusive
         ]))
         self.reporter_models = CombinedModel(OrderedDict([
-            ('reporter', load_model('reporter_geneprod.zip', config.prod_dir))
+            ('reporter', load_model('reporter.test.zip', config.prod_dir))
         ]))
         self.context_models = ContextCombinedModel(OrderedDict([
-            ('role_geneprod', 
-               (load_model('role_geneprod.zip', config.prod_dir), {'group':'entities', 'concept':Catalogue.GENEPROD})
+            ('geneprod_roles', # not quite correct but transiently to make it run
+               (load_model('geneprod_roles.test.zip', config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
             ),
             #(load_model('role_small_molecule.zip', config.prod_dir), {'group': 'entities', 'concept': Catalogue.ENTITY})
         ]))
         self.panelize_model = CombinedModel(OrderedDict([
-            ('panel', load_model('panel_stop.zip', config.prod_dir))
+            ('panels', load_model('panel_stop.test.zip', config.prod_dir))
         ]))
 
     def __panels(self, input_t_string: TString) -> Decoder:
@@ -122,7 +122,7 @@ class SmtagEngine:
         entities = self.__entity(input_t_string)
         output = entities.clone() # clone just in case, test if necessary...should not be
         reporter = self.__reporter(input_t_string)
-        entities_less_reporter = entities.erase(reporter)
+        entities_less_reporter = entities.erase_with(reporter)
         output.cat_(reporter)
         context = self.__context(entities_less_reporter)
         output.cat_(context)
@@ -137,7 +137,7 @@ class SmtagEngine:
         entities = Decoder(input_string, encoded, semantic_groups)
         entities.decode()
         reporter = self.__reporter(input_t_string)
-        entities_less_reporter = entities.erase(reporter)
+        entities_less_reporter = entities.erase_with(reporter)
         output = reporter # there was a clone() here??
         context = self.__context(entities_less_reporter)
         output.cat_(context)
@@ -170,8 +170,7 @@ class SmtagEngine:
             print(f"\n2: after reporter: {reporter.semantic_groups} {B}x{C}x{L}")
             print(show.print_pretty(reporter.prediction))
         output.cat_(reporter) # add reporter prediction to output features
-
-        entities_less_reporter = entities.erase(reporter) # would be better to have erased = entities.erase(reporter) with an internal clone() to avoid deadly mistakes
+        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
         if self.DEBUG:
             B, C, L = entities_less_reporter.prediction.size()
             print(f"\n3: after entity.erase_(reporter): {entities_less_reporter.semantic_groups} {B}x{C}x{L}")
@@ -188,13 +187,13 @@ class SmtagEngine:
         if self.DEBUG:
             B, C, L = output.prediction.size()
             print(f"\n5: concatenated output: {output.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(otput.prediction))
+            print(show.print_pretty(output.prediction))
 
         return output
 
     def __serialize(self, output, sdtag="sd-tag", format="xml"):
         ml = Serializer(tag=sdtag, format=format).serialize(output)
-        return ml[0] # engine works with single example
+        return ml # engine works with single example
 
     @timer
     def entity(self, input_string, sdtag, format):

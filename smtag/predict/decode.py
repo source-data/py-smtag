@@ -3,7 +3,7 @@
 
 import torch
 import re
-from typing import List
+from typing import List, Tuple
 from collections import OrderedDict
 from copy import copy, deepcopy
 from ..common.utils import xml_escape, timer, tokenize, Token
@@ -114,39 +114,40 @@ class Decoder:
                     i += 1 # if no fusion occured, go to next token
 
 
-    def erase_(self, other: 'Decoder'):
+    def erase_with_(self, other: 'Decoder', erase_with: Tuple, target: Tuple):
         # self.prediction untouched ? or zeros at marks that need to be removed?
-        for group in self.semantic_groups:
-            untagged_code = self.semantic_groups[group].index(Catalogue.UNTAGGED) # finds where the UNTAGGED feature is
-            for i, token, my_concept, other_concept in enumerate(zip(self.token_list, self.concepts[group], other.concepts[group])):
-                if my_concept == other_concept:
-                    self.concepts[group][i] = Catalogue.UNTAGGED
-                    self.scores[group][i] = 0
-                    self.char_level_codes[token.start:token.stop] = untagged_code
-                    self.char_level_concepts[token.start:token.stop] = Catalogue.UNTAGGED
-                    self.prediction[0, : , token.start:token.stop] = 0 # sets all the features to zero
-                    self.prediction[0, untagged_code , token.start:token.stop] = 1 # set the untagged features to 1
+        erase_with_group, erase_with_concept = erase_with
+        target_group, target_concept = target
+        untagged_code = Catalogue.UNTAGGED.my_index(self.semantic_groups[target_group]) # finds where the UNTAGGED feature is
+        for i, (token, other_concept, my_concept) in enumerate(zip(self.token_list, other.concepts[erase_with_group], self.concepts[target_group])):
+            if (type(my_concept) == type(target_concept)) and (type(other_concept) == type(erase_with_concept)): # DOES NOT WORK BUT WORKS IF type() == type() because different instances. Bad implementation ni mapper
+                self.concepts[target_group][i] = Catalogue.UNTAGGED
+                self.scores[target_group][i] = 0
+                # self.char_level_codes[token.start:token.stop] = untagged_code
+                self.char_level_concepts[target_group][token.start:token.stop] = [Catalogue.UNTAGGED] * (token.stop - token.start)
+                self.prediction[0, : , token.start:token.stop] = 0 # sets all the features to zero
+                self.prediction[0, untagged_code , token.start:token.stop] = 1 # set the untagged features to 1, do we need this?
 
-    def erase(self, other: 'Decoder') -> 'Decoder':
+    def erase_with(self, other: 'Decoder', eraser: str, target:str) -> 'Decoder':
         cloned_self = self.clone()
-        cloned_self.erase_(other)
+        cloned_self.erase_with_(other, eraser, target)
         return cloned_self
 
     def cat_(self, other: 'Decoder'):
         self.semantic_groups.update(other.semantic_groups)
         self.concepts.update(other.concepts)
         self.scores.update(other.scores)
-        self.char_level_codes.update(other.char_level_codes)
+        # self.char_level_codes.update(other.char_level_codes)
         self.char_level_concepts.update(other.char_level_concepts)
-        self.prediction.cat_(other.prediction.clone(), 1)
+        self.prediction = torch.cat([self.prediction, other.prediction.clone()], 1)
 
     def clone(self) -> 'Decoder':
         other = Decoder(self.input_string, self.prediction.clone(), deepcopy(self.semantic_groups))
         other.token_list = deepcopy(self.token_list)
         other.concepts = deepcopy(self.concepts)
         other.scores = OrderedDict([(group, self.scores[group].clone()) for group in self.scores])
-        other.char_level_codes = OrderedDict([(group, self.char_level_codes[group].clone()) for group in self.char_level_codes])
-        other.char_level_concepts = OrderedDict([(group, deepcopy(self.char_level_concepts)) for group in self.char_level_concepts])
+        # other.char_level_codes = OrderedDict([(group, self.char_level_codes[group].clone()) for group in self.char_level_codes])
+        other.char_level_concepts = OrderedDict([(group, deepcopy(self.char_level_concepts[group])) for group in self.char_level_concepts])
         return other
 
 

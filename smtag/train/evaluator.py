@@ -8,7 +8,7 @@ import numpy as np
 from random import randrange
 from .minibatches import Minibatches
 from .loader import Loader
-from ..predict.binarize import Binarized
+from ..predict.decode import Decoder
 from ..common.progress import progress
 from ..common.importexport import load_model
 from .. import config
