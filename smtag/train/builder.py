@@ -77,7 +77,8 @@ class SmtagModel(nn.Module):
         x = self.unet(x)
         x = self.adapter(x)
         x = self.BN(x)
-        x = torch.sigmoid(x) # CHECK THIS. PRACTICAL TO HAVE 0..1 !
+        # x = torch.sigmoid(x) # CHECK THIS. PRACTICAL TO HAVE NET OUTPUT as 0..1 !
+        x = F.log_softmax(x, 1)
         return x
 
 class Concat(nn.Module):

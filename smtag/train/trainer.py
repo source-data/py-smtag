@@ -4,6 +4,7 @@
 import sys
 import resource
 from random import randrange
+from math import log
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
@@ -64,7 +65,8 @@ class Trainer:
                 self.model.eval()
                 prediction = self.model(m_input)
                 self.model.train()
-                loss += F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight)
+                # loss += F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight)
+                loss += F.nll_loss(prediction, m_output.argmax(1))
         loss /= self.validation_minibatches.minibatch_number
         return loss
 
@@ -87,7 +89,8 @@ class Trainer:
                     m_output = m_output.cuda()
                 self.optimizer.zero_grad()
                 prediction = self.model(m_input)
-                loss = F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight) # remove argmax here and do it at laoding
+                # loss = F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight) # remove argmax here and do it at laoding
+                loss = F.nll_loss(prediction, m_output.argmax(1)) #, weight=self.weight) # remove argmax here and do it at laoding
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
