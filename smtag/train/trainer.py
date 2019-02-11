@@ -56,20 +56,23 @@ class Trainer:
     def validate(self):
         loss = 0
         for m in self.validation_minibatches:
-            m_input = m.input
-            m_output = m.output
-            if self.cuda_on:
-                m_input = m_input.cuda()
-                m_output = m_output.cuda()
             with torch.no_grad():
                 self.model.eval()
-                prediction = self.model(m_input)
+                loss += self.predict(m)
                 self.model.train()
-                # loss += F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight)
-                loss += F.nll_loss(prediction, m_output.argmax(1))
         loss /= self.validation_minibatches.minibatch_number
         return loss
 
+    def predict(self, batch):
+        x = batch.input
+        y = batch.output
+        if self.cuda_on:
+            x = x.cuda()
+            y = y.cuda()
+        y_hat = self.model(x)
+        loss = F.nll_loss(y_hat, y.argmax(1))
+        return loss
+    
     def train(self):
         self.learning_rate = self.opt['learning_rate']
         self.epochs = self.opt['epochs']
@@ -82,19 +85,11 @@ class Trainer:
 
             for i, m in enumerate(self.minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
-                m_input = m.input
-                m_output = m.output
-                if self.cuda_on:
-                    m_input = m_input.cuda()
-                    m_output = m_output.cuda()
                 self.optimizer.zero_grad()
-                prediction = self.model(m_input)
-                # loss = F.cross_entropy(prediction, m_output.argmax(1))#, weight=self.weight) # remove argmax here and do it at laoding
-                loss = F.nll_loss(prediction, m_output.argmax(1)) #, weight=self.weight) # remove argmax here and do it at laoding
+                loss = self.predict(m)
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
-                #print(self.console.example(self.validation_minibatches, self.model))
 
             # Logging/plotting
             avg_train_loss = avg_train_loss / N
