@@ -47,7 +47,6 @@ class SmtagModel(nn.Module):
         pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
         dropout = opt['dropout']
         skip = opt['skip']
-        self.softmax_mode = opt['softmax_mode']
 
         self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout, skip)
@@ -78,8 +77,7 @@ class SmtagModel(nn.Module):
         x = self.unet(x)
         x = self.adapter(x)
         x = self.BN(x)
-        if not self.softmax_mode:
-            x = torch.sigmoid(x)
+        x = torch.sigmoid(x) # CHECK THIS. PRACTICAL TO HAVE 0..1 !
         return x
 
 class Concat(nn.Module):

@@ -105,7 +105,6 @@ class Loader:
         self.features_as_input = Catalogue.from_list(opt['features_as_input'])
         self.use_ocr_context = opt['use_ocr_context']
         self.use_viz_context = opt['use_viz_context']
-        self.softmax_mode = opt['softmax_mode']
         self.nf_input = config.nbits
         if self.use_ocr_context == 'ocr1':
             self.nf_ocr_context = 1 # fusing horizontal and vertial into single detected-on-image feature
@@ -120,7 +119,6 @@ class Loader:
             self.nf_input += self.nf_ocr_context
         if self.use_viz_context:
             self.nf_input += self.nf_viz_context
-
         self.nf_collapsed_feature = 0
         self.nf_overlap_feature = 0
         self.nf_output = len(self.selected_features)
@@ -136,11 +134,9 @@ class Loader:
             self.nf_output += 1
         else:
             self.index_of_overlap_feature = None
-        if self.softmax_mode:
-            self.index_of_notag_class = self.nf_output
-            self.nf_output += 1
-        else:
-            self.index_of_notag_class =  None
+        # softmax requires untagged class
+        self.index_of_notag_class = self.nf_output
+        self.nf_output += 1
 
         # debugging
         print("nf.output=", self.nf_output)
@@ -237,7 +233,7 @@ class Loader:
                 no_tag_feature = no_tag_feature == 0 # set to 1 for char not tagged and to 0 for tagged characters
                 dataset.output[index, self.index_of_notag_class, : ] = no_tag_feature.unsqueeze(0).unsqueeze(0)
 
-            # TAKE ARGMAX OF OUTPUT HERE
+            # TAKE ARGMAX OF OUTPUT HERE?
             # dataset.output = dataset.output.argmax(1)
             # dataset.output.nf = 1
 

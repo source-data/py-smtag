@@ -107,8 +107,6 @@ def main():
     parser.add_argument('--ocr1', action="store_true", help='Use as additional presence of words extracted by OCR from the illustration.')
     parser.add_argument('--ocr2', action="store_true", help='Use as additional input orientation of words extracted by OCR from the illustration.')
     parser.add_argument('--viz', action="store_true", help='Use as additional visual features extracted from the illustration.')
-    parser.add_argument('--softmax', action="store_true", help='Use softmax to compute loss.')
-
 
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
@@ -132,7 +130,6 @@ def main():
     opt['collapsed_features'] = collapsed_features
     opt['overlap_features'] = overlap_features
     opt['features_as_input'] = features_as_input
-    opt['softmax_mode'] =  arguments.softmax
     opt['nf_table'] =  nf_table
     opt['pool_table'] = pool_table
     opt['kernel_table'] = kernel_table

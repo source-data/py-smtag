@@ -70,8 +70,8 @@ def load_model(archive_filename, model_dir=config.model_dir):
 
         with open(option_path, 'r') as optionfile:
             opt = json.load(optionfile)
-        #print("trying to build model with options:")
-        #print(opt)
+        print("trying to build model with options:")
+        print(opt)
         model =  SmtagModel(opt)
         model.load_state_dict(torch.load(model_path))
         #print("removing {}".format(model_path))

@@ -154,6 +154,10 @@ class SmtagEngine:
         #PREDICT PANELS
         panels = self.__panels(input_t_string)
         output = panels
+        if self.DEBUG:
+            B, C, L = output.prediction.size()
+            print(f"\n1: after panels: {output.semantic_groups} {B}x{C}x{L}")
+            print(show.print_pretty(output.prediction))
 
         # PREDICT ENTITIES
         entities = self.__entity(input_t_string)

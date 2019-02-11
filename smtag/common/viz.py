@@ -119,7 +119,7 @@ class Show():
 
     def print_pretty(self, features):
         f = features
-        f = F.softmax(f, 1)
+        # f = F.softmax(f, 1)
         # f -= f.min()
         # f /= f.max()
         out = ""

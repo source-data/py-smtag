@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 import torch
+import torch.nn
 from torch.nn import functional as F
 from math import ceil
 from collections import namedtuple
@@ -56,7 +57,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(input.toTensor()) #.float() # prediction is 3D 1 x C x L
-            prediction = F.sigmoid(prediction)
+            # prediction = F.sigmoid(prediction)
             self.model.train()
 
         #remove safety padding
