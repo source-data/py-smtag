@@ -51,13 +51,13 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         padded = self.padding(input)
         L = len(padded)
         padding_length = int((L - len(input)) / 2)
-        input = self.combine_with_input_features(padded, additional_input_features)
+        compbined_input = self.combine_with_input_features(padded, additional_input_features)
 
         #PREDICTION
         with torch.no_grad():
             self.model.eval()
-            prediction = self.model(input.toTensor()) #.float() # prediction is 3D 1 x C x L
-            # prediction = F.sigmoid(prediction)
+            prediction = self.model(compbined_input.toTensor()) #.float() # prediction is 3D 1 x C x L
+            prediction = torch.sigmoid(prediction) # to get 0..1 positive scores
             self.model.train()
 
         #remove safety padding
@@ -67,6 +67,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
     def decode(self, input_str, prediction, semantic_groups):
         decoded = Decoder(input_str, prediction, self.model.semantic_groups)
         decoded.decode()
+        decoded.fuse_adjacent()
         return decoded
     
     def predict(self, input_t_string):
@@ -81,7 +82,6 @@ class ContextualPredictor(Predictor):
 
     @staticmethod
     def anonymize(for_anonymization, group, concept_to_anonymize, mark_char = config.marking_char):
-        # there should be a concept_to_anonymize and a concept_for_anonymization
         concepts = for_anonymization.concepts[group]
         token_list = for_anonymization.token_list
         res = list(for_anonymization.input_string)
