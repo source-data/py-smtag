@@ -85,21 +85,23 @@ class SmtagEngine:
 
     def __init__(self):
         self.entity_models = CombinedModel(OrderedDict([
-            ('entities', load_model('entities.test.zip', config.prod_dir)),
-            #('diseases', load_model('diseases.zip', config.prod_dir)),
-            #('exp_assay', load_model('exp_assay.zip', config.prod_dir)) # can in fact be co-trained with entities since mutually exclusive
+            ('entities', load_model(config.model_entity, config.prod_dir)),
+            ('diseases', load_model(config.model_disease, config.prod_dir)),
+            ('exp_assay', load_model(config.model_assay, config.prod_dir)) # can in fact be co-trained with entities since mutually exclusive
         ]))
         self.reporter_models = CombinedModel(OrderedDict([
-            ('reporter', load_model('reporter.test.zip', config.prod_dir))
+            ('reporter', load_model(config.model_geneprod_reporter, config.prod_dir))
         ]))
         self.context_models = ContextCombinedModel(OrderedDict([
-            ('geneprod_roles', # not quite correct but transiently to make it run
-               (load_model('geneprod_roles.test.zip', config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
-            ),
-            #(load_model('role_small_molecule.zip', config.prod_dir), {'group': 'entities', 'concept': Catalogue.ENTITY})
+            ('geneprod_roles',
+               (load_model(config.model_geneprod_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
+            )#,
+            #('small_molecule_role', 
+            #    (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+            #)
         ]))
         self.panelize_model = CombinedModel(OrderedDict([
-            ('panels', load_model('panel_stop.test.zip', config.prod_dir))
+            ('panels', load_model(config.model_panel_stop, config.prod_dir))
         ]))
 
     def __panels(self, input_t_string: TString) -> Decoder:
@@ -122,7 +124,7 @@ class SmtagEngine:
         entities = self.__entity(input_t_string)
         output = entities.clone() # clone just in case, test if necessary...should not be
         reporter = self.__reporter(input_t_string)
-        entities_less_reporter = entities.erase_with(reporter)
+        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output.cat_(reporter)
         context = self.__context(entities_less_reporter)
         output.cat_(context)
@@ -132,12 +134,12 @@ class SmtagEngine:
         input_string = ''.join([s for s in input_xml.itertext()])
         input_t_string = TString(input_string)
         encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
-        encoded.unsqueeze_(0)
+        encoded.unsqueeze_(0) # 3D
         semantic_groups = OrderedDict([('all_concepts', Catalogue.standard_channels)])
         entities = Decoder(input_string, encoded, semantic_groups)
         entities.decode()
         reporter = self.__reporter(input_t_string)
-        entities_less_reporter = entities.erase_with(reporter)
+        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output = reporter # there was a clone() here??
         context = self.__context(entities_less_reporter)
         output.cat_(context)

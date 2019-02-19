@@ -19,7 +19,7 @@ def token2codes(token_list: List, prediction: Tensor3D) -> Tensor2D:
     '''
     Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
     A feature code is the index of the feature with maximum score.
-    For each token, its score is otained by summing along the segment corresponding to its position in the text.
+    For each token, its score is otained by averaging along the segment corresponding to its position in the text.
 
     Args:
         token_list: list of N Token. Each Token has start and stop attributes corresponding to its location in the text
@@ -64,18 +64,21 @@ class Decoder:
 
     def decode(self): # separate processing from initialization to make cloning more efficient
         self.token_list = tokenize(self.input_string)['token_list']
+        self.decode_with_token(self.token_list)
+    
+    def decode_with_token(self, token_list):
         start_feature = 0
         for group in self.semantic_groups:
             semantics = self.semantic_groups[group]
             nf = len(semantics) # as many features as semantic output elements
-            prediction_slice = self.prediction[0, start_feature:nf, : ] # Tensor2D!
+            prediction_slice = self.prediction[0, start_feature:start_feature+nf, : ] # Tensor2D!
             start_feature += nf 
-            codes, scores = token2codes(self.token_list, prediction_slice)
+            codes, scores = token2codes(token_list, prediction_slice)
             self.concepts[group] = [self.semantic_groups[group][code] for code in codes]
             self.scores[group] = scores
             # self.char_level_codes[group] = prediction_slice.argmax(0) # initialize with argmax of prediction, 1D
             self.char_level_concepts[group] = [Catalogue.UNTAGGED for _ in range(len(self.input_string))] # initialize as untagged
-            for token, code, concept in zip(self.token_list, codes, self.concepts[group]): # update with token-level code
+            for token, code, concept in zip(token_list, codes, self.concepts[group]): # update with token-level code
                 # self.char_level_codes[group][token.start:token.stop] = code
                 self.char_level_concepts[group][token.start:token.stop] = [concept] * (token.stop - token.start)
 

@@ -26,15 +26,15 @@ class Trainer:
         # on a GPU machine, the model is wrapped into a nn.DataParallel object and the opt and output_semantics attributes would not be directly accessible
         self.opt = model.opt
         self.output_semantics = model.output_semantics
-        N = len(training_minibatches)
-        B, C, L = training_minibatches[0].output.size()
-        freq = [0] * C 
-        for m in training_minibatches:
-            for j in range(C):
-                f = m.output[ : , j, : ]
-                freq[j] += f.sum()
-        freq = [f/(N*B*L) for f in freq]
-        self.weight = torch.Tensor([1/f for f in freq])
+        # N = len(training_minibatches)
+        # B, C, L = training_minibatches[0].output.size()
+        # freq = [0] * C 
+        # for m in training_minibatches:
+        #     for j in range(C):
+        #         f = m.output[ : , j, : ]
+        #         freq[j] += f.sum()
+        # freq = [f/(N*B*L) for f in freq]
+        # self.weight = torch.Tensor([1/f for f in freq])
         model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
         print(model_descriptor)
         # wrap model into nn.DataParallel if we are on a GPU machine

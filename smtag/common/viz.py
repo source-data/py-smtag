@@ -100,7 +100,7 @@ class Show():
         if model is not None:
             out += "__Predicted:__" + self.nl + self.nl
             out += self.print_pretty_color(prediction, text) + self.nl + self.nl
-            out += self.print_pretty(torch.sigmoid(prediction)) + self.nl + self.nl
+            out += self.print_pretty(prediction) + self.nl + self.nl
             # thresh = torch.Tensor([0.5])
             # if torch.cuda.device_count() > 0:
             #     thresh = thresh.cuda()
@@ -118,7 +118,7 @@ class Show():
     SYMBOLS = ["_",".",":","^","|"] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1
 
     def print_pretty(self, features):
-        f = features
+        f = torch.sigmoid(features)
         # f = F.softmax(f, 1)
         # f -= f.min()
         # f /= f.max()
