@@ -251,6 +251,7 @@ class NeoImport():
 
     @staticmethod
     def save_xml_files(split_dataset, data_dir, namebase):
+        import pdb; pdb.set_trace()
         with cd(data_dir):
             print("saving to: ", data_dir)
             if namebase in os.listdir():
@@ -435,18 +436,17 @@ def main():
     if args.working_directory:
         config.working_directory = args.working_directory
 
-    with cd(config.working_directory):
-        # check first that options['namebase'] does not exist yet
-        G = NeoImport(options)
-        if not os.path.isdir(os.path.join(config.data_dir, options['namebase'])):
-            errors = G.neo2xml(options['source'])
-            trainset, validation, testset = G.split_dataset(options['validation_fraction'], options['testset_fraction'])
-            G.save_xml_files({'train': trainset, 'valid': validation, 'test': testset}, config.data_dir, options['namebase'])
-            G.log_errors(errors)
-        else:
-            print("data {} already exists. Trying to download images only.".format(options['namebase']))
-        # attempts to finish downloading images
-        G.download_images(config.data_dir, options['namebase'])
+    # check first that options['namebase'] does not exist yet
+    G = NeoImport(options)
+    if not os.path.isdir(os.path.join(config.data_dir, options['namebase'])):
+        errors = G.neo2xml(options['source'])
+        trainset, validation, testset = G.split_dataset(options['validation_fraction'], options['testset_fraction'])
+        G.save_xml_files({'train': trainset, 'valid': validation, 'test': testset}, config.data_dir, options['namebase'])
+        G.log_errors(errors)
+    else:
+        print("data {} already exists. Trying to download images only.".format(options['namebase']))
+    # attempts to finish downloading images
+    G.download_images(config.data_dir, options['namebase'])
 
 if __name__ == "__main__":
     main()

@@ -205,7 +205,7 @@ class Loader:
 
             # INPUT: IMAGE VISUAL CONTEXT FEATURES AS ADDITIONAL INPUT
             if self.use_viz_context:
-                dataset.input[index, supp_input:supp_input+self.nf_viz_context, : ] = viz_context[index, : ].repeat(1, 1, L)
+                dataset.input[index, supp_input:supp_input+self.nf_viz_context, : ] = viz_context[index, : ]
                 supp_input += self.nf_viz_context
 
             # INPUT: FEATURES AS ADDITIONAL INPUT
@@ -233,9 +233,9 @@ class Loader:
                 no_tag_feature = no_tag_feature == 0 # set to 1 for char not tagged and to 0 for tagged characters
                 dataset.output[index, self.index_of_notag_class, : ] = no_tag_feature.unsqueeze(0).unsqueeze(0)
 
-            # TAKE ARGMAX OF OUTPUT HERE?
-            # dataset.output = dataset.output.argmax(1)
-            # dataset.output.nf = 1
+        # TAKE ARGMAX OF OUTPUT HERE?
+        # dataset.output = dataset.output.argmax(1)
+        # dataset.output.nf = 1
 
         print("\ndone\n")
         return dataset

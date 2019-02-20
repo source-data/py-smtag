@@ -14,6 +14,7 @@ import torchvision
 #https://discuss.pxtorch.org/t/torchvision-url-error-when-loading-pretrained-model/2544/6
 from torchvision.models import vgg19, resnet152
 from torchvision import transforms
+from tensorboardX import SummaryWriter
 import numpy as np
 from sklearn.decomposition import PCA
 from ..common.utils import cd
@@ -147,20 +148,16 @@ class PCA_reducer():
         N = int(len(filenames) * fraction_images_pca_model)
         print(f"training pca model on {N} viz context files")
         filenames = filenames[:N]
-        # viz = VisualContext(path=path, selected_output_module=-1)
-        # _, C, H, W = viz.net(torch.zeros(1, 3, 224, 224)).size()
-        # print("visual context has dimensions (C x H x W):", " x ".join([str(C), str(H), str(W)]))
-        # t = torch.Tensor(N, C, H, W)
         t = []
         for i, filename in enumerate(filenames):
-            progress(i, len(filenames), filename)
-            # t[i] = viz.get_context(filenames[i])
-            t.append(torch.load(os.path.join(self.path, filename))) # instead of passing images every time through vgg
+            progress(i, len(filenames), f"{filename}                    ")
+            t.append(torch.load(os.path.join(self.path, filename)))
         print()
         t = torch.cat(t, 0)
         print("Fitting PCA model")
         self.pca_model = PCA(n_components=self.k, svd_solver='randomized').fit(self.convert2np(t)) # approximation for large datasets
         print("Done!")
+        return t, filenames[:N] # N x C x H x W
 
     def convert2np(self, x):
         B, C, H, W = x.size()
@@ -185,11 +182,13 @@ class PCA_reducer():
 
 def main():
     parser = argparse.ArgumentParser(description='Exracting visual context vectors from images', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--image_dir', default=config.image_dir, help='Path to image directory')
+    parser.add_argument('image_dir', nargs="?" , default=config.image_dir, help='Path to image directory')
+    parser.add_argument('-F', '--fraction', type=float, default = config.fraction_images_pca_model, help='Fraction of images to be used to train pca model.')
     parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
 
     args = parser.parse_args()
     image_dir = args.image_dir
+    fraction_images_pca_model = args.fraction
     if args.working_directory:
         config.working_directory = args.working_directory
     with cd(config.working_directory):
@@ -198,11 +197,15 @@ def main():
         viz.run()
 
         pca = PCA_reducer(config.k_pca_components, image_dir)
-        pca.train()
+        trainset, filenames = pca.train(fraction_images_pca_model)
+        reduced = pca.reduce(trainset)
+        writer = SummaryWriter()
+        writer.add_embedding(trainset.transpose(1, 3).transpose(1, 2).contiguous().view(-1, trainset.size(1)), tag="trainset") # # N x C x H x W --> # N*H*W x C
+        writer.add_embedding(reduced.view(reduced.size(0), pca.k, config.img_grid_size, config.img_grid_size).transpose(1, 3).transpose(1, 2).contiguous().view(-1, pca.k), tag="reduced")
         pca_reducer_filename = os.path.join(pca.path, "pca_model.pickle")
         with open(pca_reducer_filename, "wb") as f:
             pickle.dump(pca, f)
-            print("PCA model saved to {}")
+            print(f"PCA model saved to {pca_reducer_filename}")
 
 if __name__ == '__main__':
     main()

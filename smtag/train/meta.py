@@ -146,15 +146,15 @@ def main():
 
     if arguments.working_directory:
         config.working_directory = arguments.working_directory
-    with cd(config.working_directory):
-        metatrainer = Meta(opt)
-        if not hyperparams:
-            metatrainer.simple_training()
-        else:
-            scan_name = 'scan_'
-            scan_name += "_".join([k for k in hyperparams])
-            scan_name += "_X"+str(iterations)
-            metatrainer.hyper_scan(iterations, hyperparams, scan_name)
+    #with cd(config.working_directory):
+    metatrainer = Meta(opt)
+    if not hyperparams:
+        metatrainer.simple_training()
+    else:
+        scan_name = 'scan_'
+        scan_name += "_".join([k for k in hyperparams])
+        scan_name += "_X"+str(iterations)
+        metatrainer.hyper_scan(iterations, hyperparams, scan_name)
 
 if __name__ == '__main__':
     main()

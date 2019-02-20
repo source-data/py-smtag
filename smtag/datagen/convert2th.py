@@ -50,7 +50,7 @@ class Sampler():
         self.viz_cxt_features = config.viz_cxt_features
         self.k_components = config.k_pca_components
         try:
-            with open(os.path.join(config.image_dir, "pca_reducer.pickle"), "rb") as f:
+            with open(os.path.join(config.image_dir, "pca_model.pickle"), "rb") as f:
                 self.pca = pickle.load(f)
         except:
             self.pca = None
@@ -254,13 +254,17 @@ class Sampler():
         if ocr_context4th:
             assert len(ocr_context4th) == N_processed, f"{len(ocr_context4th)} != {N_processed}"
             ocr_context4th = torch.cat(ocr_context4th, 0)
+        else:
+            ocr_context4th = None
         
         if viz_context4th:
             assert len(viz_context4th) == N_processed
             # viz_context4th is list of 2D examples x full visual context features
-            viz_context4th = torch.cat(viz_context, 0) # 4D N x full viz ctxt features x grid_dim x grid_dim
+            viz_context4th = torch.cat(viz_context4th, 0) # 4D N x full viz ctxt features x grid_dim x grid_dim
             # PCA of viz_context here with pre-trained pca model to reduce nummber of visual context features
             viz_context4th = self.pca.reduce(viz_context4th) # 2D N x viz_ctx_features
+        else:
+            viz_context4th = None
 
         Sampler.show_stats(length_stats, skipped_examples, N)
         if self.verbose:
@@ -306,7 +310,7 @@ class EncodedExample():
         self._features = torch.load(os.path.join(path, 'features.pyth')).byte()
         if os.path.exists(os.path.join(path, 'ocr_context.pyth')):
             self._ocr_context = torch.load(os.path.join(path, 'ocr_context.pyth')) # this is float()
-        if os.path.exists(os.path.join('viz_context.pyth')):
+        if os.path.exists(os.path.join(path, 'viz_context.pyth')):
             self._viz_context = torch.load(os.path.join(path, 'viz_context.pyth')) # this is float()
 
     @property
@@ -493,10 +497,10 @@ class DataPreparator(object):
                     # write encoded text tensor
                     torch.save(dataset4th['textcoded4th'], 'textcoded.pyth')
                     # write ocr context features
-                    if dataset4th['ocrcontext4th']:
+                    if dataset4th['ocrcontext4th'] is not None:
                         torch.save(dataset4th['ocrcontext4th'], 'ocrcontext.pyth')
                     # write visual context features
-                    if dataset4th['vizcontext4th']:
+                    if dataset4th['vizcontext4th'] is not None:
                         torch.save(dataset4th['vizcontext4th'], 'vizcontext.pyth')
                     # write text examples into text file
                     with open("text.txt", 'w') as f:
@@ -613,12 +617,12 @@ def main():
     print(options)
     if args.working_directory:
         config.working_directory = args.working_directory
-    with cd(config.working_directory):
-        if args.brat:
-            prep = BratDataPreparator(options)
-        else:
-            prep = DataPreparator(options)
-        prep.run_on_compendium()
+    #with cd(config.working_directory):
+    if args.brat:
+        prep = BratDataPreparator(options)
+    else:
+        prep = DataPreparator(options)
+    prep.run_on_compendium()
 
 if __name__ == "__main__":
     main()

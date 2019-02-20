@@ -37,7 +37,7 @@ def token2codes(token_list: List, prediction: Tensor3D) -> Tensor2D:
         for k in range(nf):
             scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averagin the prediction over the corresponding fragment
     codes = scores.argmax(0) # the codes are the indices of features with maximum score
-    scores = scores[codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE IDENTIFIED CLASS/CODE
+    scores = scores[codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
     return codes, scores
 
 Tensor3D = torch.Tensor
@@ -59,7 +59,6 @@ class Decoder:
         self.semantic_groups = semantic_groups
         self.concepts = OrderedDict()
         self.scores = OrderedDict() # torch.zeros(N_group, N_token)
-        # self.char_level_codes = OrderedDict() # torch.zeros[N_group, len(input_string)] # character level track of feature codes; useful for anonymization
         self.char_level_concepts = OrderedDict()
 
     def decode(self): # separate processing from initialization to make cloning more efficient
@@ -76,16 +75,13 @@ class Decoder:
             codes, scores = token2codes(token_list, prediction_slice)
             self.concepts[group] = [self.semantic_groups[group][code] for code in codes]
             self.scores[group] = scores
-            # self.char_level_codes[group] = prediction_slice.argmax(0) # initialize with argmax of prediction, 1D
             self.char_level_concepts[group] = [Catalogue.UNTAGGED for _ in range(len(self.input_string))] # initialize as untagged
-            for token, code, concept in zip(token_list, codes, self.concepts[group]): # update with token-level code
-                # self.char_level_codes[group][token.start:token.stop] = code
+            for token, concept in zip(token_list, self.concepts[group]):
                 self.char_level_concepts[group][token.start:token.stop] = [concept] * (token.stop - token.start)
 
     def fuse_adjacent(self):
         if len(self.token_list) > 1:
             i = 0
-
             while i < (len(self.token_list)-1): # len(self.token_list) decreases as token are fused
                 t = self.token_list[i]
                 next_t = self.token_list[i+1]
@@ -118,7 +114,6 @@ class Decoder:
 
 
     def erase_with_(self, other: 'Decoder', erase_with: Tuple, target: Tuple):
-        # self.prediction untouched ? or zeros at marks that need to be removed?
         erase_with_group, erase_with_concept = erase_with
         target_group, target_concept = target
         untagged_code = Catalogue.UNTAGGED.my_index(self.semantic_groups[target_group]) # finds where the UNTAGGED feature is
@@ -126,7 +121,6 @@ class Decoder:
             if (type(my_concept) == type(target_concept)) and (type(other_concept) == type(erase_with_concept)): # DOES NOT WORK BUT WORKS IF type() == type() because different instances. Bad implementation ni mapper
                 self.concepts[target_group][i] = Catalogue.UNTAGGED
                 self.scores[target_group][i] = 0
-                # self.char_level_codes[token.start:token.stop] = untagged_code
                 self.char_level_concepts[target_group][token.start:token.stop] = [Catalogue.UNTAGGED] * (token.stop - token.start)
                 self.prediction[0, : , token.start:token.stop] = 0 # sets all the features to zero
                 self.prediction[0, untagged_code , token.start:token.stop] = 1 # set the untagged features to 1, do we need this?
@@ -140,7 +134,6 @@ class Decoder:
         self.semantic_groups.update(other.semantic_groups)
         self.concepts.update(other.concepts)
         self.scores.update(other.scores)
-        # self.char_level_codes.update(other.char_level_codes)
         self.char_level_concepts.update(other.char_level_concepts)
         self.prediction = torch.cat([self.prediction, other.prediction.clone()], 1)
 
@@ -149,7 +142,6 @@ class Decoder:
         other.token_list = deepcopy(self.token_list)
         other.concepts = deepcopy(self.concepts)
         other.scores = OrderedDict([(group, self.scores[group].clone()) for group in self.scores])
-        # other.char_level_codes = OrderedDict([(group, self.char_level_codes[group].clone()) for group in self.char_level_codes])
         other.char_level_concepts = OrderedDict([(group, deepcopy(self.char_level_concepts[group])) for group in self.char_level_concepts])
         return other
 
