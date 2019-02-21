@@ -64,15 +64,14 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         prediction = prediction[ : , : , padding_length : L-padding_length]
         return prediction
 
-    def decode(self, input_str, prediction, semantic_groups):
+    def decode(self, input_str, token_list, prediction, semantic_groups):
         decoded = Decoder(input_str, prediction, self.model.semantic_groups)
-        decoded.decode()
-        decoded.fuse_adjacent()
+        decoded.decode(token_list)
         return decoded
     
-    def predict(self, input_t_string):
+    def predict(self, input_t_string, token_list):
         prediction = self.forward(input_t_string)
-        decoded = self.decode(str(input_t_string), prediction, self.model.semantic_groups)
+        decoded = self.decode(str(input_t_string), token_list, prediction, self.model.semantic_groups)
         return decoded
 
 class ContextualPredictor(Predictor):
@@ -99,5 +98,6 @@ class ContextualPredictor(Predictor):
             prediction.append(self.forward(anonymized_t)) # prediction is 3D 1 x C x L
         prediction = torch.cat(prediction, 1)
         input_string = for_anonymization.input_string
-        decoded = self.decode(input_string, prediction, self.model.semantic_groups) # input_string will be tokenized again; a waste, but maybe not worth the complication; could have an *args or somethign
+        token_list = for_anonymization.token_list
+        decoded = self.decode(input_string, token_list, prediction, self.model.semantic_groups) # input_string will be tokenized again; a waste, but maybe not worth the complication; could have an *args or somethign
         return decoded
