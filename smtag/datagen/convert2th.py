@@ -373,7 +373,7 @@ class DataPreparator(object):
             processed_text = ''.join([s for s in processed_xml.itertext()])
             path_to_encoded = os.path.join(config.encoded_dir, self.namebase, subset, prov)
             progress(i, N, "{}".format(prov+"              "))
-            if not os.path.exists(path_to_encoded): #path_to_example):
+            if not os.path.exists(path_to_encoded): # not yet encoded
                 if original_text:
                     # ENCODING XML
                     encoded_features = XMLEncoder.encode(processed_xml) # convert to tensor already here; 
@@ -381,8 +381,8 @@ class DataPreparator(object):
                     # OCR AND VIZ CONTEXT HAPPENS HERE ! Needs the unaltered un processed original text for alignment
                     ocr_context = None
                     viz_context = None
-                    if (self.viz or self.ocr) and graphic_filename is None:
-                        print("\nskipped example prov={}: no graphic file info".format(prov))
+                    if (self.viz or self.ocr) and (graphic_filename is None or not os.path.exists(os.path.join(config.image_dir, graphic_filename))):
+                        print("\nskipped example prov={}: graphic file {} not available".format(prov, graphic_filename))
                     elif graphic_filename is not None:
                         if self.ocr:
                             ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
@@ -468,7 +468,7 @@ class DataPreparator(object):
                                 basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
                                 graphic_filename = basename + '.jpg'
                             else:
-                                print('\nno graphic element found')
+                                print('\nno graphic element found in the xml')
                                 graphic_filename = None
                             examples.append({
                                 'xml': e,
