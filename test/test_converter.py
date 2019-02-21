@@ -9,14 +9,17 @@ from smtag.common.converter import Converter, TString
 from smtag.common.utils import timer
 from timeit import timeit
 
+from smtag import config
+
+NBITS = config.nbits
+
 class ConverterTest(SmtagTestCase):
     def setUp(self):
         self.input_string = u"😎😇"
         code = 0x03B1 #GREEK SMALL LETTER ALPHA Unicode: U+03B1, UTF-8: CE B1
         self.single_character = chr(code) # python 2: unichr(code)
-        bits = list("{0:032b}".format(code))
-        bits.reverse()
-        self.tensor = torch.Tensor([int(b) for b in bits]).resize_(1,32,1)
+        bits = [code >> i & 1 for i in range(NBITS)]
+        self.tensor = torch.Tensor([int(b) for b in bits]).resize_(1,NBITS,1)
 
     def test_encode_string_into_tensor(self):
         converted = Converter.t_encode(self.single_character)

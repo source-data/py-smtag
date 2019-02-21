@@ -52,6 +52,7 @@ class Meta():
             model = load_model(opt['modelname'])
         else:
             model = SmtagModel(opt)
+            print(model)
         train_loss, valid_loss, precision, recall, f1 = Trainer(training_minibatches, validation_minibatches, model).train()
         return model, {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
 
@@ -90,6 +91,7 @@ def main():
     parser.add_argument('-Z', '--minibatch_size', default=32, help='Minibatch size.')
     parser.add_argument('-R', '--learning_rate', default=0.01, type=float, help='Learning rate.')
     parser.add_argument('-D', '--dropout_rate', default=0.1, type=float, help='Dropout rate.')
+    parser.add_argument('-S', '--no_skip', action='store_true', help="Use this option to __deactivate__ skip links in unet2 model.")
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
     parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')
     parser.add_argument('-a', '--overlap_features', default='', help='Features that should be combined by intersecting them (equivalent to AND operation) (use quotes if comma+space delimited).')
@@ -106,7 +108,6 @@ def main():
     parser.add_argument('--ocr2', action="store_true", help='Use as additional input orientation of words extracted by OCR from the illustration.')
     parser.add_argument('--viz', action="store_true", help='Use as additional visual features extracted from the illustration.')
 
-
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
     iterations = int(arguments.iterations)
@@ -115,6 +116,7 @@ def main():
     opt['modelname'] = arguments.model
     opt['learning_rate'] = float(arguments.learning_rate)
     opt['dropout'] = float(arguments.dropout_rate)
+    opt['skip'] = not arguments.no_skip
     opt['epochs'] = int(arguments.epochs)
     opt['minibatch_size'] = int(arguments.minibatch_size)
     output_features = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
@@ -144,15 +146,15 @@ def main():
 
     if arguments.working_directory:
         config.working_directory = arguments.working_directory
-    with cd(config.working_directory):
-        metatrainer = Meta(opt)
-        if not hyperparams:
-            metatrainer.simple_training()
-        else:
-            scan_name = 'scan_'
-            scan_name += "_".join([k for k in hyperparams])
-            scan_name += "_X"+str(iterations)
-            metatrainer.hyper_scan(iterations, hyperparams, scan_name)
+    #with cd(config.working_directory):
+    metatrainer = Meta(opt)
+    if not hyperparams:
+        metatrainer.simple_training()
+    else:
+        scan_name = 'scan_'
+        scan_name += "_".join([k for k in hyperparams])
+        scan_name += "_X"+str(iterations)
+        metatrainer.hyper_scan(iterations, hyperparams, scan_name)
 
 if __name__ == '__main__':
     main()

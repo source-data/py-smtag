@@ -53,6 +53,9 @@ class Concept(object):
     def __str__(self):
         return "{}: '{}' ({})".format(self.category, self.label, "; ".join(filter(None, [self.type, self.role])))
 
+    def __repr__(self):
+        return "{}".format(self.label)
+
     def __add__(self, x): # maybe misleading because not commutative
         assert(self.category == x.category or self.category == "" or x.category == "") # cannot combine concepts across categories but can do with category-less object
         y = Concept()
@@ -69,14 +72,15 @@ class Concept(object):
         y.for_serialization += x.for_serialization
         return y
 
-    def equal_type(self, x):
+    def equal_class(self, x):
         # we neglect differences in role to call it 'equal'; ok to find concept in list of entities but not very general.
-        return self.category == x.category and self.type == x.type
+        # return self.category == x.category and self.type == x.type
+        return type(x) == type(self)
 
     def my_index(self, list):
         i = 0
         for c in list:
-            if self.equal_type(c):
+            if self.equal_class(c):
                 return i
             i += 1
         if i == len(list):
@@ -108,33 +112,34 @@ class Boundary(Concept):
 
 class Catalogue():
 
-    SMALL_MOLECULE = Entity('small_molecule', [('type', 'small_molecule')], 0.6)
-    GENE = Entity('gene', [('type', 'gene')], 0.4)
-    PROTEIN = Entity('protein', [('type', 'protein')], 0.4)
-    SUBCELLULAR = Entity('subcellular', [('type', 'subcellular')], 0.4)
-    CELL = Entity('cell', [('type', 'cell')], 0.5)
-    TISSUE = Entity('tissue', [('type', 'tissue')], 0.4)
-    ORGANISM = Entity('organism', [('type', 'organism')], 0.6)
-    UNDEFINED = Entity('undefined', [('type', 'undefined')], 0.5)
-    INTERVENTION = Role('intervention', [('role', 'intervention')], 0.4)
-    MEASUREMENT = Role('assayed', [('role', 'assayed')], 0.4)
-    NORMALIZING = Role('normalizing', [('role', 'normalizing')], 0.5)
-    REPORTER = Role('reporter', [('role', 'reporter')], 0.8)
-    EXP_VAR = Role('experiment', [('role', 'experiment')], 0.5)
-    GENERIC = Role('component', [('role', 'component')], 0.5)
-    EXP_ASSAY = Category('assay', [('category', 'assay')], 0.6)
-    ENTITY = Category('entity', [('category', 'entity')], 0.5)
-    TIME = Category('time', [('category', 'assay')], 0.5)
-    PHYSICAL_VAR = Category('physical', [('category', 'physical')], 0.5)
-    DISEASE = Category('disease', [('category', 'disease')], 0.5)
+    SMALL_MOLECULE = Entity('small_molecule', ['type', 'small_molecule'], 0.6)
+    GENE = Entity('gene', ['type', 'gene'], 0.4)
+    PROTEIN = Entity('protein', ['type', 'protein'], 0.4)
+    SUBCELLULAR = Entity('subcellular', ['type', 'subcellular'], 0.4)
+    CELL = Entity('cell', ['type', 'cell'], 0.5)
+    TISSUE = Entity('tissue', ['type', 'tissue'], 0.4)
+    ORGANISM = Entity('organism', ['type', 'organism'], 0.6)
+    UNDEFINED = Entity('undefined', ['type', 'undefined'], 0.5)
+    INTERVENTION = Role('intervention', ['role', 'intervention'], 0.4)
+    MEASUREMENT = Role('assayed', ['role', 'assayed'], 0.4)
+    NORMALIZING = Role('normalizing', ['role', 'normalizing'], 0.5)
+    REPORTER = Role('reporter', ['role', 'reporter'], 0.8)
+    EXP_VAR = Role('experiment', ['role', 'experiment'], 0.5)
+    GENERIC = Role('component', ['role', 'component'], 0.5)
+    EXP_ASSAY = Category('assay', ['category', 'assay'], 0.6)
+    ENTITY = Category('entity', ['category', 'entity'], 0.5)
+    TIME = Category('time', ['category', 'assay'], 0.5)
+    PHYSICAL_VAR = Category('physical', ['category', 'physical'], 0.5)
+    DISEASE = Category('disease', ['category', 'disease'], 0.5)
     PANEL_START = Boundary('panel_start','sd-panel',  0.5)
     PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
-    GENEPROD = Entity('geneprod', [('type', 'geneprod')], 0.4)
+    GENEPROD = Entity('geneprod', ['type', 'geneprod'], 0.4)
+    UNTAGGED = Concept('untagged', [])
 
     # the order of the Concepts in the catalogue matters and determines the order in which these concepts are expected in datasets used for training
     standard_channels = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,
             INTERVENTION, MEASUREMENT, NORMALIZING, REPORTER, EXP_VAR, GENERIC,
-            EXP_ASSAY, ENTITY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD]
+            EXP_ASSAY, ENTITY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD, UNTAGGED]
 
 
     @staticmethod

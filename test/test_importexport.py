@@ -17,12 +17,16 @@ from smtag.common.progress import progress
 from smtag.common.mapper import Catalogue
 from smtag.common.importexport import export_model, load_model
 
+from smtag import config
+
+NBITS = config.nbits
+
 #maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
 
 class FakeModel(nn.Module):
     def __init__(self):
         super(FakeModel, self).__init__()
-        self.conv = nn.Conv1d(32,1,1,1)
+        self.conv = nn.Conv1d(NBITS,1,1,1)
         self.relu = nn.ReLU(True)
         self.sigmoid = nn.Sigmoid()
 
@@ -42,7 +46,7 @@ class ImportExportTest(SmtagTestCase):
         Training a model with realistic structure with a single example just to make it converge for testing.
         '''
         self.text_example = "AAA XXX AAA"
-        self.x = Converter.t_encode(self.text_example) #torch.ones(1, 32, len(self.text_example)) #
+        self.x = Converter.t_encode(self.text_example) #torch.ones(1, NBITS, len(self.text_example)) #
         self.y = torch.Tensor(#"A A A   X X X   A A A"
                               # 0 0 0 0 1 1 1 0 0 0 0
                              [[[0,0,0,0,1,1,1,0,0,0,0]]])

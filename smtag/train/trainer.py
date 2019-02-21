@@ -3,15 +3,19 @@
 
 import sys
 import resource
-import gc
+from random import randrange
+from math import log
 import torch
 from torch import nn, optim
+from torch.nn import functional as F
 from random import shuffle
 import logging
 from ..common.importexport import export_model
 from ..common.viz import Show, Plotter
 from ..common.progress import progress
 from .evaluator import Accuracy
+
+from .. import config
 
 class Trainer:
 
@@ -21,15 +25,25 @@ class Trainer:
         # in case we will need them during accuracy monitoring (for example to binarize output with feature-specific thresholds)
         # on a GPU machine, the model is wrapped into a nn.DataParallel object and the opt and output_semantics attributes would not be directly accessible
         self.opt = model.opt
-        self.output_semantics = model.output_semantics #
+        self.output_semantics = model.output_semantics
+        # N = len(training_minibatches)
+        # B, C, L = training_minibatches[0].output.size()
+        # freq = [0] * C 
+        # for m in training_minibatches:
+        #     for j in range(C):
+        #         f = m.output[ : , j, : ]
+        #         freq[j] += f.sum()
+        # freq = [f/(N*B*L) for f in freq]
+        # self.weight = torch.Tensor([1/f for f in freq])
         model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
         print(model_descriptor)
         # wrap model into nn.DataParallel if we are on a GPU machine
-        if torch.cuda.device_count() > 0:
+        if torch.cuda.is_available():
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
             self.model.cuda()
             self.model.output_semantics = self.output_semantics
+            self.weight = self.weight.cuda()
             self.cuda_on = True
         else:
             self.cuda_on = False
@@ -37,26 +51,28 @@ class Trainer:
         self.minibatches = training_minibatches
         self.validation_minibatches = validation_minibatches
         self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
-        self.loss_fn = nn.BCELoss()
-        self.markdown = Show('markdown')
         self.console = Show('console')
 
     def validate(self):
         loss = 0
-        for m in self.validation_minibatches: # alternatively PICK one random minibatch, probably enough
-            m_input = m.input
-            m_output = m.output
-            if self.cuda_on:
-                m_input = m_input.cuda()
-                m_output = m_output.cuda()
-            self.model.eval()
+        for m in self.validation_minibatches:
             with torch.no_grad():
-                prediction = self.model(m_input)
-                loss += self.loss_fn(prediction, m_output)
-        self.model.train()
-        avg_loss = loss / self.validation_minibatches.minibatch_number
-        return avg_loss
+                self.model.eval()
+                loss += self.predict(m)
+                self.model.train()
+        loss /= self.validation_minibatches.minibatch_number
+        return loss
 
+    def predict(self, batch):
+        x = batch.input
+        y = batch.output
+        if self.cuda_on:
+            x = x.cuda()
+            y = y.cuda()
+        y_hat = self.model(x)
+        loss = F.nll_loss(y_hat, y.argmax(1))
+        return loss
+    
     def train(self):
         self.learning_rate = self.opt['learning_rate']
         self.epochs = self.opt['epochs']
@@ -69,25 +85,20 @@ class Trainer:
 
             for i, m in enumerate(self.minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
-                m_input = m.input
-                m_output = m.output
-                if self.cuda_on:
-                    m_input = m_input.cuda()
-                    m_output = m_output.cuda()
                 self.optimizer.zero_grad()
-                prediction = self.model(m_input)
-                loss = self.loss_fn(prediction, m_output)
+                loss = self.predict(m)
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
-                #print(self.console.example(self.validation_minibatches, self.model))
 
             # Logging/plotting
             avg_train_loss = avg_train_loss / N
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
             precision, recall, f1 = self.evaluator.run()
-            self.plot.add_scalars("f1", {str(concept): f1[i] for i, concept in enumerate(self.output_semantics)}, e)
+            self.plot.add_scalars("f1", {str(i): f1[i] for i in range(self.validation_minibatches.nf_output)}, e)
+            self.plot.add_scalars("precision", {str(i): precision[i] for i in range(self.validation_minibatches.nf_output)}, e)
+            self.plot.add_scalars("recall", {str(i): recall[i] for i in range(self.validation_minibatches.nf_output)}, e)
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
             print(self.console.example(self.validation_minibatches, self.model))
             # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)

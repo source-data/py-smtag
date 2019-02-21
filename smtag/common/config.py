@@ -22,12 +22,23 @@ class Config():
     _runs_log_dir_name = "runs" # dir for tensorboard logs
     _scans_dir_name    = "scans" # results of hyperparameter scans
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
-    _viz_cxt_features  = 576 # number of features used from pre-trained visual analysis network
-    _nbits             = 32 # number of features use to encode characters
+    _k_pca_components = 10 # number of PCA components to reduce visual context features
+    _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
+    _nbits             = 32 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
-    _min_padding       = 20 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
-    _min_size          = 140 # input needs to be of minimal size to survive successive convergent convolutions; ideally, should be calculated analytically
+    _padding_char      = " " # character used to padd strings; would be smarter to use character different from space
+    _min_padding       = 20 # 380 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
+    _min_size          = 380 # input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
     _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
+    _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
+
+    _model_assay = "10X_L400_all_large_padding_no_ocr_assay_2019-02-12-15-18.zip"
+    _model_entity = "10X_L400_all_large_padding_no_ocr_small_molecule_geneprod_subcellular_cell_tissue_organism_2019-02-11-18-08.zip"
+    _model_geneprod_role = "10X_L400_geneprod_anonym_not_reporter_large_padding_no_ocr_intervention_assayed_2019-02-11-23-22.zip"
+    _model_geneprod_reporter = "10X_L400_geneprod_exclusive_padding_no_ocr_reporter_2019-02-12-10-57.zip"
+    _model_molecule_role = "10X_L400_small_molecule_anonym_large_padding_no_ocr_intervention_assayed_2019-02-18-15-32.zip"
+    _model_panel_stop = "10X_L1200_all_large_padding_no_ocr_panel_stop_2019-02-18-17-00.zip"
+    _model_disease = "10X_L1200_NCBI_disease_augmented_large_padding_disease_2019-02-12-17-46.zip"
 
 
     def __init__(self):
@@ -64,17 +75,32 @@ class Config():
         """
         return os.path.join(self.working_directory, self._scans_dir_name)
     @property
+    def weight(self):
+        return self._weight
+    @property
     def img_grid_size(self):
         """
         Grid size used to encode the location of elements on images.
         """
         return self._img_grid_size
     @property
+    def k_pca_components(self):
+        """
+        The number of components of the PCA model used to reduce visual context features.
+        """
+        return self._k_pca_components
+    @property
     def viz_cxt_features(self):
         """
-        Number of features used from output of pre-trained visual analysis network
+        The number of visual context features used (the number of PCA components * positions on the image grid)
         """
-        return self._viz_cxt_features
+        return self.k_pca_components * (self.img_grid_size ** 2)
+    @property
+    def fraction_images_pca_model(self):
+        """
+        Fraction of the available visual context files to use to train the PCA model that reduces visual context features.
+        """
+        return self._fraction_images_pca_model
     @property
     def nbits(self):
         """
@@ -87,6 +113,12 @@ class Config():
         Substitution special xml-compatible character used to mark anonymized entities.
         """
         return self._marking_char
+    @property
+    def padding_char(self):
+        """
+        Special character used to pad strings.
+        """
+        return self._padding_char
     @property
     def min_padding(self):
         """
@@ -105,5 +137,32 @@ class Config():
         Threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
         """
         return self._default_threshold
+    @property
+    def fusion_threshold(self):
+        """
+        Threshold to allow adjascent token with identical features to be fused
+        """
+        return self._fusion_threshold
+    @property
+    def model_assay(self):
+        return self._model_assay
+    @property
+    def model_entity(self):
+        return self._model_entity
+    @property
+    def model_geneprod_role(self):
+        return self._model_geneprod_role
+    @property
+    def model_geneprod_reporter(self):
+        return self._model_geneprod_reporter
+    @property
+    def model_molecule_role(self):
+        return self._model_molecule_role
+    @property
+    def model_panel_stop(self):
+        return self._model_panel_stop
+    @property
+    def model_disease(self):
+        return self._model_disease
 
 config = Config()

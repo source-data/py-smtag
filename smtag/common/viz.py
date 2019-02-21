@@ -3,12 +3,14 @@
 
 import math
 import torch
+from torch.nn import functional as F
 from random import random
-from .converter import Converter
+from .converter import TString
 from ..train.evaluator import Accuracy
 from tensorboardX import SummaryWriter
 from .. import config
 
+NBITS = config.nbits
 MARKING_CHAR = config.marking_char
 
 #for code in {1..256}; do printf "\e[38;5;${code}m"$code"\e[0m";echo; done
@@ -59,6 +61,8 @@ class Show():
         "markdown": "\n"
     }
 
+    N_COLORS = len(COLORS["console"])
+
     def __init__(self, format="markdown"):
         self.format = format
         self.col = Show.COLORS[format]
@@ -83,10 +87,10 @@ class Show():
             prediction = model(input)
             model.train()
 
-        text = Converter.t_decode(input[[0], 0:config.nbits, : ]) #sometimes input has more than 32 features if feature2input option was chosen
+        text = str(TString(input[[0], 0:config.nbits, : ])) #sometimes input has more than NBITS features if feature2input option was chosen
         if nf_input > config.nbits:
             out += "\nAdditional input features:"+self.nl+self.nl
-            out += "    "+self.print_pretty(input[[0], 32:nf_input, : ]) + self.nl + self.nl
+            out += "    "+self.print_pretty(input[[0], NBITS:nf_input, : ]) + self.nl + self.nl
 
         out+= "\n__Expected:__" + "({})".format(provenance.strip()) + self.nl + self.nl
         # out += self.print_pretty_color(target, original_text) + self.nl + self.nl# visualize anonymized characters with a symbol
@@ -114,12 +118,16 @@ class Show():
     SYMBOLS = ["_",".",":","^","|"] # for bins 0 to 0.1, 0.11 to 0.2, 0.21 to 0.3, ..., 0.91 to 1
 
     def print_pretty(self, features):
+        f = torch.sigmoid(features)
+        # f = F.softmax(f, 1)
+        # f -= f.min()
+        # f /= f.max()
         out = ""
         N = len(Show.SYMBOLS) # = 5
         for i in range(features.size(1)):
             track = ""
             for j in range(features.size(2)):
-                k = min(N-1, math.floor(N*features[0, i, j])) # 0 -> 0; 0.2 -> 1; 0.4 -> 2; 0.6 -> 3; 0.8 -> 4; 1.0 -> 4
+                k = min(N-1, math.floor(N*f[0, i, j])) # 0 -> 0; 0.2 -> 1; 0.4 -> 2; 0.6 -> 3; 0.8 -> 4; 1.0 -> 4
                 track += Show.SYMBOLS[k]
             out += "Tagging track {}".format(i) + self.nl + self.nl
             out += "    " + track + self.nl + self.nl
@@ -127,24 +135,11 @@ class Show():
 
     def print_pretty_color(self, features, text):
         text = text.replace(config.marking_char, '#')
-        nf = features.size(1)
         colored_track = "    "# markdown fixeed font
-        pos = 0
-        for c in text:
-            max  = 1
-            max_f = -1
-            for f in range(nf): # range(2) is 0, 1 should be blue red
-                score = 0
-                if not math.isnan(features[0, f, pos]): # can be NaN
-                    score = math.floor(features[0, f, pos]*10)
-                else:
-                    print("NaN value!!!", features[0, f, : ])
-                if score > max:
-                     max = score
-                     max_f = f
-            if text:
-                colored_track += "{}{}{}".format(self.col[max_f + 1], c, self.close)
-            pos = pos + 1
+        nf = features.size(1)
+        codes = features.argmax(1).view(-1)
+        for code, c in zip(codes, text):
+            colored_track += "{}{}{}".format(self.col[nf - 1 - int(code.item())], c, self.close)
         return colored_track
 
 class Plotter(SummaryWriter):

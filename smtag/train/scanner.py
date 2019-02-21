@@ -101,8 +101,8 @@ class HyperScan():
         randparam = {
             'log_lr': uniform(-4, -1),
             'log_batch_size': uniform(4, 8),
-            'depth': randint(2,4),
-            'nf': randint(5,20),
+            'depth': randint(1,4),
+            'log_nf': randint(3, 6),
             'kernel': randint(3,10),
             'pooling': randint(1,3),
         }
@@ -115,7 +115,7 @@ class HyperScan():
         kernel_table = []
         pool_table =[]
         for _ in range(hparam['depth']):
-            nf_table.append(hparam['nf'])
+            nf_table.append(2 ** hparam['log_nf'])
             kernel_table.append(hparam['kernel'])
             pool_table.append(hparam['pooling'])
         self.opt['nf_table'] = nf_table

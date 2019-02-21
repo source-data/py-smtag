@@ -2,27 +2,38 @@
 #T. Lemberger, 2018
 
 import torch
+import torch.nn
+from torch.nn import functional as F
 from math import ceil
 from collections import namedtuple
 from ..common.converter import TString
-from .binarize import Binarized
-from .serializer import Serializer
+from .decode import Decoder
+from .markup import Serializer
 from ..common.utils import tokenize, timer
 from .. import config
 
-SPACE_ENCODED = TString(" ")
 
-class Predictor: #(nn.Module?)
+PADDING_CHAR = config.padding_char
+PADDING_CHAR_T = TString(config.padding_char)
 
-    def __init__(self, model, tag='sd-tag', format='xml'):
+class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagModel class and subclassed
+
+    def __init__(self, model: 'CombinedModel', tag='sd-tag', format='xml'):
         self.model = model
         self.tag = tag
         self.format = format
 
     def padding(self, input):
-        padding_length = ceil(max(config.min_size - len(input), config.min_padding)/2)
-        pad = SPACE_ENCODED.repeat(padding_length)
-        return pad + input + pad
+        # 0123456789012345678901234567890
+        #        this cat               len(input)==8, min_size==10, min_padding=5
+        #       +this cat+              pad to bring to min_size
+        #  _____+this cat+_____         add min_padding on both sides
+        min_size= config.min_size
+        min_padding = config.min_padding
+        padding_length = ceil(max(min_size - len(input), 0)/2) + min_padding
+        pad = PADDING_CHAR_T.repeat(padding_length)
+        padded_string = pad + input + pad
+        return padded_string
 
     def combine_with_input_features(self, input, additional_input_features=None):
         #CAUTION: should additional_input_features be cloned before modifying it?
@@ -40,64 +51,53 @@ class Predictor: #(nn.Module?)
         padded = self.padding(input)
         L = len(padded)
         padding_length = int((L - len(input)) / 2)
-        input = self.combine_with_input_features(padded, additional_input_features)
+        compbined_input = self.combine_with_input_features(padded, additional_input_features)
 
         #PREDICTION
         with torch.no_grad():
             self.model.eval()
-            prediction = self.model(input.toTensor()) #.float()
+            prediction = self.model(compbined_input.toTensor()) #.float() # prediction is 3D 1 x C x L
+            prediction = torch.sigmoid(prediction) # to get 0..1 positive scores
             self.model.train()
 
         #remove safety padding
         prediction = prediction[ : , : , padding_length : L-padding_length]
         return prediction
 
-    def pred_bin(self, input_string, prediction, output_semantics):
-        bin_pred = Binarized([str(input_string)], prediction, output_semantics) # this is where the transfer of the output semantics from the model to the binarized prediction happen; will be used for serializing
-        token_list = tokenize(str(input_string)) # needs to be string, change TString to keep string?
-        bin_pred.binarize_with_token([token_list])
-        bin_pred.fuse_adjascent()
-        return bin_pred
-
-
-class SimplePredictor(Predictor):
-
-    def __init__(self, model, tag='sd-tag', format='xml'):
-        super(SimplePredictor, self).__init__(model) # the model should carry the semantics with him, transmit it to pred and be used by Tagger.element()
-
-    def pred_binarized(self, input_t_string, output_semantics):
+    def decode(self, input_str, prediction, semantic_groups):
+        decoded = Decoder(input_str, prediction, self.model.semantic_groups)
+        decoded.decode()
+        decoded.fuse_adjacent()
+        return decoded
+    
+    def predict(self, input_t_string):
         prediction = self.forward(input_t_string)
-        return super(SimplePredictor, self).pred_bin(input_t_string, prediction, output_semantics)
-
+        decoded = self.decode(str(input_t_string), prediction, self.model.semantic_groups)
+        return decoded
 
 class ContextualPredictor(Predictor):
 
-    def __init__(self, model, tag='sd-tag', format='xml'):
-        super(ContextualPredictor, self).__init__(model)
-        self.tag = tag
-        self.format = format
+    def __init__(self, model: 'ContextCombinedModel', tag='sd-tag', format='xml') -> TString:
+        super(ContextualPredictor, self).__init__(model, tag, format)
 
-    def anonymize(self, input, marks, replacement = config.marking_char):
-        i = 0
-        res = ''
-        for c in str(input):
-            if marks[0, i] > 0.99:
-                res += replacement
-            else:
-                res += c
-            i += 1
+    @staticmethod
+    def anonymize(for_anonymization, group, concept_to_anonymize, mark_char = config.marking_char):
+        concepts = for_anonymization.concepts[group]
+        token_list = for_anonymization.token_list
+        res = list(for_anonymization.input_string)
+        for token, concept in zip(token_list, concepts):
+            if concept == concept_to_anonymize:
+                res[token.start:token.stop] = [mark_char] * token.length
+        res = "".join(res)
         return TString(res)
-        # return TString(t_replace(input.toTensor().clone(), marks, replacement.toTensor())) # cute but surprisingly slow!
 
-    def forward(self, input, marks):
-        predictions = []
-        # each anonymization needs to be done separately as it anonymize all the input features
-        for i in range(marks.size(1)):
-            anonymized_t = self.anonymize(input, marks[ : , i, : ]) # marks[ : , i, : ] is then 2D N x L
-            predictions.append(super(ContextualPredictor, self).forward(anonymized_t))
-        prediction = torch.cat(predictions, 1)
-        return prediction
-
-    def pred_binarized(self, input_t_string, marks, output_semantics):
-        prediction = self.forward(input_t_string, marks)
-        return super(ContextualPredictor, self).pred_bin(input_t_string, prediction, output_semantics)
+    def predict(self, for_anonymization: Decoder) -> Decoder:
+        prediction = []
+        for group in self.model.anonymize_with:
+            concept = self.model.anonymize_with[group]
+            anonymized_t = self.anonymize(for_anonymization, group, concept)
+            prediction.append(self.forward(anonymized_t)) # prediction is 3D 1 x C x L
+        prediction = torch.cat(prediction, 1)
+        input_string = for_anonymization.input_string
+        decoded = self.decode(input_string, prediction, self.model.semantic_groups) # input_string will be tokenized again; a waste, but maybe not worth the complication; could have an *args or somethign
+        return decoded

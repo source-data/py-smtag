@@ -24,155 +24,126 @@ import re
 from torch import nn
 import torch
 from docopt import docopt
-from xml.etree.ElementTree import tostring, fromstring
+from collections import OrderedDict
+from xml.etree.ElementTree import tostring, fromstring, Element
 from ..common.importexport import load_model
 from ..common.utils import tokenize, timer
 from ..train.builder import Concat
 from ..common.converter import TString
 from ..common.mapper import Catalogue
 from ..datagen.encoder import XMLEncoder
-from .binarize import Binarized
-from .predictor import SimplePredictor, ContextualPredictor
-from .serializer import Serializer
+from .decode import Decoder
+from .predictor import Predictor, ContextualPredictor
+from .markup import Serializer
 from .updatexml import updatexml_
 from .. import config
 from ..common.viz import Show
 
-# maybe should be in buidler.py
-class Combine(nn.Module):#SmtagModel?
+
+# from test.test_max_window_unet import test_model
+
+# maybe should be in builder.py
+class CombinedModel(nn.Module):#SmtagModel?
     '''
     This module takes a list of SmtagModels and concatenates their output along the second dimension (feature axe).
     The output_semantics keeps track of the semantics of each module in the right order.
     '''
 
-    def __init__(self, model_list):
-        super(Combine, self).__init__()
-        self.model_list = []
-        self.output_semantics = []
-        self.anonymize_with = []
-        for model, anonymize_with in model_list:
-            # need to handle empty position and return identity ?
-            name = 'unet2__'+'_'.join([str(e) for e in model.output_semantics])
-            self.add_module(name, model)
-            #print("model.output_semantics", ", ".join([str(f) for f in model.output_semantics]))
-            self.output_semantics += model.output_semantics # some of them can have > 1 output feature hence += instead of .append
-            self.anonymize_with.append(anonymize_with) # what if anonymize_with is None or empty?
+    def __init__(self, models: OrderedDict):
+        super(CombinedModel, self).__init__()
+        self.semantic_groups = OrderedDict()
+        for group in models: # replace by self.module_list = nn.ModuleList() in torch 1.0.0
+            model = models[group]
+            name = 'unet2__'+ str(group)
+            self.add_module(name, model) # self.module_list.append(model)
+            self.semantic_groups[group] = model.output_semantics
         self.concat = Concat(1)
 
     def forward(self, x):
         y_list = []
         for n, m in self.named_children():
-            if n[0:7] == 'unet2__': # the child module is one of the unet models
+            if re.match('unet2__', n): # the child module is one of the unet models
                 y_list.append(m(x))
         y = self.concat(y_list)
         return y
 
-class Connector(nn.Module):
-    '''
-    A module to connect A to B such that the output features of A (output_semantics) match the input features of B (input_semantics).
-    Usage example:
-        rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
-    '''
+class ContextCombinedModel(CombinedModel):
 
-    def __init__(self, output_semantics, input_semantics):
-        super(Connector, self).__init__()
-        # get indices of output channels (of the source module) in the order require by input semantics (of the receiving module).
-        # features should match by type or by role or by both?
-        # my_index uses equal_type() to tests for equality of the type attribute of Concept objects
-        matches = [concept.my_index(output_semantics) for concept in input_semantics] # finds the position of the required input concept in the list of output concepts
-        matches = [m for m in matches if m is not None] # filter(None, matches) would filter out zeros which would be wrong; we could also use list(filter(lambda x: x or x==0, matches)) to filter None or [] or "" but not clearer
-        self.indices = matches
-
-    def forward(self, x):
-        '''
-        returns the tensor where second dimension (channels) of x are reordered to match the needs of the downstream B module.
-        '''
-        return x[ : , self.indices, : ]
+    def __init__(self, models: OrderedDict):
+        model_list = OrderedDict()
+        self.anonymize_with = OrderedDict()
+        for group in models:
+            model, anonymization = models[group]
+            self.anonymize_with[anonymization['group']] = anonymization['concept']
+            model_list[group] = model
+        super(ContextCombinedModel, self).__init__(model_list)
 
 
 class SmtagEngine:
 
     DEBUG = False
 
-    def __init__(self, cartridge={}):
-        #change this to accept a 'cartridge' that descibes which models to load
-        if cartridge:
-            self.cartridge = cartridge
-        else:
-            self.cartridge = {
-                # '<model-family>' : [(<model>, <features that needs to be anonymized>), ...]
-                'entity': [
-                    (load_model('small_molecule.zip', config.prod_dir), ''),
-                    (load_model('geneprod.zip', config.prod_dir), ''),
-                    (load_model('subcellular.zip', config.prod_dir), ''),
-                    (load_model('cell.zip', config.prod_dir), ''),
-                    (load_model('tissue.zip', config.prod_dir), ''),
-                    (load_model('organism.zip', config.prod_dir), ''),
-                    (load_model('exp_assay.zip', config.prod_dir), ''),
-                    (load_model('disease.zip', config.prod_dir), '')
-                ],
-                'only_once': [
-                    (load_model('reporter_geneprod.zip', config.prod_dir), '')
-                ],
-                'context': [
-                    (load_model('role_geneprod.zip', config.prod_dir), 'geneprod'),
-                    (load_model('role_small_molecule.zip', config.prod_dir), 'small_molecule')
-                ],
-                'panelizer': [
-                    (load_model('panel_start.zip', config.prod_dir), '')
-                ]
-            }
-        self.models = {}
-        for model_family in self.cartridge:
-            self.models[model_family] = Combine([(model, Catalogue.from_label(anonymize_with)) for model, anonymize_with in self.cartridge[model_family]])
+    def __init__(self):
+        self.entity_models = CombinedModel(OrderedDict([
+            ('entities', load_model(config.model_entity, config.prod_dir)),
+            ('diseases', load_model(config.model_disease, config.prod_dir)),
+            ('exp_assay', load_model(config.model_assay, config.prod_dir)) # can in fact be co-trained with entities since mutually exclusive
+        ]))
+        self.reporter_models = CombinedModel(OrderedDict([
+            ('reporter', load_model(config.model_geneprod_reporter, config.prod_dir))
+        ]))
+        self.context_models = ContextCombinedModel(OrderedDict([
+            ('geneprod_roles',
+               (load_model(config.model_geneprod_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
+            )#,
+            #('small_molecule_role', 
+            #    (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+            #)
+        ]))
+        self.panelize_model = CombinedModel(OrderedDict([
+            ('panels', load_model(config.model_panel_stop, config.prod_dir))
+        ]))
 
-    def __panels(self, input_t_string):
-        p = SimplePredictor(self.models['panelizer'])
-        binarized = p.pred_binarized(input_t_string, self.models['panelizer'].output_semantics)
-        return binarized
+    def __panels(self, input_t_string: TString) -> Decoder:
+        decoded = Predictor(self.panelize_model).predict(input_t_string)
+        return decoded
 
-    def __entity(self, input_t_string):
-        p = SimplePredictor(self.models['entity'])
-        binarized = p.pred_binarized(input_t_string, self.models['entity'].output_semantics)
-        return binarized
+    def __entity(self, input_t_string: TString) -> Decoder:
+        decoded = Predictor(self.entity_models).predict(input_t_string)
+        return decoded
 
-    def __reporter(self, input_t_string):
-        p = SimplePredictor(self.models['only_once'])
-        binarized = p.pred_binarized(input_t_string, self.models['only_once'].output_semantics)
-        return binarized
+    def __reporter(self, input_t_string: TString) -> Decoder:
+        decoded = Predictor(self.reporter_models).predict(input_t_string)
+        return decoded
 
-    def __context(self, input_t_string, anonymization_marks):
-        context_p = ContextualPredictor(self.models['context'])
-        binarized = context_p.pred_binarized(input_t_string, anonymization_marks, self.models['context'].output_semantics)
-        return binarized
+    def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string
+        decoded = ContextualPredictor(self.context_models).predict(entities)
+        return decoded
 
-    def __entity_and_role(self, input_t_string): # THERE IS A BUG HERE: CHANGES THE ORDER OF MODELS/OUTPUT SEMANTICS; REPORTER IS MISTAKEN FOR PANEL
-        binarized_entities = self.__entity(input_t_string)
-        cumulated_output = binarized_entities.clone()
-        binarized_reporter = self.__reporter(input_t_string)
-        binarized_entities.erase_(binarized_reporter)
-        cumulated_output.cat_(binarized_reporter)
-        rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
-        anonymization_marks = rewire.forward(binarized_entities.marks)
-        context_binarized = self.__context(input_t_string, anonymization_marks)
-        cumulated_output.cat_(context_binarized)
-        return cumulated_output
+    def __entity_and_role(self, input_t_string: TString) -> Decoder:
+        entities = self.__entity(input_t_string)
+        output = entities.clone() # clone just in case, test if necessary...should not be
+        reporter = self.__reporter(input_t_string)
+        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
+        output.cat_(reporter)
+        context = self.__context(entities_less_reporter)
+        output.cat_(context)
+        return output
 
-    def __role_from_pretagged(self, input_xml): # input_xml is an xml.etree.ElementTree.Element object 
+    def __role_from_pretagged(self, input_xml: Element) -> Decoder:
         input_string = ''.join([s for s in input_xml.itertext()])
         input_t_string = TString(input_string)
         encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
-        encoded.unsqueeze_(0)
-        binarized_entities = Binarized([input_string], encoded, Catalogue.standard_channels)
-        binarized_entities.binarize_from_pretagged_xml()
-        binarized_reporter = self.__reporter(input_t_string)
-        binarized_entities.erase_(binarized_reporter)
-        cumulated_output = binarized_reporter.clone()
-        rewire = Connector(Catalogue.standard_channels, self.models['context'].anonymize_with)
-        anonymization_marks = rewire.forward(binarized_entities.marks)
-        context_binarized = self.__context(input_t_string, anonymization_marks)
-        cumulated_output.cat_(context_binarized)
-        return cumulated_output
+        encoded.unsqueeze_(0) # 3D
+        semantic_groups = OrderedDict([('all_concepts', Catalogue.standard_channels)])
+        entities = Decoder(input_string, encoded, semantic_groups)
+        entities.decode()
+        reporter = self.__reporter(input_t_string)
+        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
+        output = reporter # there was a clone() here??
+        context = self.__context(entities_less_reporter)
+        output.cat_(context)
+        return output
 
     def __all(self, input_string):
 
@@ -183,68 +154,52 @@ class SmtagEngine:
             print("    "+input_string)
 
         #PREDICT PANELS
-        binarized_panels = self.__panels(input_t_string)
+        panels = self.__panels(input_t_string)
+        output = panels
+        if self.DEBUG:
+            B, C, L = output.prediction.size()
+            print(f"\n1: after panels: {output.semantic_groups} {B}x{C}x{L}")
+            print(show.print_pretty(output.prediction))
 
         # PREDICT ENTITIES
-        binarized_entities = self.__entity(input_t_string)
+        entities = self.__entity(input_t_string)
         if self.DEBUG:
-            print("\n0: binarized.marks after entity ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()])))
-            print(show.print_pretty(binarized_entities.marks))
-            print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
-
-        cumulated_output = binarized_entities.clone()
-        cumulated_output.cat_(binarized_panels)
-        if self.DEBUG:
-            print("\n1: cumulated_output.marks after panel and entity ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])))
-            print(show.print_pretty(cumulated_output.marks))
-            print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
+            B, C, L = entities.prediction.size()
+            print(f"\n1: after entity: {entities.semantic_groups} {B}x{C}x{L}")
+            print(show.print_pretty(entities.prediction))
+        output.cat_(entities.clone()) 
 
         # PREDICT REPORTERS
-        binarized_reporter = self.__reporter(input_t_string)
+        reporter = self.__reporter(input_t_string)
         if self.DEBUG:
-            print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])))
-            print(show.print_pretty(binarized_reporter.marks))
-            print("output semantics: ", "; ".join([str(e) for e in binarized_reporter.output_semantics]))
-
-        binarized_entities.erase_(binarized_reporter) # will it erase itself? need to assume output is 1 channel only
+            B, C, L = entities.prediction.size()
+            print(f"\n2: after reporter: {reporter.semantic_groups} {B}x{C}x{L}")
+            print(show.print_pretty(reporter.prediction))
+        output.cat_(reporter) # add reporter prediction to output features
+        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
         if self.DEBUG:
-            print("\n2: binarized_reporter.marks ({})".format(" x ".join([str(s) for s in binarized_reporter.marks.size()])))
-            print(show.print_pretty(binarized_reporter.marks))
-            print("\n3: binarized_entities.marks after erase_(reporter) ({})".format(" x ".join([str(s) for s in binarized_entities.marks.size()])))
-            print(show.print_pretty(binarized_entities.marks))
-            print("output semantics: ", "; ".join([str(e) for e in binarized_entities.output_semantics]))
-
-        cumulated_output.cat_(binarized_reporter) # add reporter prediction to output features
-        if self.DEBUG:
-            print("\n4: cumulated_output.marks after cat_(reporter) ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])))
-            print(show.print_pretty(cumulated_output.marks))
-            print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
-
-        # select and match by type the predicted entity marks to be fed to the second context_p semantics from context model.
-        rewire = Connector(self.models['entity'].output_semantics, self.models['context'].anonymize_with)
-        anonymization_marks = rewire.forward(binarized_entities.marks) # should not include reporter marks;
-        if self.DEBUG:
-            print("\n5: rewiring models['entity'].output_semantics and models['context'].anonymize_with", ", ".join([str(e) for e in self.models['entity'].output_semantics]), ", ".join([str(e) for e in self.models['context'].anonymize_with]))
-            print("anonymization_marks ({})".format(" x ".join([str(s) for s in anonymization_marks.size()]))); show.print_pretty(anonymization_marks)
+            B, C, L = entities_less_reporter.prediction.size()
+            print(f"\n3: after entity.erase_(reporter): {entities_less_reporter.semantic_groups} {B}x{C}x{L}")
+            print(show.print_pretty(entities_less_reporter.prediction))
 
         # PREDICT ROLES ON NON REPORTER ENTITIES
-        context_binarized = self.__context(input_t_string, anonymization_marks)
+        context = self.__context(entities_less_reporter)
         if self.DEBUG:
-            print("\n6: context_binarized ({})".format(" x ".join([str(s) for s in context_binarized.marks.size()])))
-            print(show.print_pretty(context_binarized.marks))
+            B, C, L = context.prediction.size()
+            print(f"\n4: after context: {context.semantic_groups} {B}x{C}x{L}")
+            print(show.print_pretty(context.prediction))
+        output.cat_(context)
 
-        #concatenate entity and output_semantics before calling Serializer()
-        cumulated_output.cat_(context_binarized)
         if self.DEBUG:
-            print("\n7: final cumulated_output.marks ({})".format(" x ".join([str(s) for s in cumulated_output.marks.size()])))
-            print(show.print_pretty(cumulated_output.marks))
-            print("output semantics: ", "; ".join([str(e) for e in cumulated_output.output_semantics]))
+            B, C, L = output.prediction.size()
+            print(f"\n5: concatenated output: {output.semantic_groups} {B}x{C}x{L}")
+            print(show.print_pretty(output.prediction))
 
-        return cumulated_output
+        return output
 
     def __serialize(self, output, sdtag="sd-tag", format="xml"):
         ml = Serializer(tag=sdtag, format=format).serialize(output)
-        return ml[0] # engine works with single example
+        return ml # engine works with single example
 
     @timer
     def entity(self, input_string, sdtag, format):
@@ -259,7 +214,7 @@ class SmtagEngine:
         return self.__serialize(self.__all(input_string), sdtag, format)
 
     @timer
-    def role(self, input_xml_string, sdtag):
+    def role(self, input_xml_string:str, sdtag):
         input_xml = fromstring(input_xml_string)
         updatexml_(input_xml, self.__role_from_pretagged(input_xml), pretag=fromstring('<'+sdtag+'/>'))
         return tostring(input_xml)
