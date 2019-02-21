@@ -12,6 +12,9 @@ class Config():
     the class declaration, but will be aliased at the root level of the package
     (ie in smtag/__init__.py)
     """
+    ############################################################################
+    # DIRECTORIES
+    #
     _image_dir_name      = "img" # stock of unique images linked to documents
     _data_dir_name     = "data" # compendia of xml documents or brat annotations
     _encoded_dir_name  = "encoded" # examples with textual and visual information encoded
@@ -21,6 +24,10 @@ class Config():
     _log_dir_name      = "log" # general logging dir
     _runs_log_dir_name = "runs" # dir for tensorboard logs
     _scans_dir_name    = "scans" # results of hyperparameter scans
+
+    ############################################################################
+    # VARIABLES
+    #
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
     _k_pca_components = 10 # number of PCA components to reduce visual context features
     _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
@@ -32,6 +39,9 @@ class Config():
     _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
     _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
 
+    ############################################################################
+    # MODELS
+    #
     _model_assay = "10X_L400_all_large_padding_no_ocr_assay_2019-02-12-15-18.zip"
     _model_entity = "10X_L400_all_large_padding_no_ocr_small_molecule_geneprod_subcellular_cell_tissue_organism_2019-02-11-18-08.zip"
     _model_geneprod_role = "10X_L400_geneprod_anonym_not_reporter_large_padding_no_ocr_intervention_assayed_2019-02-11-23-22.zip"
