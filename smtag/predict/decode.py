@@ -61,8 +61,11 @@ class Decoder:
         self.scores = OrderedDict() # torch.zeros(N_group, N_token)
         self.char_level_concepts = OrderedDict()
 
-    def decode(self): # separate processing from initialization to make cloning more efficient
-        self.token_list = tokenize(self.input_string)['token_list']
+    def decode(self, token_list=None): # separate processing from initialization to make cloning more efficient
+        if token_list is None:
+            self.token_list = tokenize(self.input_string)['token_list']
+        else:
+            self.token_list = token_list
         self.decode_with_token(self.token_list)
     
     def decode_with_token(self, token_list):

@@ -104,26 +104,26 @@ class SmtagEngine:
             ('panels', load_model(config.model_panel_stop, config.prod_dir))
         ]))
 
-    def __panels(self, input_t_string: TString) -> Decoder:
-        decoded = Predictor(self.panelize_model).predict(input_t_string)
+    def __panels(self, input_t_string: TString, token_list) -> Decoder:
+        decoded = Predictor(self.panelize_model).predict(input_t_string, token_list)
         return decoded
 
-    def __entity(self, input_t_string: TString) -> Decoder:
-        decoded = Predictor(self.entity_models).predict(input_t_string)
+    def __entity(self, input_t_string: TString, token_list) -> Decoder:
+        decoded = Predictor(self.entity_models).predict(input_t_string, token_list)
         return decoded
 
-    def __reporter(self, input_t_string: TString) -> Decoder:
-        decoded = Predictor(self.reporter_models).predict(input_t_string)
+    def __reporter(self, input_t_string: TString, token_list) -> Decoder:
+        decoded = Predictor(self.reporter_models).predict(input_t_string, token_list)
         return decoded
 
-    def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string
+    def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
         decoded = ContextualPredictor(self.context_models).predict(entities)
         return decoded
 
-    def __entity_and_role(self, input_t_string: TString) -> Decoder:
-        entities = self.__entity(input_t_string)
+    def __entity_and_role(self, input_t_string, token_list) -> Decoder:
+        entities = self.__entity(input_t_string, token_list)
         output = entities.clone() # clone just in case, test if necessary...should not be
-        reporter = self.__reporter(input_t_string)
+        reporter = self.__reporter(input_t_string, token_list)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output.cat_(reporter)
         context = self.__context(entities_less_reporter)
@@ -133,28 +133,28 @@ class SmtagEngine:
     def __role_from_pretagged(self, input_xml: Element) -> Decoder:
         input_string = ''.join([s for s in input_xml.itertext()])
         input_t_string = TString(input_string)
+        token_list = tokenize(input_string)['token_list']
         encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
         encoded.unsqueeze_(0) # 3D
         semantic_groups = OrderedDict([('all_concepts', Catalogue.standard_channels)])
         entities = Decoder(input_string, encoded, semantic_groups)
-        entities.decode()
-        reporter = self.__reporter(input_t_string)
+        entities.decode_with_token(token_list)
+        reporter = self.__reporter(input_t_string, token_list)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output = reporter # there was a clone() here??
         context = self.__context(entities_less_reporter)
         output.cat_(context)
         return output
 
-    def __all(self, input_string):
+    def __all(self, input_t_string, token_list):
 
-        input_t_string = TString(input_string)
         if self.DEBUG:
             show = Show()
             print("\nText:")
-            print("    "+input_string)
+            print("    "+str(input_t_string))
 
         #PREDICT PANELS
-        panels = self.__panels(input_t_string)
+        panels = self.__panels(input_t_string, token_list)
         output = panels
         if self.DEBUG:
             B, C, L = output.prediction.size()
@@ -162,7 +162,7 @@ class SmtagEngine:
             print(show.print_pretty(output.prediction))
 
         # PREDICT ENTITIES
-        entities = self.__entity(input_t_string)
+        entities = self.__entity(input_t_string, token_list)
         if self.DEBUG:
             B, C, L = entities.prediction.size()
             print(f"\n1: after entity: {entities.semantic_groups} {B}x{C}x{L}")
@@ -170,7 +170,7 @@ class SmtagEngine:
         output.cat_(entities.clone()) 
 
         # PREDICT REPORTERS
-        reporter = self.__reporter(input_t_string)
+        reporter = self.__reporter(input_t_string, token_list)
         if self.DEBUG:
             B, C, L = entities.prediction.size()
             print(f"\n2: after reporter: {reporter.semantic_groups} {B}x{C}x{L}")
@@ -201,17 +201,23 @@ class SmtagEngine:
         ml = Serializer(tag=sdtag, format=format).serialize(output)
         return ml # engine works with single example
 
+    def __string_preprocess(self, input_string):
+        return TString(input_string), tokenize(input_string)['token_list']
+
     @timer
     def entity(self, input_string, sdtag, format):
-        return self.__serialize(self.__entity(TString(input_string)), sdtag, format)
+        input_t_string, token_list = self.__string_preprocess(input_string)
+        return self.__serialize(self.__entity(input_t_string, token_list), sdtag, format)
 
     @timer
     def tag(self, input_string, sdtag, format):
-        return self.__serialize(self.__entity_and_role(TString(input_string)), sdtag, format)
+        input_t_string, token_list = self.__string_preprocess(input_string)
+        return self.__serialize(self.__entity_and_role(input_t_string, token_list), sdtag, format)
 
     @timer
     def smtag(self, input_string, sdtag, format):
-        return self.__serialize(self.__all(input_string), sdtag, format)
+        input_t_string, token_list = self.__string_preprocess(input_string)
+        return self.__serialize(self.__all(input_t_string, token_list), sdtag, format)
 
     @timer
     def role(self, input_xml_string:str, sdtag):
@@ -221,7 +227,8 @@ class SmtagEngine:
 
     @timer
     def panelizer(self, input_string, format):
-        return self.__serialize(self.__panels(TString(input_string)), format=format)
+        input_t_string, token_list = self.__string_preprocess(input_string)
+        return self.__serialize(self.__panels(input_t_string, token_list), format=format)
 
 def main():
     arguments = docopt(__doc__, version='0.1')

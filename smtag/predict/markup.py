@@ -105,7 +105,6 @@ class AbstractTagger:
     def panel_segmentation(self, decoded: Decoder) -> List:
         panels = []
         panel = []
-        import pdb; pdb.set_trace()
         for c, token in zip(decoded.concepts['panels'], decoded.token_list):
             if c == Catalogue.PANEL_STOP:
                 panels.append(panel)
@@ -127,7 +126,7 @@ class AbstractTagger:
         need_to_close_any = False
         current_scores = {g: 0 for g in decoded.semantic_groups}
 
-        if 'panel' in decoded.semantic_groups:
+        if 'panels' in decoded.semantic_groups:
             panels = self.panel_segmentation(decoded)
             open_tag = self.opening_tag
             closing_tag = self.closing_tag
@@ -167,7 +166,7 @@ class AbstractTagger:
                 #             add text to ml_string
 
                 for group in decoded.semantic_groups: # scan across feature groups the features that need to be opened
-                    concept = decoded.concepts[group][pos] 
+                    concept = decoded.concepts[group][pos]
                     if type(concept) != type(Catalogue.UNTAGGED) and type(concept) != type(current_concepts[group]): # a new concept
                         need_to_open[group] = concept
                         need_to_open_any = True
