@@ -1,8 +1,60 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 import os
+import logging
+import sys, traceback
+class ConfigError(Exception):
+    pass
+class WorkingDirectoryNotSetError(ConfigError):
+    def __init__(self):
+        super(WorkingDirectoryNotSetError, self).__init__()
+        logging.error("""
+            #######################################################################################################
+            #
+            ERROR: WORKING DIRECTORY NOT SET
+
+            You tried to use `smtag.config.working_directory` either directly or inderectly, but there
+            is no `working_directory` defined.
+
+            In order to configure one use one of this options, sorted by lesser precedence:
+            1) Set the environment variable `SMTAG_WORKING_DIRECTORY`
+               Examples:
+                SMTAG_WORKING_DIRECTORY='/absolute/path/to/resources_folder' python -m smtag.predict.egine --demo
+                SMTAG_WORKING_DIRECTORY='./relative/path/to/resources_folder' python -m smtag.predict.egine --demo
+            2) Set the `--working-directory` flag or its abbreviated version `-w`
+               Example:
+                python -m smtag.predict.egine --demo --working-directory "/absolute/path/to/resources_folder"
+                python -m smtag.predict.egine --demo -w "./relative/path/to/resources_folder"
+            3) Set the `smtag.config.working_directory` programatically
+               Example:
+                import smtag
+                smtag.config.working_directory = "/absolute/path/to/resources_folder"
+                smtag.config.working_directory = "./relative/path/to/resources_folder"
+            #
+            #######################################################################################################
+            """)
+class WorkingDirectoryDoesNotExistError(ConfigError):
+    def __init__(self, path):
+        super(WorkingDirectoryDoesNotExistError, self).__init__()
+        logging.error(f"""
+            #######################################################################################################
+            #
+            ERROR: WORKING DIRECTORY DOES NOT EXIST
+
+            The specified working directory does not exist:
+
+                {path}
 
 
+            Please review carefully:
+            1) Your env variable `SMTAG_WORKING_DIRECTORY`
+            2) The command line flag `--working-directory` or its short alias `-w`
+            3) If you are programatically setting the working_directory, for example:
+                import smtag
+                smtag.config.working_directory = "/absolute/path/to/resources_folder"
+            #
+            #######################################################################################################
+        """)
 class Config():
     """
     Class that collects all configuration options.
@@ -50,9 +102,64 @@ class Config():
     _model_panel_stop = "10X_L1200_all_large_padding_no_ocr_panel_stop_2019-02-18-17-00.zip"
     _model_disease = "10X_L1200_NCBI_disease_augmented_large_padding_disease_2019-02-12-17-46.zip"
 
+    _default_working_directory = os.path.join(os.path.realpath(__file__), "..", "..", "..", "resources")
 
     def __init__(self):
-        self.working_directory = "."
+        self.working_directory = (
+            self.__get_working_dir_from_env() or
+            self.__get_working_dir_from_flag() or
+            self._default_working_directory
+        )
+    def __get_working_dir_from_env(self):
+        return os.environ.get('SMTAG_WORKING_DIRECTORY')
+    def __get_working_dir_from_flag(self):
+        """
+        Looks for the command line flag --working_directory or -w
+        Returns:
+            The specified value if the flag is found
+            None otherwise
+        """
+        index = None
+        if "-w" in sys.argv:
+            index = sys.argv.index("-w")
+        elif "--working_directory" in sys.argv:
+            index = sys.argv.index("--working_directory")
+
+        if index is not None:
+            try:
+                return sys.argv[index+1]
+            except IndexError:
+                logging.error(f"""
+            Oops, it looks like you used the working directory flag but you didn't specify a directory
+            Make sure to pass a value after the --working_directory flag.
+            Example:
+                python -m smtag.predict.engine --demo --working_directory "./resources"
+                python -m smtag.predict.engine --demo -w "./resources"
+            Your command was something like:
+                {' '.join(sys.argv)}
+                """)
+                raise WorkingDirectoryNotSetError
+        else:
+            return None
+
+    @property
+    def working_directory(self):
+        if self.__working_directory is None:
+            raise WorkingDirectoryNotSetError
+        logging.error(f"working_directory read: {self.__working_directory}")
+        return self.__working_directory
+
+    @working_directory.setter
+    def working_directory(self, new_working_directory):
+        if new_working_directory is None:
+            self.__working_directory = None
+            return
+        # convert to absolute path
+        new_working_directory =  os.path.abspath(new_working_directory)
+        # check that the directory exists and it is a directory
+        if not os.path.isdir(new_working_directory):
+            raise WorkingDirectoryDoesNotExistError(new_working_directory)
+        self.__working_directory = new_working_directory
 
     @property
     def image_dir(self):
