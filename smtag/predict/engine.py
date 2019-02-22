@@ -32,8 +32,8 @@ from ..train.builder import Concat
 from ..common.converter import TString
 from ..common.mapper import Catalogue
 from ..datagen.encoder import XMLEncoder
-from .decode import Decoder
-from .predictor import Predictor, ContextualPredictor
+from .decode import CharLevelDecoder, Decoder
+from .predictor import Predictor, ContextualPredictor, CharLevelPredictor
 from .markup import Serializer
 from .updatexml import updatexml_
 from .. import config
@@ -104,8 +104,8 @@ class SmtagEngine:
             ('panels', load_model(config.model_panel_stop, config.prod_dir))
         ]))
 
-    def __panels(self, input_t_string: TString, token_list) -> Decoder:
-        decoded = Predictor(self.panelize_model).predict(input_t_string, token_list)
+    def __panels(self, input_t_string: TString, token_list) -> CharLevelDecoder:
+        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list)
         return decoded
 
     def __entity(self, input_t_string: TString, token_list) -> Decoder:

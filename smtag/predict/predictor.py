@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from math import ceil
 from collections import namedtuple
 from ..common.converter import TString
-from .decode import Decoder
+from .decode import Decoder, CharLevelDecoder
 from .markup import Serializer
 from ..common.utils import tokenize, timer
 from .. import config
@@ -100,4 +100,11 @@ class ContextualPredictor(Predictor):
         input_string = for_anonymization.input_string
         token_list = for_anonymization.token_list
         decoded = self.decode(input_string, token_list, prediction, self.model.semantic_groups) # input_string will be tokenized again; a waste, but maybe not worth the complication; could have an *args or somethign
+        return decoded
+
+class CharLevelPredictor(Predictor):
+
+    def decode(self, input_str, token_list, prediction, semantic_groups):
+        decoded = CharLevelDecoder(input_str, prediction, self.model.semantic_groups)
+        decoded.decode(token_list)
         return decoded

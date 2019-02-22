@@ -15,33 +15,6 @@ FUSION_THRESHOLD = config.fusion_threshold
 Tensor3D = torch.Tensor
 Tensor2D = torch.Tensor
 
-def token2codes(token_list: List, prediction: Tensor3D) -> Tensor2D:
-    '''
-    Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
-    A feature code is the index of the feature with maximum score.
-    For each token, its score is otained by averaging along the segment corresponding to its position in the text.
-
-    Args:
-        token_list: list of N Token. Each Token has start and stop attributes corresponding to its location in the text
-        prediction: a 2D nf x L Tensor
-
-    Returns:
-        a 1D N Tensor with feature codes
-        a 1D N Tensor with the score of each token
-
-    '''
-    N = len(token_list)
-    nf= prediction.size(0)
-    scores = torch.zeros(nf, N)
-    for i, token in enumerate(token_list):
-        for k in range(nf):
-            scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averagin the prediction over the corresponding fragment
-    codes = scores.argmax(0) # the codes are the indices of features with maximum score
-    scores = scores[codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
-    return codes, scores
-
-Tensor3D = torch.Tensor
-
 class Decoder:
     '''
     Generates feature codes for each semantic group from prediction tensor. 
@@ -51,6 +24,7 @@ class Decoder:
     Output semantics map directly to features. Features within a group are assumed to be mutually exclusive.
     The order of the output semantics elements in each semantic group give the interpretation of the code within this group.
     '''
+
     def __init__(self, input_string:str, prediction:Tensor3D, semantic_groups: OrderedDict):
         assert len(input_string) == prediction.size(2), "mismatch input string length and size of prediction dim zero"
         self.input_string = input_string
@@ -61,26 +35,49 @@ class Decoder:
         self.scores = OrderedDict() # torch.zeros(N_group, N_token)
         self.char_level_concepts = OrderedDict()
 
-    def decode(self, token_list=None): # separate processing from initialization to make cloning more efficient
+    def decode(self, token_list):
         if token_list is None:
             self.token_list = tokenize(self.input_string)['token_list']
         else:
             self.token_list = token_list
-        self.decode_with_token(self.token_list)
-    
-    def decode_with_token(self, token_list):
         start_feature = 0
         for group in self.semantic_groups:
             semantics = self.semantic_groups[group]
             nf = len(semantics) # as many features as semantic output elements
             prediction_slice = self.prediction[0, start_feature:start_feature+nf, : ] # Tensor2D!
             start_feature += nf 
-            codes, scores = token2codes(token_list, prediction_slice)
-            self.concepts[group] = [self.semantic_groups[group][code] for code in codes]
-            self.scores[group] = scores
-            self.char_level_concepts[group] = [Catalogue.UNTAGGED for _ in range(len(self.input_string))] # initialize as untagged
-            for token, concept in zip(token_list, self.concepts[group]):
-                self.char_level_concepts[group][token.start:token.stop] = [concept] * (token.stop - token.start)
+            self.char_level_concepts[group], self.concepts[group] , self.scores[group] = self.pred2concepts(token_list, prediction_slice, self.semantic_groups[group])
+
+    @staticmethod
+    def pred2concepts(token_list: List, prediction: Tensor3D, semantic_concepts: List) -> Tensor2D:
+        '''
+        Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
+        A feature code is the index of the feature with maximum score.
+        For each token, its score is otained by averaging along the segment corresponding to its position in the text.
+
+        Args:
+            token_list: list of N Token. Each Token has start and stop attributes corresponding to its location in the text
+            prediction: a 2D nf x L Tensor
+
+        Returns:
+            a 1D N Tensor with feature codes
+            a 1D N Tensor with the score of each token
+
+        '''
+        L = prediction.size(1)
+        N = len(token_list)
+        nf= prediction.size(0)
+        scores = torch.zeros(nf, N)
+        for i, token in enumerate(token_list):
+            for k in range(nf):
+                scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
+        codes = scores.argmax(0) # the codes are the indices of features with maximum score
+        token_level_scores = scores[codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
+        token_level_concepts = [semantic_concepts[code] for code in codes]
+        char_level_concepts = [Catalogue.UNTAGGED for _ in range(L)] # initialize as untagged
+        for token, concept in zip(token_list, semantic_concepts):
+            char_level_concepts[token.start:token.stop] = [concept] * (token.stop - token.start)
+        return char_level_concepts, token_level_concepts, token_level_scores
 
     def fuse_adjacent(self):
         if len(self.token_list) > 1:
@@ -111,10 +108,9 @@ class Decoder:
                         fused_token = Token(fused_text, t.start, next_t.stop, len(fused_text), t.left_spacer)
                         self.token_list[i] = fused_token
                         self.token_list.pop(i+1)
-                    # i stays the same since we have fuse 2 tags and need to check whether to fuse further
+                    # i stays the same since we have fused 2 tags and need to check whether to fuse further
                 else:
                     i += 1 # if no fusion occured, go to next token
-
 
     def erase_with_(self, other: 'Decoder', erase_with: Tuple, target: Tuple):
         erase_with_group, erase_with_concept = erase_with
@@ -148,4 +144,23 @@ class Decoder:
         other.char_level_concepts = OrderedDict([(group, deepcopy(self.char_level_concepts[group])) for group in self.char_level_concepts])
         return other
 
+class CharLevelDecoder(Decoder):
+
+    @staticmethod
+    def pred2concepts(token_list, prediction, semantic_concepts):
+        '''
+        Here we take first the argmax at character level to obtain the classification of each character. 
+        '''
+        N = len(token_list)
+        nf = prediction.size(0)
+        char_level_codes = prediction.argmax(0)
+        char_level_concepts = [semantic_concepts[code] for code in char_level_codes]
+        scores = torch.zeros(nf, N)
+        for i, token in enumerate(token_list):
+            for k in range(nf):
+                scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
+        token_level_codes = scores.argmax(0) # the codes are the indices of features with maximum score
+        token_level_scores = scores[token_level_codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
+        token_level_concepts = [semantic_concepts[code] for code in token_level_codes]
+        return char_level_concepts, token_level_concepts, token_level_scores
 
