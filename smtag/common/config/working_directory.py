@@ -14,7 +14,7 @@ def default_working_directory():
     The default working directory name is configure via the constant `DEFAULT_WORKING_DIRECTORY_NAME`
     This directory can be found at the root of the project (e.g. where the setup.py file is)
     """
-    return os.path.join(os.path.realpath(__file__), "..", "..", "..", "..", DEFAULT_WORKING_DIRECTORY_NAME)
+    return os.path.abspath(os.path.join(os.getcwd(), DEFAULT_WORKING_DIRECTORY_NAME))
 WORKING_DIRECTORY_HELP_MESSAGE = f"""
             In order to configure you working directory use one of this options, sorted by lesser precedence:
             1) Set the environment variable `{WORKING_DIRECTORY_ENV_VAR_NAME}`

@@ -29,7 +29,7 @@ can do it in 3 different ways:
 pip install git+ssh://git@github.com/source-data/py-smtag.git@tldev
 
 # install with pip from a repo on your local drive the branch `tldev`
-pip install git+file:///Users/alejandroriera/dev/py-smtag@tldev
+pip install git+file:///Users/alejandroriera/dev/sourcedata/py-smtag@tldev
 
 # install with pip from a local folder (this is different from local git repo
 # in the sense that you don't have to commit your changes)
