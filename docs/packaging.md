@@ -33,7 +33,7 @@ pip install git+file:///Users/alejandroriera/dev/py-smtag@tldev
 
 # install with pip from a local folder (this is different from local git repo
 # in the sense that you don't have to commit your changes)
-pip install -e /Users/alejandroriera/dev/py-smtag
+pip install -e /Users/alejandroriera/dev/sourcedata/py-smtag
 ```
 
 # Read more:
