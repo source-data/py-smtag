@@ -1,12 +1,70 @@
 import os
 import sys
 import logging
-from .errors import WorkingDirectoryNotSetError, WorkingDirectoryDoesNotExistError
+from .errors import ConfigError
 
-DEFAULT_WORKING_DIRECTORY_NAME = "resources"
 WORKING_DIRECTORY_ENV_VAR_NAME = "SMTAG_WORKING_DIRECTORY"
 WORKING_DIRECTORY_CLI_FLAG_NAME = "--working_directory"
 WORKING_DIRECTORY_CLI_FLAG_SHORTNAME = "-w"
+
+DEFAULT_WORKING_DIRECTORY_NAME = "resources"
+def default_working_directory():
+    """
+    Returns the path to the default working directory to use if the user doesn't specify otherwise
+    The default working directory name is configure via the constant `DEFAULT_WORKING_DIRECTORY_NAME`
+    This directory can be found at the root of the project (e.g. where the setup.py file is)
+    """
+    return os.path.join(os.path.realpath(__file__), "..", "..", "..", "..", DEFAULT_WORKING_DIRECTORY_NAME)
+WORKING_DIRECTORY_HELP_MESSAGE = f"""
+            In order to configure you working directory use one of this options, sorted by lesser precedence:
+            1) Set the environment variable `{WORKING_DIRECTORY_ENV_VAR_NAME}`
+               Examples:
+                {WORKING_DIRECTORY_ENV_VAR_NAME}='/absolute/path/to/resources_folder' python -m smtag.predict.egine --demo
+                {WORKING_DIRECTORY_ENV_VAR_NAME}='./relative/path/to/resources_folder' python -m smtag.predict.egine --demo
+            2) Set the `--working-directory` flag or its abbreviated version `-w`
+               Example:
+                python -m smtag.predict.egine --demo --working-directory "/absolute/path/to/resources_folder"
+                python -m smtag.predict.egine --demo -w "./relative/path/to/resources_folder"
+            3) Set the `smtag.config.working_directory` programatically
+               Example:
+                import smtag
+                smtag.config.working_directory = "/absolute/path/to/resources_folder"
+                smtag.config.working_directory = "./relative/path/to/resources_folder"
+
+            If none of the above options is specified, the default directory is assumed to be:
+
+                {default_working_directory()}
+            """
+class WorkingDirectoryNotSetError(ConfigError):
+    def __init__(self):
+        super(WorkingDirectoryNotSetError, self).__init__()
+        logging.error(f"""
+            #######################################################################################################
+            #
+            ERROR: WORKING DIRECTORY NOT SET
+
+            {WORKING_DIRECTORY_HELP_MESSAGE}
+
+            #
+            #######################################################################################################
+            """)
+class WorkingDirectoryDoesNotExistError(ConfigError):
+    def __init__(self, path):
+        super(WorkingDirectoryDoesNotExistError, self).__init__()
+        logging.error(f"""
+            #######################################################################################################
+            #
+            ERROR: WORKING DIRECTORY DOES NOT EXIST
+
+            The specified working directory does not exist:
+
+                {path}
+
+            {WORKING_DIRECTORY_HELP_MESSAGE}
+
+            #
+            #######################################################################################################
+        """)
 
 def fetch_working_directory():
     """
@@ -14,7 +72,7 @@ def fetch_working_directory():
     If specified in different ways the order of precedence is:
 
         1. the CLI flag --working_directory
-        2. the env variable SMTAG_WORKING_DIRECTORY
+        2. a global env variable with the name specified by `WORKING_DIRECTORY_ENV_VAR_NAME`
         3. the default folder
 
     Returns None otherwise
@@ -22,7 +80,7 @@ def fetch_working_directory():
     return (
         __fetch_working_dir_from_flag() or
         __fetch_working_dir_from_env() or
-        __fetch_default_working_directory() or
+        default_working_directory() or
         None
     )
 
@@ -49,13 +107,6 @@ def validated_working_directory(path):
         raise WorkingDirectoryDoesNotExistError(path)
     return path
 
-def __fetch_default_working_directory():
-    """
-    Returns the path to the default working directory to use if the user doesn't specify otherwise
-    The default working directory name is configure via the constant `DEFAULT_WORKING_DIRECTORY_NAME`
-    This directory can be found at the root of the project (e.g. where the setup.py file is)
-    """
-    return os.path.join(os.path.realpath(__file__), "..", "..", "..", "..", DEFAULT_WORKING_DIRECTORY_NAME)
 
 def __fetch_working_dir_from_env():
     """
@@ -78,7 +129,7 @@ def __fetch_working_dir_from_flag():
     """
     index = None
     if WORKING_DIRECTORY_CLI_FLAG_SHORTNAME in sys.argv:
-        index = sys.argv.index(WORKING_DIRECTORY_CLI_FLAG_NAME)
+        index = sys.argv.index(WORKING_DIRECTORY_CLI_FLAG_SHORTNAME)
     elif WORKING_DIRECTORY_CLI_FLAG_NAME in sys.argv:
         index = sys.argv.index(WORKING_DIRECTORY_CLI_FLAG_NAME)
 

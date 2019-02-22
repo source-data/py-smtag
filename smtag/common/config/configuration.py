@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 import os
-from .errors import WorkingDirectoryNotSetError
+from .working_directory import WorkingDirectoryNotSetError
 from .working_directory import fetch_working_directory, validated_working_directory
 
 class Config():
@@ -9,9 +9,9 @@ class Config():
     Class that collects all configuration options.
     It allows to dynamically adjust its parameters at runtime.
     It should be treated as a singleton, in the sense that there will only be
-    one instance of the class that is ever used. It is instantiated here, after
-    the class declaration, but will be aliased at the root level of the package
-    (ie in smtag/__init__.py)
+    one instance of the class that is ever used. It is instantiated in the
+    __init__.py of this package (folder), but will be aliased at the root level
+    of the the whole library (ie in smtag/__init__.py)
     """
     ############################################################################
     # DIRECTORIES
