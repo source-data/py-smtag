@@ -52,7 +52,7 @@ class CombinedModel(nn.Module):#SmtagModel?
     def __init__(self, models: OrderedDict):
         super(CombinedModel, self).__init__()
         self.semantic_groups = OrderedDict()
-        for group in models: # replace by self.module_list = nn.ModuleList() in torch 1.0.0
+        for group in models: # replace by self.module_list = nn.ModuleList(models) in torch 1.0.0
             model = models[group]
             name = 'unet2__'+ str(group)
             self.add_module(name, model) # self.module_list.append(model)
@@ -71,13 +71,20 @@ class ContextCombinedModel(CombinedModel):
 
     def __init__(self, models: OrderedDict):
         model_list = OrderedDict()
-        self.anonymize_with = OrderedDict()
+        self.anonymize_with = []
         for group in models:
             model, anonymization = models[group]
-            self.anonymize_with[anonymization['group']] = anonymization['concept']
+            self.anonymize_with.append(anonymization)
             model_list[group] = model
-        super(ContextCombinedModel, self).__init__(model_list)
+        super(ContextCombinedModel, self).__init__(model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
 
+    def forward(self, x_list): # takes a list of inputs each specifically anonymized for each context model
+        y_list = []
+        for (n, m), x in zip(self.named_children(), x_list):
+            if re.match('unet2__', n): # the child module is one of the unet models;
+                y_list.append(m(x))
+        y = self.concat(y_list)
+        return y
 
 class SmtagEngine:
 
@@ -95,10 +102,10 @@ class SmtagEngine:
         self.context_models = ContextCombinedModel(OrderedDict([
             ('geneprod_roles',
                (load_model(config.model_geneprod_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
-            )#,
-            #('small_molecule_role', 
-            #    (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
-            #)
+            ),
+            # ('small_molecule_role', 
+            #     (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+            # )
         ]))
         self.panelize_model = CombinedModel(OrderedDict([
             ('panels', load_model(config.model_panel_stop, config.prod_dir))
@@ -138,7 +145,7 @@ class SmtagEngine:
         encoded.unsqueeze_(0) # 3D
         semantic_groups = OrderedDict([('all_concepts', Catalogue.standard_channels)])
         entities = Decoder(input_string, encoded, semantic_groups)
-        entities.decode_with_token(token_list)
+        entities.decode(token_list)
         reporter = self.__reporter(input_t_string, token_list)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output = reporter # there was a clone() here??
@@ -198,6 +205,7 @@ class SmtagEngine:
         return output
 
     def __serialize(self, output, sdtag="sd-tag", format="xml"):
+        output.fuse_adjascent()
         ml = Serializer(tag=sdtag, format=format).serialize(output)
         return ml # engine works with single example
 

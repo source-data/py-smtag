@@ -35,28 +35,35 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         padded_string = pad + input + pad
         return padded_string
 
-    def combine_with_input_features(self, input, additional_input_features=None):
-        #CAUTION: should additional_input_features be cloned before modifying it?
-        if additional_input_features is not None:
-            nf2 = additional_input_features.size(1)
-            padding_length = (len(input) - additional_input_features.size(2)) / 2
-            pad = torch.zeros(1, nf2, padding_length)
-            padded_additional_input_features = torch.cat([pad, additional_input_features, pad], 2) # flanking the encoded string with padding tensor left and right along third dimension
-            combined_input = torch.cat([input, padded_additional_input_features], 1) # adding additional inputs under the encoded string along second dimension
-        else:
-            combined_input = input
-        return combined_input
+    # def combine_with_input_features(self, input, additional_input_features=None): # for the day when smtag combined with other tagging?
+    #     #CAUTION: should additional_input_features be cloned before modifying it?
+    #     if additional_input_features is not None:
+    #         nf2 = additional_input_features.size(1)
+    #         padding_length = (len(input) - additional_input_features.size(2)) / 2
+    #         pad = torch.zeros(1, nf2, padding_length)
+    #         padded_additional_input_features = torch.cat([pad, additional_input_features, pad], 2) # flanking the encoded string with padding tensor left and right along third dimension
+    #         combined_input = torch.cat([input, padded_additional_input_features], 1) # adding additional inputs under the encoded string along second dimension
+    #     else:
+    #         combined_input = input
+    #     return combined_input
 
-    def forward(self, input, additional_input_features = None):
-        padded = self.padding(input)
-        L = len(padded)
-        padding_length = int((L - len(input)) / 2)
-        compbined_input = self.combine_with_input_features(padded, additional_input_features)
+    def forward(self, input):
+        if isinstance(input, list):
+            padded = [self.padding(inp) for inp in input]
+            L = len(padded[0])
+            padding_length = int((L - len(input[0])) / 2)
+            x = [p.toTensor() for p in padded]
+        else:
+            padded = self.padding(input)
+            L = len(padded)
+            padding_length = int((L - len(input)) / 2)
+            x = padded.toTensor()
+        # combined_input = self.combine_with_input_features(padded, additional_input_features)
 
         #PREDICTION
         with torch.no_grad():
             self.model.eval()
-            prediction = self.model(compbined_input.toTensor()) #.float() # prediction is 3D 1 x C x L
+            prediction = self.model(x) #.float() # prediction is 3D 1 x C x L
             prediction = torch.sigmoid(prediction) # to get 0..1 positive scores
             self.model.train()
 
@@ -92,15 +99,17 @@ class ContextualPredictor(Predictor):
 
     def predict(self, for_anonymization: Decoder) -> Decoder:
         prediction = []
-        for group in self.model.anonymize_with:
-            concept = self.model.anonymize_with[group]
-            anonymized_t = self.anonymize(for_anonymization, group, concept)
-            prediction.append(self.forward(anonymized_t)) # prediction is 3D 1 x C x L
-        prediction = torch.cat(prediction, 1)
+        anonymized_t = []
+        for anonymization in self.model.anonymize_with:
+            group = anonymization['group']
+            concept = anonymization['concept']
+            anonymized_t.append(self.anonymize(for_anonymization, group, concept))
+        prediction = self.forward(anonymized_t) # ContextCombinedModel takes list of anonymized inputs; ouch need to be all padded
         input_string = for_anonymization.input_string
         token_list = for_anonymization.token_list
         decoded = self.decode(input_string, token_list, prediction, self.model.semantic_groups) # input_string will be tokenized again; a waste, but maybe not worth the complication; could have an *args or somethign
         return decoded
+        
 
 class CharLevelPredictor(Predictor):
 

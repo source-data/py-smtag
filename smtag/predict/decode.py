@@ -79,7 +79,7 @@ class Decoder:
             char_level_concepts[token.start:token.stop] = [concept] * (token.stop - token.start)
         return char_level_concepts, token_level_concepts, token_level_scores
 
-    def fuse_adjacent(self):
+    def fuse_adjascent(self):
         if len(self.token_list) > 1:
             i = 0
             while i < (len(self.token_list)-1): # len(self.token_list) decreases as token are fused
@@ -95,19 +95,19 @@ class Decoder:
                         scores_spacer[key] = 1.0 # default such that fusion test not limited
                 fuse = True
                 tagged = 0
-                for g in self.semantic_groups:
-                    if concepts[g] != Catalogue.UNTAGGED:
+                for group in self.semantic_groups:
+                    if concepts[group] != Catalogue.UNTAGGED:
                         tagged += 1
-                        fuse = fuse and (concepts[g] == next_concepts[g]) and  (scores_spacer[g] > FUSION_THRESHOLD)
+                        fuse = fuse and (concepts[group] == next_concepts[group]) and  (scores_spacer[group] > FUSION_THRESHOLD)
                 if fuse and tagged > 0:
-                    for g in self.semantic_groups:
-                        self.concepts[g].pop(i+1)
-                        self.scores[g][i] = (self.scores[g][i] + self.scores[g][i+1]) / 2 # oversimplification but maybe ok
-                        self.char_level_concepts[g][t.stop:next_t.start] = [concepts[g]] * (next_t.start - t.stop) # does nothing if spacer empty
-                        fused_text = t.text + next_t.left_spacer + next_t.text
-                        fused_token = Token(fused_text, t.start, next_t.stop, len(fused_text), t.left_spacer)
-                        self.token_list[i] = fused_token
-                        self.token_list.pop(i+1)
+                    for group in self.semantic_groups:
+                        self.concepts[group].pop(i+1)
+                        self.scores[group][i] = (self.scores[group][i] + self.scores[group][i+1]) / 2 # oversimplification but maybe ok
+                        self.char_level_concepts[group][t.stop:next_t.start] = [concepts[group]] * (next_t.start - t.stop) # does nothing if spacer empty
+                    fused_text = t.text + next_t.left_spacer + next_t.text
+                    fused_token = Token(fused_text, t.start, next_t.stop, len(fused_text), t.left_spacer)
+                    self.token_list.pop(i+1)
+                    self.token_list[i] = fused_token
                     # i stays the same since we have fused 2 tags and need to check whether to fuse further
                 else:
                     i += 1 # if no fusion occured, go to next token
@@ -139,9 +139,9 @@ class Decoder:
     def clone(self) -> 'Decoder':
         other = Decoder(self.input_string, self.prediction.clone(), deepcopy(self.semantic_groups))
         other.token_list = deepcopy(self.token_list)
-        other.concepts = deepcopy(self.concepts)
+        other.concepts = copy(self.concepts) # should it be shallow copy rather?
         other.scores = OrderedDict([(group, self.scores[group].clone()) for group in self.scores])
-        other.char_level_concepts = OrderedDict([(group, deepcopy(self.char_level_concepts[group])) for group in self.char_level_concepts])
+        other.char_level_concepts = OrderedDict([(group, copy(self.char_level_concepts[group])) for group in self.char_level_concepts])
         return other
 
 class CharLevelDecoder(Decoder):

@@ -36,7 +36,7 @@ class XMLElementSerializer(AbstractElementSerializer):
             attribute_score = {}
             for group in concepts:
                 concept = concepts[group]
-                if type(concept) != type(Catalogue.UNTAGGED):
+                if concept != Catalogue.UNTAGGED:
                     score = scores[group]
                     attribute, value = concept.for_serialization
                     attribute_score[attribute] = score
@@ -64,7 +64,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
             attribute_score = {}
             for group in concepts:
                 concept = concepts[group]
-                if type(concept) != type(Catalogue.UNTAGGED): # redefining __eq__ causes problems in mapper :-()
+                if concept != Catalogue.UNTAGGED: # redefining __eq__ causes problems in mapper :-()
                     score = scores[group]
                     attribute, value = concept.for_serialization
                     attribute_list[attribute] = value
@@ -105,7 +105,7 @@ class AbstractTagger:
 
     def panel_segmentation(self, decoded: Decoder) -> List:
         panels = []
-        indices = [i for i, c in enumerate(decoded.char_level_concepts['panels']) if type(c) == type(Catalogue.PANEL_STOP)]
+        indices = [i for i, c in enumerate(decoded.char_level_concepts['panels']) if c == Catalogue.PANEL_STOP]
         token_list = deepcopy(decoded.token_list)
         for i in indices:
             panel = []
@@ -123,6 +123,7 @@ class AbstractTagger:
     def serialize(self, decoded: Decoder) -> str:
         ml_string = ""
         inner_text = ""
+        pos = 0
         num_open_elements = 0
         current_concepts = OrderedDict([(g, Catalogue.UNTAGGED) for g in decoded.semantic_groups]) # initialize with UNTAGGED?
         need_to_open = OrderedDict([(g, False) for g in decoded.semantic_groups])
@@ -144,9 +145,9 @@ class AbstractTagger:
                 ml_string += panel[0].left_spacer # need first to add the spacer of first token of next panel
                 ml_string += closing_tag # and close panel
             ml_string += open_tag
-            for pos, token in enumerate(panel):
+            for count, token in enumerate(panel):
                 text = xml_escape(token.text)
-                left_spacer = token.left_spacer if pos > 0 else ""
+                left_spacer = token.left_spacer if count > 0 else ""
 
                 # print(f"1.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
                 # if something new or changed?
@@ -176,10 +177,10 @@ class AbstractTagger:
 
                 for group in decoded.semantic_groups: # scan across feature groups the features that need to be opened
                     concept = decoded.concepts[group][pos]
-                    if type(concept) != type(Catalogue.UNTAGGED) and type(concept) != type(current_concepts[group]): # a new concept
+                    if concept != Catalogue.UNTAGGED and concept != current_concepts[group]: # a new concept
                         need_to_open[group] = concept
                         need_to_open_any = True
-                        if type(current_concepts[group]) == type(Catalogue.UNTAGGED):
+                        if current_concepts[group] == Catalogue.UNTAGGED:
                             num_open_elements += 1
 
                 # print(f"2.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
@@ -198,7 +199,7 @@ class AbstractTagger:
                         if need_to_open[group]: # CHANGED
                             current_concepts[group] = concept
                             need_to_open[group] = False
-                        elif type(current_concepts[group]) != type(Catalogue.UNTAGGED) and type(concept) == type(Catalogue.UNTAGGED):
+                        elif current_concepts[group] != Catalogue.UNTAGGED and concept == Catalogue.UNTAGGED:
                             num_open_elements -= 1
  
                     # print(f"4.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
@@ -206,7 +207,7 @@ class AbstractTagger:
                 else:
                     for group in decoded.semantic_groups:
                         concept = decoded.concepts[group][pos]
-                        if type(current_concepts[group]) != type(Catalogue.UNTAGGED) and type(concept) == type(Catalogue.UNTAGGED):
+                        if current_concepts[group] != Catalogue.UNTAGGED and concept == Catalogue.UNTAGGED:
                             need_to_close[group] = True
                             need_to_close_any = True
                             num_open_elements -= 1
@@ -235,6 +236,7 @@ class AbstractTagger:
                             inner_text += left_spacer + text
                         else:
                             ml_string += left_spacer + text
+                pos += 1
 
             if num_open_elements > 0:
                 tagged_string = self.serialize_element(current_concepts, inner_text, current_scores)
