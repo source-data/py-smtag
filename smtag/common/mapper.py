@@ -36,9 +36,6 @@
 # Each features has a threshold of detection. This can be treated as hyperparameters that can be tuned and optimized after training.
 # This is still messy and problematic. Ultimately Concept, Catalogue and xml_map have to be unified/merged into a single object and json description.
 # Element, Entity and Boundary are used in smtag.serializer
-# Another source of difficulty is that some features are combinations of several features (with And or Or).
-# __add__() implements a way to fuse/merge concepts.
-# There should be a way to search for a feature based on one attribute of the concept
 
 
 class Concept(object):
@@ -46,65 +43,110 @@ class Concept(object):
         self.label = label
         self.for_serialization = recipe
         self.threshold = detection_threshold
-        self.category = ""
-        self.type = ""
-        self.role = ""
 
     def __str__(self):
-        return "{}: '{}' ({})".format(self.category, self.label, "; ".join(filter(None, [self.type, self.role])))
+        return "{}".format(self.__class__)
 
     def __repr__(self):
-        return "{}".format(self.label)
-
-    def __add__(self, x): # maybe misleading because not commutative
-        assert(self.category == x.category or self.category == "" or x.category == "") # cannot combine concepts across categories but can do with category-less object
-        y = Concept()
-        y.label = "_".join(filter(None, [self.label, x.label]))
-        if self.category == "":
-            y.category = x.category
-        else:
-            y.category = self.category
-        if self.role != x.role:
-            y.role = "_".join(filter(None, [self.role, x.role]))
-        if self.type != x.type:
-            y.type = "_".join(filter(None, [self.type, x.type]))
-        y.threshold = (self.threshold + x.threshold) / 2
-        y.for_serialization += x.for_serialization
-        return y
-
-    def equal_class(self, x):
-        # we neglect differences in role to call it 'equal'; ok to find concept in list of entities but not very general.
-        # return self.category == x.category and self.type == x.type
-        return type(x) == type(self)
+        return "{}".format(self.__class__)
 
     def my_index(self, list):
-        i = 0
-        for c in list:
-            if self.equal_class(c):
+        for i, c in enumerate(list):
+            if type(self) == type(c):
                 return i
-            i += 1
-        if i == len(list):
-            return None
+        return None
 
+class Untagged(Concept):
+    def __init__(self, *args):
+        super(Untagged, self).__init__(*args)
 
 class Category(Concept):
-    def __init__(self, label, *args):
-        super(Category, self).__init__(label, *args)
-        self.category = label
+    def __init__(self, *args):
+        super(Category, self).__init__(*args)
 
+class Disease(Category):
+    def __init__(self, *args):
+        super(Disease, self).__init__(*args)
+
+class TimeVar(Category):
+    def __init__(self, *args):
+        super(TimeVar, self).__init__(*args)
+
+class PhysicalVar(Category):
+    def __init__(self, *args):
+        super(PhysicalVar, self).__init__(*args)
+
+class Assay(Category):
+    def __init__(self, *args):
+        super(Assay, self).__init__(*args)
 
 class Entity(Category):
-    def __init__(self, label, *args):
-        super(Entity, self).__init__(label, *args)
-        self.category = "entity"
-        self.type = label
+    def __init__(self, *args):
+        super(Entity, self).__init__(*args)
 
+class SmallMolecule(Entity):
+    def __init__(self, *args):
+        super(SmallMolecule, self).__init__(*args)
+
+class Gene(Entity):
+    def __init__(self, *args):
+        super(Gene, self).__init__(*args)
+
+class Protein(Entity):
+    def __init__(self, *args):
+        super(Protein, self).__init__(*args)
+
+class GeneProduct(Entity):
+    def __init__(self, *args):
+        super(GeneProduct, self).__init__(*args)
+
+class Subcellular(Entity):
+    def __init__(self, *args):
+        super(Subcellular, self).__init__(*args)
+
+class Cell(Entity):
+    def __init__(self, *args):
+        super(Cell, self).__init__(*args)
+
+class Tissue(Entity):
+    def __init__(self, *args):
+        super(Tissue, self).__init__(*args)
+
+class Organism(Entity):
+    def __init__(self, *args):
+        super(Organism, self).__init__(*args)
+
+class Undefined(Entity):
+    def __init__(self, *args):
+        super(Undefined, self).__init__(*args)
 
 class Role(Category):
-    def __init__(self, label, *args):
-        super(Role, self).__init__(label, *args)
-        self.category = "entity"
-        self.role = label
+    def __init__(self, *args):
+        super(Role, self).__init__(*args)
+
+class Intervention(Role):
+    def __init__(self, *args):
+        super(Intervention, self).__init__(*args)
+
+class Measurement(Role):
+    def __init__(self, *args):
+        super(Measurement, self).__init__(*args)
+
+class Reporter(Role):
+    def __init__(self, *args):
+        super(Reporter, self).__init__(*args)
+
+class ExperimentalVar(Role):
+    def __init__(self, *args):
+        super(ExperimentalVar, self).__init__(*args)
+
+class Normalizing(Role):
+    def __init__(self, *args):
+        super(Normalizing, self).__init__(*args)
+
+class Generic(Role):
+    def __init__(self, *args):
+        super(Generic, self).__init__(*args)
 
 class Boundary(Concept):
     def __init__(self, *args):
@@ -112,29 +154,29 @@ class Boundary(Concept):
 
 class Catalogue():
 
-    SMALL_MOLECULE = Entity('small_molecule', ['type', 'small_molecule'], 0.6)
-    GENE = Entity('gene', ['type', 'gene'], 0.4)
-    PROTEIN = Entity('protein', ['type', 'protein'], 0.4)
-    SUBCELLULAR = Entity('subcellular', ['type', 'subcellular'], 0.4)
-    CELL = Entity('cell', ['type', 'cell'], 0.5)
-    TISSUE = Entity('tissue', ['type', 'tissue'], 0.4)
-    ORGANISM = Entity('organism', ['type', 'organism'], 0.6)
-    UNDEFINED = Entity('undefined', ['type', 'undefined'], 0.5)
-    INTERVENTION = Role('intervention', ['role', 'intervention'], 0.4)
-    MEASUREMENT = Role('assayed', ['role', 'assayed'], 0.4)
-    NORMALIZING = Role('normalizing', ['role', 'normalizing'], 0.5)
-    REPORTER = Role('reporter', ['role', 'reporter'], 0.8)
-    EXP_VAR = Role('experiment', ['role', 'experiment'], 0.5)
-    GENERIC = Role('component', ['role', 'component'], 0.5)
-    EXP_ASSAY = Category('assay', ['category', 'assay'], 0.6)
-    ENTITY = Category('entity', ['category', 'entity'], 0.5)
-    TIME = Category('time', ['category', 'assay'], 0.5)
-    PHYSICAL_VAR = Category('physical', ['category', 'physical'], 0.5)
-    DISEASE = Category('disease', ['category', 'disease'], 0.5)
+    SMALL_MOLECULE = SmallMolecule('small_molecule', ['type', 'small_molecule'], 0.6)
+    GENE = Gene('gene', ['type', 'gene'], 0.4)
+    PROTEIN = Protein('protein', ['type', 'protein'], 0.4)
+    SUBCELLULAR = Subcellular('subcellular', ['type', 'subcellular'], 0.4)
+    CELL = Cell('cell', ['type', 'cell'], 0.5)
+    TISSUE = Tissue('tissue', ['type', 'tissue'], 0.4)
+    ORGANISM = Organism('organism', ['type', 'organism'], 0.6)
+    UNDEFINED = Undefined('undefined', ['type', 'undefined'], 0.5)
+    INTERVENTION = Intervention('intervention', ['role', 'intervention'], 0.4)
+    MEASUREMENT = Measurement('assayed', ['role', 'assayed'], 0.4)
+    NORMALIZING = Normalizing('normalizing', ['role', 'normalizing'], 0.5)
+    REPORTER = Reporter('reporter', ['role', 'reporter'], 0.8)
+    EXP_VAR = ExperimentalVar('experiment', ['role', 'experiment'], 0.5)
+    GENERIC = Generic('component', ['role', 'component'], 0.5)
+    EXP_ASSAY = Assay('assay', ['category', 'assay'], 0.6)
+    ENTITY = Entity('entity', ['category', 'entity'], 0.5)
+    TIME = TimeVar('time', ['category', 'assay'], 0.5)
+    PHYSICAL_VAR = PhysicalVar('physical', ['category', 'physical'], 0.5)
+    DISEASE = Disease('disease', ['category', 'disease'], 0.5)
     PANEL_START = Boundary('panel_start','sd-panel',  0.5)
     PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
-    GENEPROD = Entity('geneprod', ['type', 'geneprod'], 0.4)
-    UNTAGGED = Concept('untagged', [])
+    GENEPROD = GeneProduct('geneprod', ['type', 'geneprod'], 0.4)
+    UNTAGGED = Untagged('untagged', [])
 
     # the order of the Concepts in the catalogue matters and determines the order in which these concepts are expected in datasets used for training
     standard_channels = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,

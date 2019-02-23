@@ -96,9 +96,9 @@ class Decoder:
                 fuse = True
                 tagged = 0
                 for group in self.semantic_groups:
-                    if concepts[group] != Catalogue.UNTAGGED:
+                    if type(concepts[group]) != type(Catalogue.UNTAGGED):
                         tagged += 1
-                        fuse = fuse and (concepts[group] == next_concepts[group]) and  (scores_spacer[group] > FUSION_THRESHOLD)
+                        fuse = fuse and (type(concepts[group]) == type(next_concepts[group])) and  (scores_spacer[group] > FUSION_THRESHOLD)
                 if fuse and tagged > 0:
                     for group in self.semantic_groups:
                         self.concepts[group].pop(i+1)
@@ -139,7 +139,7 @@ class Decoder:
     def clone(self) -> 'Decoder':
         other = Decoder(self.input_string, self.prediction.clone(), deepcopy(self.semantic_groups))
         other.token_list = deepcopy(self.token_list)
-        other.concepts = copy(self.concepts) # should it be shallow copy rather?
+        other.concepts = copy(self.concepts) # shallow copy
         other.scores = OrderedDict([(group, self.scores[group].clone()) for group in self.scores])
         other.char_level_concepts = OrderedDict([(group, copy(self.char_level_concepts[group])) for group in self.char_level_concepts])
         return other
