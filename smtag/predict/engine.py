@@ -113,18 +113,34 @@ class SmtagEngine:
 
     def __panels(self, input_t_string: TString, token_list) -> CharLevelDecoder:
         decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list)
+        if self.DEBUG:
+            B, C, L = decoded.prediction.size()
+            print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(decoded.prediction))
         return decoded
 
     def __entity(self, input_t_string: TString, token_list) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_string, token_list)
+        if self.DEBUG:
+            B, C, L = decoded.prediction.size()
+            print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(decoded.prediction))
         return decoded
 
     def __reporter(self, input_t_string: TString, token_list) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_string, token_list)
+        if self.DEBUG:
+            B, C, L = decoded.prediction.size()
+            print(f"\n2: after reporter: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(decoded.prediction))
         return decoded
 
     def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
         decoded = ContextualPredictor(self.context_models).predict(entities)
+        if self.DEBUG:
+            B, C, L = decoded.prediction.size()
+            print(f"\nafter context: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(decoded.prediction))
         return decoded
 
     def __entity_and_role(self, input_t_string, token_list) -> Decoder:
@@ -135,6 +151,7 @@ class SmtagEngine:
         output.cat_(reporter)
         context = self.__context(entities_less_reporter)
         output.cat_(context)
+
         return output
 
     def __role_from_pretagged(self, input_xml: Element) -> Decoder:
@@ -156,51 +173,27 @@ class SmtagEngine:
     def __all(self, input_t_string, token_list):
 
         if self.DEBUG:
-            show = Show()
             print("\nText:")
             print("    "+str(input_t_string))
 
-        #PREDICT PANELS
         panels = self.__panels(input_t_string, token_list)
         output = panels
-        if self.DEBUG:
-            B, C, L = output.prediction.size()
-            print(f"\n1: after panels: {output.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(output.prediction))
 
-        # PREDICT ENTITIES
         entities = self.__entity(input_t_string, token_list)
-        if self.DEBUG:
-            B, C, L = entities.prediction.size()
-            print(f"\n1: after entity: {entities.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(entities.prediction))
         output.cat_(entities.clone()) 
 
-        # PREDICT REPORTERS
         reporter = self.__reporter(input_t_string, token_list)
-        if self.DEBUG:
-            B, C, L = entities.prediction.size()
-            print(f"\n2: after reporter: {reporter.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(reporter.prediction))
         output.cat_(reporter) # add reporter prediction to output features
-        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
-        if self.DEBUG:
-            B, C, L = entities_less_reporter.prediction.size()
-            print(f"\n3: after entity.erase_(reporter): {entities_less_reporter.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(entities_less_reporter.prediction))
 
-        # PREDICT ROLES ON NON REPORTER ENTITIES
+        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
+
         context = self.__context(entities_less_reporter)
-        if self.DEBUG:
-            B, C, L = context.prediction.size()
-            print(f"\n4: after context: {context.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(context.prediction))
         output.cat_(context)
 
         if self.DEBUG:
             B, C, L = output.prediction.size()
-            print(f"\n5: concatenated output: {output.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(output.prediction))
+            print(f"\nfinal concatenated output: {output.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(output.prediction))
 
         return output
 
