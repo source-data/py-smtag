@@ -32,8 +32,8 @@ from ..train.builder import Concat
 from ..common.converter import TString
 from ..common.mapper import Catalogue
 from ..datagen.encoder import XMLEncoder
-from .decode import Decoder
-from .predictor import Predictor, ContextualPredictor
+from .decode import CharLevelDecoder, Decoder
+from .predictor import Predictor, ContextualPredictor, CharLevelPredictor
 from .markup import Serializer
 from .updatexml import updatexml_
 from .. import config
@@ -52,7 +52,7 @@ class CombinedModel(nn.Module):#SmtagModel?
     def __init__(self, models: OrderedDict):
         super(CombinedModel, self).__init__()
         self.semantic_groups = OrderedDict()
-        for group in models: # replace by self.module_list = nn.ModuleList() in torch 1.0.0
+        for group in models: # replace by self.module_list = nn.ModuleList(models) in torch 1.0.0
             model = models[group]
             name = 'unet2__'+ str(group)
             self.add_module(name, model) # self.module_list.append(model)
@@ -71,13 +71,20 @@ class ContextCombinedModel(CombinedModel):
 
     def __init__(self, models: OrderedDict):
         model_list = OrderedDict()
-        self.anonymize_with = OrderedDict()
+        self.anonymize_with = []
         for group in models:
             model, anonymization = models[group]
-            self.anonymize_with[anonymization['group']] = anonymization['concept']
+            self.anonymize_with.append(anonymization)
             model_list[group] = model
-        super(ContextCombinedModel, self).__init__(model_list)
+        super(ContextCombinedModel, self).__init__(model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
 
+    def forward(self, x_list): # takes a list of inputs each specifically anonymized for each context model
+        y_list = []
+        for (n, m), x in zip(self.named_children(), x_list):
+            if re.match('unet2__', n): # the child module is one of the unet models;
+                y_list.append(m(x))
+        y = self.concat(y_list)
+        return y
 
 class SmtagEngine:
 
@@ -95,29 +102,45 @@ class SmtagEngine:
         self.context_models = ContextCombinedModel(OrderedDict([
             ('geneprod_roles',
                (load_model(config.model_geneprod_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
-            )#,
-            #('small_molecule_role', 
-            #    (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
-            #)
+            ),
+            # ('small_molecule_role', 
+            #     (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+            # )
         ]))
         self.panelize_model = CombinedModel(OrderedDict([
             ('panels', load_model(config.model_panel_stop, config.prod_dir))
         ]))
 
-    def __panels(self, input_t_string: TString, token_list) -> Decoder:
-        decoded = Predictor(self.panelize_model).predict(input_t_string, token_list)
+    def __panels(self, input_t_string: TString, token_list) -> CharLevelDecoder:
+        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list)
+        if self.DEBUG:
+            B, C, L = decoded.prediction.size()
+            print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(decoded.prediction))
         return decoded
 
     def __entity(self, input_t_string: TString, token_list) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_string, token_list)
+        if self.DEBUG:
+            B, C, L = decoded.prediction.size()
+            print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(decoded.prediction))
         return decoded
 
     def __reporter(self, input_t_string: TString, token_list) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_string, token_list)
+        if self.DEBUG:
+            B, C, L = decoded.prediction.size()
+            print(f"\n2: after reporter: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(decoded.prediction))
         return decoded
 
     def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
         decoded = ContextualPredictor(self.context_models).predict(entities)
+        if self.DEBUG:
+            B, C, L = decoded.prediction.size()
+            print(f"\nafter context: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(decoded.prediction))
         return decoded
 
     def __entity_and_role(self, input_t_string, token_list) -> Decoder:
@@ -128,6 +151,7 @@ class SmtagEngine:
         output.cat_(reporter)
         context = self.__context(entities_less_reporter)
         output.cat_(context)
+
         return output
 
     def __role_from_pretagged(self, input_xml: Element) -> Decoder:
@@ -138,7 +162,7 @@ class SmtagEngine:
         encoded.unsqueeze_(0) # 3D
         semantic_groups = OrderedDict([('all_concepts', Catalogue.standard_channels)])
         entities = Decoder(input_string, encoded, semantic_groups)
-        entities.decode_with_token(token_list)
+        entities.decode(token_list)
         reporter = self.__reporter(input_t_string, token_list)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output = reporter # there was a clone() here??
@@ -149,55 +173,32 @@ class SmtagEngine:
     def __all(self, input_t_string, token_list):
 
         if self.DEBUG:
-            show = Show()
             print("\nText:")
             print("    "+str(input_t_string))
 
-        #PREDICT PANELS
         panels = self.__panels(input_t_string, token_list)
         output = panels
-        if self.DEBUG:
-            B, C, L = output.prediction.size()
-            print(f"\n1: after panels: {output.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(output.prediction))
 
-        # PREDICT ENTITIES
         entities = self.__entity(input_t_string, token_list)
-        if self.DEBUG:
-            B, C, L = entities.prediction.size()
-            print(f"\n1: after entity: {entities.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(entities.prediction))
         output.cat_(entities.clone()) 
 
-        # PREDICT REPORTERS
         reporter = self.__reporter(input_t_string, token_list)
-        if self.DEBUG:
-            B, C, L = entities.prediction.size()
-            print(f"\n2: after reporter: {reporter.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(reporter.prediction))
         output.cat_(reporter) # add reporter prediction to output features
-        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
-        if self.DEBUG:
-            B, C, L = entities_less_reporter.prediction.size()
-            print(f"\n3: after entity.erase_(reporter): {entities_less_reporter.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(entities_less_reporter.prediction))
 
-        # PREDICT ROLES ON NON REPORTER ENTITIES
+        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
+
         context = self.__context(entities_less_reporter)
-        if self.DEBUG:
-            B, C, L = context.prediction.size()
-            print(f"\n4: after context: {context.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(context.prediction))
         output.cat_(context)
 
         if self.DEBUG:
             B, C, L = output.prediction.size()
-            print(f"\n5: concatenated output: {output.semantic_groups} {B}x{C}x{L}")
-            print(show.print_pretty(output.prediction))
+            print(f"\nfinal concatenated output: {output.semantic_groups} {B}x{C}x{L}")
+            print(Show().print_pretty(output.prediction))
 
         return output
 
     def __serialize(self, output, sdtag="sd-tag", format="xml"):
+        output.fuse_adjascent()
         ml = Serializer(tag=sdtag, format=format).serialize(output)
         return ml # engine works with single example
 

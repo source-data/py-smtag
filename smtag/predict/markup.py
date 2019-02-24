@@ -4,6 +4,7 @@
 #from abc import ABC
 import torch
 import xml.etree.ElementTree as ET
+from copy import deepcopy
 from typing import List
 from collections import OrderedDict
 from ..common.utils import xml_escape, timer
@@ -104,20 +105,25 @@ class AbstractTagger:
 
     def panel_segmentation(self, decoded: Decoder) -> List:
         panels = []
-        panel = []
-        for c, token in zip(decoded.concepts['panels'], decoded.token_list):
-            if c == Catalogue.PANEL_STOP:
-                panels.append(panel)
-                panel = []
-            panel.append(token)
-        if panel:
+        indices = [i for i, c in enumerate(decoded.char_level_concepts['panels']) if type(c) == type(Catalogue.PANEL_STOP)]
+        token_list = deepcopy(decoded.token_list)
+        for i in indices:
+            panel = []
+            stop = 0
+            while stop < i:
+                t = token_list.pop(0)
+                panel.append(t)
+                stop = t.stop
             panels.append(panel)
+        rest= [t for t in token_list]
+        if rest:
+            panels.append(rest)
         return panels
 
     def serialize(self, decoded: Decoder) -> str:
-
         ml_string = ""
         inner_text = ""
+        pos = 0
         num_open_elements = 0
         current_concepts = OrderedDict([(g, Catalogue.UNTAGGED) for g in decoded.semantic_groups]) # initialize with UNTAGGED?
         need_to_open = OrderedDict([(g, False) for g in decoded.semantic_groups])
@@ -135,9 +141,13 @@ class AbstractTagger:
             open_tag = ''
             closing_tag = ''
         for panel in panels:
+            if ml_string: # if in the middle of a multi-panel legend, 
+                ml_string += panel[0].left_spacer # need first to add the spacer of first token of next panel
+                ml_string += closing_tag # and close panel
             ml_string += open_tag
-            for pos, token in enumerate(panel):
+            for count, token in enumerate(panel):
                 text = xml_escape(token.text)
+                left_spacer = token.left_spacer if count > 0 else ""
 
                 # print(f"1.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
                 # if something new or changed?
@@ -167,7 +177,7 @@ class AbstractTagger:
 
                 for group in decoded.semantic_groups: # scan across feature groups the features that need to be opened
                     concept = decoded.concepts[group][pos]
-                    if type(concept) != type(Catalogue.UNTAGGED) and type(concept) != type(current_concepts[group]): # a new concept
+                    if type(concept) != type(Catalogue.UNTAGGED) and concept != current_concepts[group]: # a new concept
                         need_to_open[group] = concept
                         need_to_open_any = True
                         if type(current_concepts[group]) == type(Catalogue.UNTAGGED):
@@ -178,7 +188,7 @@ class AbstractTagger:
                 if need_to_open_any:
                     need_to_open_any = False
                     tagged_string = self.serialize_element(current_concepts, inner_text, current_scores)
-                    ml_string += tagged_string + token.left_spacer # add the tagged alement to the nascent markup string
+                    ml_string += tagged_string + left_spacer # add the tagged alement to the nascent markup string
                     inner_text = text
 
                     # print(f"3.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
@@ -190,7 +200,7 @@ class AbstractTagger:
                             current_concepts[group] = concept
                             need_to_open[group] = False
                         elif type(current_concepts[group]) != type(Catalogue.UNTAGGED) and type(concept) == type(Catalogue.UNTAGGED):
-                            num_open_elements -=1
+                            num_open_elements -= 1
  
                     # print(f"4.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
 
@@ -207,7 +217,7 @@ class AbstractTagger:
                     if need_to_close_any:
                         need_to_close_any = False
                         tagged_string = self.serialize_element(current_concepts, inner_text, current_scores)
-                        ml_string += tagged_string + token.left_spacer
+                        ml_string += tagged_string + left_spacer
                         inner_text = ''
                         if num_open_elements > 0:
                             inner_text = text
@@ -223,17 +233,17 @@ class AbstractTagger:
                                 current_scores[group] = 0
                     else:
                         if num_open_elements > 0:
-                            inner_text += token.left_spacer + text
+                            inner_text += left_spacer + text
                         else:
-                            ml_string += token.left_spacer + text
+                            ml_string += left_spacer + text
+                pos += 1
 
             if num_open_elements > 0:
                 tagged_string = self.serialize_element(current_concepts, inner_text, current_scores)
-                ml_string += tagged_string
-                
+
                 # print(f"7.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
-                print(num_open_elements)
-            ml_string += closing_tag
+
+        ml_string += closing_tag # hmm in principle left spacer of first token of next panel should go in here
         #phew!
         return ml_string
 
