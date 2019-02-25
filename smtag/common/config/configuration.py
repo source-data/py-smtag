@@ -66,34 +66,61 @@ class Config():
 
     @property
     def image_dir(self):
-        return os.path.join(self.working_directory, self._image_dir_name)
+        image_dir = os.path.join(self.working_directory, self._image_dir_name)
+        if not os.path.exists(image_dir):
+            os.mkdir(image_dir)
+        return image_dir
     @property
     def data_dir(self):
-        return os.path.join(self.working_directory, self._data_dir_name)
+        data_dir = os.path.join(self.working_directory, self._data_dir_name)
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+        return data_dir
     @property
     def data4th_dir(self):
-        return os.path.join(self.working_directory, self._data4th_dir_name)
+        data4th_dir = os.path.join(self.working_directory, self._data4th_dir_name)
+        if not os.path.exists(data4th_dir):
+            os.mkdir(data4th_dir)
+        return data4th_dir
     @property
     def encoded_dir(self):
-        return os.path.join(self.working_directory, self._encoded_dir_name)
+        encoded_dir = os.path.join(self.working_directory, self._encoded_dir_name)
+        if not os.path.exists(encoded_dir):
+            os.mkdir(encoded_dir)
+        return encoded_dir
     @property
     def model_dir(self):
-        return os.path.join(self.working_directory, self._model_dir_name)
+        model_dir = os.path.join(self.working_directory, self._model_dir_name)
+        if not os.path.exists(model_dir):
+            os.mkdir(model_dir)
+        return model_dir
     @property
     def prod_dir(self):
-        return os.path.join(self.working_directory, self._prod_dir_name)
+        prod_dir = os.path.join(self.working_directory, self._prod_dir_name)
+        if not os.path.exists(prod_dir):
+            os.mkdir(prod_dir)
+        return prod_dir
     @property
     def runs_log_dir(self):
-        return os.path.join(self.working_directory, self._runs_log_dir_name)
+        runs_log_dir = os.path.join(self.working_directory, self._runs_log_dir_name)
+        if not os.path.exists(runs_log_dir):
+            os.mkdir(runs_log_dir)
+        return runs_log_dir
     @property
     def log_dir(self):
-        return os.path.join(self.working_directory, self._log_dir_name)
+        log_dir = os.path.join(self.working_directory, self._log_dir_name)
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        return log_dir
     @property
     def scans_dir(self):
         """
         Path to results of hyperparameter scans.
         """
-        return os.path.join(self.working_directory, self._scans_dir_name)
+        scans_dir = os.path.join(self.working_directory, self._scans_dir_name)
+        if not os.path.exists(scans_dir):
+            os.mkdir(scans_dir)
+        return scans_dir
     @property
     def img_grid_size(self):
         """
