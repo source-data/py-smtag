@@ -211,7 +211,7 @@ class Config():
     def model_disease(self):
         return self._model_disease
 
-    def create_argument_parser_with_defaults(description=None):
+    def create_argument_parser_with_defaults(self, description=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
         parser = argparse.ArgumentParser(description=description, formatter_class=formatter_class)
         ################################################################################################################
