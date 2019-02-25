@@ -116,33 +116,6 @@ class Sampler():
         print("{} +/- {} (min = {}, max = {})".format(text_avg, text_std, text_min, text_max))
 
     @staticmethod
-    def create_tensors(N, iterations, number_of_features, ocr_cxt_features, length, min_padding): # viz_cxt_features,
-        """
-        Creates and initializes the tensors needed  to encode text and features.
-        Allows to abstract away the specificity of the encoding. This implementation is for longitudinal features.
-        But some other implementation could need several encoding tensors.
-        The text is encoded in a NBITS feature tensor using the binary representation of the unicode code of each character (see smtag.common.TString)
-
-        Args:
-            N: the number of examples
-            iterations: the number of times each example is sampled
-            number_of_features: number of features for the encoded feature tensor
-            length: the desired length of the encoded fragments
-            min_padding: the minimum amount of padding put on each side of the fragment
-
-        Returns:
-            (textcoded4th, features) where
-                textcoded4th: 3D zero-initialized ByteTensor, N*iterations x NBITS x full_length, where full_length=length+(2*min_padding)
-                features: 3D zero-initialized ByteTensor, N*iterations x number_of_features x full_length, where full_length=length+(2*min_padding)
-        """
-
-        textcoded4th   = torch.zeros((N * iterations, NBITS, length+(2*min_padding)), dtype=torch.uint8)
-        features4th    = torch.zeros((N * iterations, number_of_features, length+(2*min_padding)), dtype = torch.uint8)
-        ocr_context4th = torch.zeros((N * iterations, ocr_cxt_features, length+(2*min_padding)), dtype = torch.uint8)
-        # viz_context4th = torch.zeros((N * iterations, viz_cxt_features), dtype = torch.uint8)
-        return textcoded4th, features4th, ocr_context4th #, viz_context4th
-
-    @staticmethod
     def display(text4th, tensor4th, ocr_context4th, viz_context4th):
         """
         Display text fragments and extracted features to the console.
@@ -157,13 +130,15 @@ class Sampler():
                 feature = str(index2concept[j])
                 track = [int(tensor4th[i, j, k]) for k in range(L)]
                 print(''.join([['-','+'][x] for x in track]), feature)
-            for j in range(ocr_context4th.size(1)):
-                feature = 'ocr_' + str(j)
-                track = [int(ocr_context4th[i, j, k]) for k in range(L)]
-                print(''.join([['-','+'][ceil(x)] for x in track]), feature)
-            feature = 'viz_' + str(j)
-            track = [int(x) for x in viz_context4th[i]]
-            print(''.join([str(x) for x in track]), feature)
+            if ocr_context4th:
+                for j in range(ocr_context4th.size(1)):
+                    feature = 'ocr_' + str(j)
+                    track = [int(ocr_context4th[i, j, k]) for k in range(L)]
+                    print(''.join([['-','+'][ceil(x)] for x in track]), feature)
+            if viz_context4th:
+                feature = 'viz_' + str(j)
+                track = [int(x) for x in viz_context4th[i]]
+                print(''.join([str(x) for x in track]), feature)
 
 
     @timer
@@ -377,7 +352,6 @@ class DataPreparator(object):
                 if original_text:
                     # ENCODING XML
                     encoded_features = XMLEncoder.encode(processed_xml) # convert to tensor already here;
-
                     # OCR AND VIZ CONTEXT HAPPENS HERE ! Needs the unaltered un processed original text for alignment
                     ocr_context = None
                     viz_context = None
@@ -396,6 +370,7 @@ class DataPreparator(object):
                     else:
                         encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context, viz_context)
                         encoded_example.save(path_to_encoded)
+                        print(f"encoded {path_to_encoded}")
                 else:
                     print("\nskipping an example without text in document with id=", prov)
             else:
