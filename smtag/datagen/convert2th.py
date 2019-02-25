@@ -216,36 +216,36 @@ class Sampler():
                 viz_context = encoded_example.viz_context
                 L = len(text)
 
-                if L < 0.3 * self.length: # skip examples that are too short
-                    print("\nskipping example of size {} < 30% of desired length {}".format(L, self.length))
-                    skipped_examples += 1
-                else:
-                    length_stats.append(L)
-                    N += 1
-                    # randomly sampling each example
-                    adaptive_iterations = int(max(1.0, L / self.length) * iterations)
-                    for j in range(adaptive_iterations): # j is index of sampling iteration
-                        print("{:3d}/{:3d} samples of example #{:6d} of {:6d}     ".format(j+1, adaptive_iterations, i+1, self.N), end='\r')
-                        # a text fragment is picked randomly from the text example
-                        fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
-                        # it is randomly shifted and padded to fit the desired length
-                        padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
-                        # the final padded fragment is added to the list of samples
-                        text4th.append(padded_frag)
-                        # the text is encoded using the NBITS bit unicode encoding provided by TString
-                        textcoded4th.append(TString(padded_frag, dtype=torch.uint8).toTensor())
-                        # the provenance of the fragment needs to be recorded for later reference and possible debugging
-                        provenance4th.append(provenance)
-                        # the encoded features of the fragment are added to the feature tensor
-                        features4th.append(Sampler.slice_and_pad(self.length, encoded, start, stop, self.min_padding, left_padding, right_padding))
-                        # the encoded ocr context features 
-                        if ocr_context is not None:
-                            ocr_context4th.append(Sampler.slice_and_pad(self.length, ocr_context, start, stop, self.min_padding, left_padding, right_padding))
-                        else:
-                            import pdb; pdb.set_trace()
-                        # the visual context features are independent of the position of the text fragment
-                        if viz_context is not None:
-                            viz_context4th.append(self.pca.reduce(viz_context))
+                # if L < 0.3 * self.length: # skip examples that are too short
+                #     print("\nskipping example of size {} < 30% of desired length {}".format(L, self.length))
+                #     skipped_examples += 1
+                # else:
+                length_stats.append(L)
+                N += 1
+                # randomly sampling each example
+                adaptive_iterations = int(max(1.0, L / self.length) * iterations)
+                for j in range(adaptive_iterations): # j is index of sampling iteration
+                    print("{:3d}/{:3d} samples of example #{:6d} of {:6d}     ".format(j+1, adaptive_iterations, i+1, self.N), end='\r')
+                    # a text fragment is picked randomly from the text example
+                    fragment, start, stop = Sampler.pick_fragment(text, self.length, self.mode)
+                    # it is randomly shifted and padded to fit the desired length
+                    padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
+                    # the final padded fragment is added to the list of samples
+                    text4th.append(padded_frag)
+                    # the text is encoded using the NBITS bit unicode encoding provided by TString
+                    textcoded4th.append(TString(padded_frag, dtype=torch.uint8).toTensor())
+                    # the provenance of the fragment needs to be recorded for later reference and possible debugging
+                    provenance4th.append(provenance)
+                    # the encoded features of the fragment are added to the feature tensor
+                    features4th.append(Sampler.slice_and_pad(self.length, encoded, start, stop, self.min_padding, left_padding, right_padding))
+                    # the encoded ocr context features 
+                    if ocr_context is not None:
+                        ocr_context4th.append(Sampler.slice_and_pad(self.length, ocr_context, start, stop, self.min_padding, left_padding, right_padding))
+                    else:
+                        import pdb; pdb.set_trace()
+                    # the visual context features are independent of the position of the text fragment
+                    if viz_context is not None:
+                        viz_context4th.append(self.pca.reduce(viz_context))
 
         # transform list of tensors into final 3D tensors N x C x L
         N_processed = len(textcoded4th)
