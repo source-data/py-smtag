@@ -43,7 +43,7 @@ class Trainer:
             self.model = nn.DataParallel(self.model)
             self.model.cuda()
             self.model.output_semantics = self.output_semantics
-            self.weight = self.weight.cuda()
+            # self.weight = self.weight.cuda()
             self.cuda_on = True
         else:
             self.cuda_on = False
