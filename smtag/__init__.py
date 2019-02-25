@@ -1,2 +1,3 @@
 name = "smtag"
-from .common.config import config
+from .common.config.configuration import Config
+config = Config()
