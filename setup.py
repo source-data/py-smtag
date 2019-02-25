@@ -29,6 +29,7 @@ setuptools.setup(
         'torchvision==0.2.0',
         'neo4jrestclient==2.1.1',
         'nltk==3.2.4',
+        'python-dotenv==0.10.1',
         # 'jupyter==1.0.0',
         # 'bash_kernel==0.7.1',
         # 'IPython==6.5.0'
