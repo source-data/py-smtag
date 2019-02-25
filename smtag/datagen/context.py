@@ -16,7 +16,7 @@ from torchvision.models import vgg19, resnet152
 from torchvision import transforms
 from tensorboardX import SummaryWriter
 import numpy as np
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, IncrementalPCA
 from ..common.utils import cd
 from ..common.progress import progress
 from .. import config
@@ -140,23 +140,19 @@ class PCA_reducer():
     def __init__(self, k, path):
         self.path = path
         self.k = k
-        self.pca_model = PCA()
+        self.pca_model = None
 
     def train(self, fraction_images_pca_model=config.fraction_images_pca_model): # path to pre-processed viz context tensors for pca training set
         filenames = [f for f in os.listdir(self.path) if os.path.splitext(f)[-1] == '.pyth']
         shuffle(filenames)
         N = int(len(filenames) * fraction_images_pca_model)
-        print(f"training pca model on {N} viz context files")
         filenames = filenames[:N]
         t = []
         for i, filename in enumerate(filenames):
             progress(i, len(filenames), f"{filename}                    ")
             t.append(torch.load(os.path.join(self.path, filename)))
-        print()
         t = torch.cat(t, 0)
-        print("Fitting PCA model")
-        self.pca_model = PCA(n_components=self.k, svd_solver='randomized').fit(self.convert2np(t)) # approximation for large datasets
-        print("Done!")
+        self.pca_model = PCA(n_components=self.k, svd_solver='randomized').fit(self.convert2np(t)) # approximation for large datasets # IncrementalPCA(n_components=self.k, batch_size=self.k * 5).fit(self.convert2np(t)) # 
         return t, filenames[:N] # N x C x H x W
 
     def convert2np(self, x):
@@ -171,12 +167,12 @@ class PCA_reducer():
     def reduce(self, x, grid_size=config.img_grid_size):
         B, C, H, W = x.size()
         x_np = self.convert2np(x) # B*W*H x C
-        print("reducing using PCA ({} components)".format(self.k))
+        # print(f"reducing {B} x {C} x {H} x {W} using PCA ({self.k} components)")
         p_np = self.pca_model.transform(x_np) # B*W*H x k
         p_th = torch.from_numpy(p_np)
         p_th.resize_(B, W, H, self.k) # B x W x H x k
         p_th.transpose_(1, 3) # B x k x H x W
-        print("reducing resolution by adaptive max pool")
+        # print("reducing resolution by adaptive max pool")
         x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
         return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3 NEED TO VECTORIZE IT?
 
@@ -197,8 +193,12 @@ def main():
         viz.run()
 
         pca = PCA_reducer(config.k_pca_components, image_dir)
+        print(f"\ntraining pca model on viz context files...")
         trainset, filenames = pca.train(fraction_images_pca_model)
+        print("Done!")
+        print("Reducing trainset for visualization...")
         reduced = pca.reduce(trainset)
+        print("Done! Writing to tensorboard.")
         writer = SummaryWriter()
         writer.add_embedding(trainset.transpose(1, 3).transpose(1, 2).contiguous().view(-1, trainset.size(1)), tag="trainset") # # N x C x H x W --> # N*H*W x C
         writer.add_embedding(reduced.view(reduced.size(0), pca.k, config.img_grid_size, config.img_grid_size).transpose(1, 3).transpose(1, 2).contiguous().view(-1, pca.k), tag="reduced")

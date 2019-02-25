@@ -10,7 +10,6 @@ import sys
 import re
 import copy
 import pickle
-from string import ascii_letters
 from math import floor, ceil
 from xml.etree.ElementTree  import XML, parse, tostring
 
@@ -242,16 +241,19 @@ class Sampler():
                         # the encoded ocr context features 
                         if ocr_context is not None:
                             ocr_context4th.append(Sampler.slice_and_pad(self.length, ocr_context, start, stop, self.min_padding, left_padding, right_padding))
+                        else:
+                            import pdb; pdb.set_trace()
                         # the visual context features are independent of the position of the text fragment
                         if viz_context is not None:
-                            viz_context4th.append(viz_context)
+                            viz_context4th.append(self.pca.reduce(viz_context))
 
         # transform list of tensors into final 3D tensors N x C x L
         N_processed = len(textcoded4th)
         assert len(features4th) == N_processed
+        assert len(provenance4th) == N_processed
         textcoded4th = torch.cat(textcoded4th, 0) 
         features4th = torch.cat(features4th, 0)
-        if ocr_context4th:
+        if ocr_context4th: # this should pass if we did things properly in DataPreparator.encode_examples() why 48376 != 49855
             assert len(ocr_context4th) == N_processed, f"{len(ocr_context4th)} != {N_processed}"
             ocr_context4th = torch.cat(ocr_context4th, 0)
         else:
@@ -262,7 +264,7 @@ class Sampler():
             # viz_context4th is list of 2D examples x full visual context features
             viz_context4th = torch.cat(viz_context4th, 0) # 4D N x full viz ctxt features x grid_dim x grid_dim
             # PCA of viz_context here with pre-trained pca model to reduce nummber of visual context features
-            viz_context4th = self.pca.reduce(viz_context4th) # 2D N x viz_ctx_features
+            # viz_context4th = self.pca.reduce(viz_context4th) # 2D N x viz_ctx_features # PROBLEM: TOO LARGE, NOT ENOUGH MEMORY reducing 48376 x 512 x 14 x 14 using PCA (10 components) killed: 9
         else:
             viz_context4th = None
 
@@ -310,6 +312,9 @@ class EncodedExample():
         self._features = torch.load(os.path.join(path, 'features.pyth')).byte()
         if os.path.exists(os.path.join(path, 'ocr_context.pyth')):
             self._ocr_context = torch.load(os.path.join(path, 'ocr_context.pyth')) # this is float()
+        else:
+            print(f"WARNING: no ocr file for {path}!")
+            import pdb; pdb.set_trace()
         if os.path.exists(os.path.join(path, 'viz_context.pyth')):
             self._viz_context = torch.load(os.path.join(path, 'viz_context.pyth')) # this is float()
 
@@ -381,17 +386,21 @@ class DataPreparator(object):
                     # OCR AND VIZ CONTEXT HAPPENS HERE ! Needs the unaltered un processed original text for alignment
                     ocr_context = None
                     viz_context = None
-                    if (self.viz or self.ocr) and (graphic_filename is None or not os.path.exists(os.path.join(config.image_dir, graphic_filename))):
-                        print("\nskipped example prov={}: graphic file {} not available".format(prov, graphic_filename))
-                    elif graphic_filename is not None:
-                        if self.ocr:
-                            ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
-                        if self.viz:
-                            viz_context_filename = os.path.basename(graphic_filename)
-                            viz_context_filename = os.path.splitext(viz_context_filename)[0] + '.pyth'
-                            viz_context = torch.load(os.path.join(config.image_dir, viz_context_filename))
-                    encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context, viz_context)
-                    encoded_example.save(path_to_encoded)
+                    if self.viz or self.ocr:
+                        if (graphic_filename is None or not os.path.exists(os.path.join(config.image_dir, graphic_filename))):
+                            print("\nskipped example prov={}: graphic file not available".format(prov))
+                        else:
+                            if self.ocr:
+                                ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
+                            if self.viz:
+                                viz_context_filename = os.path.basename(graphic_filename)
+                                viz_context_filename = os.path.splitext(viz_context_filename)[0] + '.pyth'
+                                viz_context = torch.load(os.path.join(config.image_dir, viz_context_filename))
+                            encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context, viz_context)
+                            encoded_example.save(path_to_encoded)
+                    else:
+                        encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context, viz_context)
+                        encoded_example.save(path_to_encoded)
                 else:
                     print("\nskipping an example without text in document with id=", prov)
             else:
