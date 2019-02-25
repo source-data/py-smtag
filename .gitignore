@@ -1,10 +1,13 @@
 #####################################################################################
 ## SmartTag
-resources/img/*.json
-resources/img/*.pyth
-resources/img/*.jpg
-data/
-models/
+resources/img/
+resources/data/
+resources/encoded/
+resources/data4th/
+resources/log/
+resources/runs/
+resources/models/
+resources/scans/
 log/*.log*
 ##
 #####################################################################################
