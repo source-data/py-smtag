@@ -12,7 +12,6 @@ Options:
   -m <str>, --method <str>                Method to call (smtag|tag|entity|role|panelize) [default: smtag]
   -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
   -f <str>, --format <str>                Format of the output [default: xml]
-  -w <str>, --working_directory <str>     Working directory where to read cartrigdes from (i.e. path where the `rack` folder is located)
   -D, --debug                             Debug mode to see the successive processing steps in the engine.
   -g <str>, --tag <str>                   XML tag to use when tagging concepts [default: sd-tag]
   -d, --demo                              Demo with a long sample.
@@ -103,7 +102,7 @@ class SmtagEngine:
             ('geneprod_roles',
                (load_model(config.model_geneprod_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
             ),
-            # ('small_molecule_role', 
+            # ('small_molecule_role',
             #     (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
             # )
         ]))
@@ -180,7 +179,7 @@ class SmtagEngine:
         output = panels
 
         entities = self.__entity(input_t_string, token_list)
-        output.cat_(entities.clone()) 
+        output.cat_(entities.clone())
 
         reporter = self.__reporter(input_t_string, token_list)
         output.cat_(reporter) # add reporter prediction to output features
@@ -239,8 +238,6 @@ def main():
     DEMO = arguments['--demo']
     sdtag = arguments['--tag']
     format = arguments['--format']
-    if arguments['--working_directory']:
-        config.working_directory = arguments['--working_directory']
     if DEMO:
         input_string = '''The indicated panel of cell lines was exposed to either normoxia (20% O2) or hypoxia (1% O2) for up to 48 h prior to RNA and protein extraction.
 

@@ -17,7 +17,7 @@ def default_working_directory():
     return os.path.abspath(os.path.join(os.getcwd(), DEFAULT_WORKING_DIRECTORY_NAME))
 WORKING_DIRECTORY_HELP_MESSAGE = f"""
             In order to configure you working directory use one of this options, sorted by lesser precedence:
-            1) Set the environment variable `{WORKING_DIRECTORY_ENV_VAR_NAME}`
+            1) Set the environment variable `{WORKING_DIRECTORY_ENV_VAR_NAME}` (check your .env file)
                Examples:
                 {WORKING_DIRECTORY_ENV_VAR_NAME}='/absolute/path/to/resources_folder' python -m smtag.predict.egine --demo
                 {WORKING_DIRECTORY_ENV_VAR_NAME}='./relative/path/to/resources_folder' python -m smtag.predict.egine --demo

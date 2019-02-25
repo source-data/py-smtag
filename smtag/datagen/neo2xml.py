@@ -21,7 +21,7 @@ MARKING_CHAR_ORD = ord(MARKING_CHAR)
 SD_PANEL_OPEN, SD_PANEL_CLOSE = "<sd-panel>", "</sd-panel>"
 
 class NeoImport():
-    
+
     def __init__(self, options):
         self.options = options
         self.articles = {}
@@ -41,7 +41,7 @@ class NeoImport():
                         # tag_xml.text = mark * len(tag_xml.text)
                         tag_xml.text = config.marking_char * len(tag_xml.text)
             return panel_xml
-        
+
         tag_errors = []
         # panel_caption = panel_caption.encode('utf-8')
         if safe_mode:
@@ -58,7 +58,7 @@ class NeoImport():
             # protection against badly formed link elements
             panel_caption = re.sub(r'<link href="(.*)">', r'<link href="\1"/>', panel_caption)
             panel_caption = re.sub(r'<link href="(.*)"/>(\n|.)*</link>', r'<link href="\1">\2</link>', panel_caption)
-            
+
             # protection against missing <sd-panel> tags
             if re.search(r'^{}(\n|.)*{}$'.format(SD_PANEL_OPEN, SD_PANEL_CLOSE), panel_caption) is None:
                 print("WARNING: correcting missing <sd-panel> </sd-panel> tags!")
@@ -343,7 +343,6 @@ def main():
     parser.add_argument('-s', '--selective', action='store_true', help='keep the roles only for the entities selected by the -y option')
     parser.add_argument('-r', '--role', default='', help='makes sure each example has entities with the specified role')
     parser.add_argument('-N', '--not_safe_mode', action='store_true', help='protects against some misformed XML in caption; set this option to False for debugging')
-    parser.add_argument('-w', '--working_directory', help='Specify the working directory where to read and write files to')
     parser.add_argument('-T', '--testfract', default=0.2, type=float, help='fraction of papers in testset')
     parser.add_argument('-V', '--validation', default=0.2, type=float, help='fraction of papers in validation set')
 
@@ -431,10 +430,8 @@ def main():
     options['exclusive_mode'] = exclusive_mode
     options['keep_roles_only_for_selected_tags'] = keep_roles_only_for_selected_tags
     options['source'] = {'db': 'http://localhost:7474/db/data/', 'username': 'neo4j', 'password': 'sourcedata'} #getpass()}
-    
+
     if options['verbose']: print(options)
-    if args.working_directory:
-        config.working_directory = args.working_directory
 
     # check first that options['namebase'] does not exist yet
     G = NeoImport(options)

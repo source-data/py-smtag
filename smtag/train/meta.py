@@ -42,7 +42,7 @@ class Meta():
         training_minibatches = Minibatches(datasets['train'], self.opt['minibatch_size'])
         validation_minibatches = Minibatches(datasets['valid'], self.opt['minibatch_size'])
         self.opt['nf_input'] = datasets['train'].nf_input # dataset
-        self.opt['nf_output'] =  datasets['train'].nf_output # dataset 
+        self.opt['nf_output'] =  datasets['train'].nf_output # dataset
         print("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
         return training_minibatches, validation_minibatches # minibatches
 
@@ -99,7 +99,6 @@ def main():
     parser.add_argument('-n', '--nf_table', default="8,8,8", help='Number of features in each hidden super-layer.')
     parser.add_argument('-k', '--kernel_table', default="6,6,6", help='Convolution kernel for each hidden layer.')
     parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
-    parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
     parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('-m', '--model', default='', help='Load pre-trained model and continue training.')
@@ -144,8 +143,6 @@ def main():
     opt['use_viz_context'] = arguments.viz
     print("\n".join(["opt[{}]={}".format(o,opt[o]) for o in opt]))
 
-    if arguments.working_directory:
-        config.working_directory = arguments.working_directory
     #with cd(config.working_directory):
     metatrainer = Meta(opt)
     if not hyperparams:
