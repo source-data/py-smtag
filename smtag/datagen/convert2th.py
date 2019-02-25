@@ -314,7 +314,6 @@ class EncodedExample():
             self._ocr_context = torch.load(os.path.join(path, 'ocr_context.pyth')) # this is float()
         else:
             print(f"WARNING: no ocr file for {path}!")
-            import pdb; pdb.set_trace()
         if os.path.exists(os.path.join(path, 'viz_context.pyth')):
             self._viz_context = torch.load(os.path.join(path, 'viz_context.pyth')) # this is float()
 
