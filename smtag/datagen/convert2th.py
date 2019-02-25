@@ -370,7 +370,6 @@ class DataPreparator(object):
                     else:
                         encoded_example = EncodedExample(prov, processed_text, encoded_features, ocr_context, viz_context)
                         encoded_example.save(path_to_encoded)
-                        print(f"encoded {path_to_encoded}")
                 else:
                     print("\nskipping an example without text in document with id=", prov)
             else:
