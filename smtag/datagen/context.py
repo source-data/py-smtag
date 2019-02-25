@@ -177,7 +177,7 @@ class PCA_reducer():
         return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3 NEED TO VECTORIZE IT?
 
 def main():
-    parser = argparse.ArgumentParser(description='Exracting visual context vectors from images', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
     parser.add_argument('image_dir', nargs="?" , default=config.image_dir, help='Path to image directory')
     parser.add_argument('-F', '--fraction', type=float, default = config.fraction_images_pca_model, help='Fraction of images to be used to train pca model.')
 

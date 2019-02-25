@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 import os
+import argparse
 from .working_directory import WorkingDirectoryNotSetError
 from .working_directory import fetch_working_directory, validated_working_directory
+from .working_directory import WORKING_DIRECTORY_CLI_FLAG_NAME, WORKING_DIRECTORY_CLI_FLAG_SHORTNAME
 
 class Config():
     """
@@ -209,3 +211,14 @@ class Config():
     def model_disease(self):
         return self._model_disease
 
+    def create_argument_parser_with_defaults(description=None):
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        parser = argparse.ArgumentParser(description=description, formatter_class=formatter_class)
+        ################################################################################################################
+        # --working_direcotory -w
+        # .common.config.working_directory is dealing with this argument, and it uses sys.argv to do that, however it is
+        # important that we define it as an available parameter here, otherwise argparse will complain if it ever gets used
+        #
+        parser.add_argument(WORKING_DIRECTORY_CLI_FLAG_SHORTNAME, WORKING_DIRECTORY_CLI_FLAG_NAME, help='Specify the working directory where to find special directories such as rack, prod, data4th etc')
+
+        return parser

@@ -167,7 +167,7 @@ def self_test(input_string: str):
 
 def main():
     # more systematic tests in test.test_converter
-    parser = argparse.ArgumentParser( description="Encode decode string into binary tensors" )
+    parser = config.create_argument_parser_with_defaults(description="Encode decode string into binary tensors")
     parser.add_argument('input_string', nargs='?', default= "αβγ∂this is so ☾😎 😎 L ‼️" + u'\uE000', help="The string to convert")
     args = parser.parse_args()
     input_string = args.input_string#.encode('utf-8')
