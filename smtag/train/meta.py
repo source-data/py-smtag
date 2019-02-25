@@ -85,7 +85,7 @@ def main():
 
     # READ COMMAND LINE ARGUMENTS
     #arguments = docopt(__doc__, version='0.1')
-    parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = config.create_argument_parser_with_defaults(description='Top level module to manage training.')
     parser.add_argument('-f', '--file', default='demo_xml_train', help='Namebase of dataset to import')
     parser.add_argument('-E' , '--epochs',  default=200, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=32, help='Minibatch size.')

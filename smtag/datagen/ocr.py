@@ -410,7 +410,7 @@ class OCREncoder(object):
         return context_tensor
 
 def main():
-    parser = argparse.ArgumentParser(description='Modules to perform OCR and encode OCR-based context.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = config.create_argument_parser_with_defaults(description='Modules to perform OCR and encode OCR-based context.')
 
     args = parser.parse_args()
     print("running ocr from",  os.getcwd(), config.image_dir)

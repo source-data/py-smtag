@@ -578,7 +578,7 @@ class BratDataPreparator(DataPreparator):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Reads xml and transform into tensor format.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = config.create_argument_parser_with_defaults(description='Reads xml and transform into tensor format.')
     args = []
     parser.add_argument('-c', '--path', default='demo_xml', help='path to the source compendium of xml files')
     parser.add_argument('-f', '--filenamebase', default='', help='namebase to save converted trainset and features set files')

@@ -60,7 +60,7 @@ class Accuracy(object):
                 self.model.eval()
                 prediction = self.model(m_input)
                 self.model.train()
-            # if self.tokenize: 
+            # if self.tokenize:
             #     prediction_decoded = Decoded(m.text, prediction, self.model.output_semantics)
             #     prediction_decoded.decode_with_token(m.tokenized)
             #     p, tp, fp = self.tpfp(prediction_decoded.concepts, self.target_concepts[i])
@@ -164,7 +164,7 @@ class Benchmark():
         print("\t".join(["{:.3f}".format(c.threshold) for c in self.model.output_semantics]), precision, recall, f1)
 
 def main():
-    parser = argparse.ArgumentParser(description='Accuracy evaluation.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = config.create_argument_parser_with_defaults(description='Accuracy evaluation.')
     parser.add_argument('filename', help='Basename of the dataset to import (testset)')
     parser.add_argument('model', help='Basename of the model to benchmark.')
     # parser.add_argument('-T' , '--no_token', action='store_true', help='Flag to disable tokenization.')

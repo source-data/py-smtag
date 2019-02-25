@@ -329,7 +329,7 @@ class NeoImport():
                 f.close()
 
 def main():
-    parser = argparse.ArgumentParser(description='Top level module to manage training.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = config.create_argument_parser_with_defaults(description='Top level module to manage training.')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode.')
     parser.add_argument('-f', '--namebase', default='test', help='The name of the dataset')
     parser.add_argument('-A', '--tags2anonymize', default='', help='tag type to anonymise')
