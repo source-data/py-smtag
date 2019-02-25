@@ -85,7 +85,7 @@ class VisualContext(object):
         RGB[ : , : , 0] = red
         RGB[ : , : , 1] = gre
         RGB[ : , : , 2] = blu
-        RGB = torch.transpose(RGB, 2, 0) # transpose to channels x width  x height 
+        RGB = torch.transpose(RGB, 2, 0) # transpose to channels x width  x height
         RGB = torch.transpose(RGB, 1, 2) # transpose to channels x height x width
         RGB = RGB.float() / 255.0
         return RGB
@@ -105,7 +105,7 @@ class VisualContext(object):
             image = self.cv2th(resized) # 3D C x H x W
             normalized = self.normalize(image)
             normalized.unsqueeze_(0) # 4D 1 x C x H x W
-        else: 
+        else:
             normalized = torch.zeros(1, 3, 224, 224) # a waste...
         self.net.eval()
         with torch.no_grad():
@@ -152,7 +152,7 @@ class PCA_reducer():
             progress(i, len(filenames), f"{filename}                    ")
             t.append(torch.load(os.path.join(self.path, filename)))
         t = torch.cat(t, 0)
-        self.pca_model = PCA(n_components=self.k, svd_solver='randomized').fit(self.convert2np(t)) # approximation for large datasets # IncrementalPCA(n_components=self.k, batch_size=self.k * 5).fit(self.convert2np(t)) # 
+        self.pca_model = PCA(n_components=self.k, svd_solver='randomized').fit(self.convert2np(t)) # approximation for large datasets # IncrementalPCA(n_components=self.k, batch_size=self.k * 5).fit(self.convert2np(t)) #
         return t, filenames[:N] # N x C x H x W
 
     def convert2np(self, x):
@@ -180,13 +180,10 @@ def main():
     parser = argparse.ArgumentParser(description='Exracting visual context vectors from images', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('image_dir', nargs="?" , default=config.image_dir, help='Path to image directory')
     parser.add_argument('-F', '--fraction', type=float, default = config.fraction_images_pca_model, help='Fraction of images to be used to train pca model.')
-    parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
 
     args = parser.parse_args()
     image_dir = args.image_dir
     fraction_images_pca_model = args.fraction
-    if args.working_directory:
-        config.working_directory = args.working_directory
     with cd(config.working_directory):
         print("running perceptual vision from {} on {}".format(os.getcwd(), image_dir))
         viz = VisualContext(image_dir, selected_output_module=28)

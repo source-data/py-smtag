@@ -4,7 +4,7 @@
 # see also https://googleapis.github.io/google-cloud-python/latest/vision/index.html
 # https://googleapis.github.io/google-cloud-python/latest/vision/
 # https://cloud.google.com/vision/docs/ocr
-# 
+#
 # gcloud components update &&
 # gcloud components install beta
 # ./bin/gcloud init
@@ -98,21 +98,21 @@
 
 # convert grid position using 1-hot encoding but fill with similarty score (Lehvenstein distance) to the text segment
 # add horiz and vert 1-hot codes for orientation of the text
-# 
+#
 # with G =5
-# grid_0  .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 
-# grid_1  .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 
-# grid_2  .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 
-# grid_3  .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 
+# grid_0  .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0
+# grid_1  .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0
+# grid_2  .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0
+# grid_3  .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0
 # ....
 # grid_6  .0 .0 .0 .0 .9 .9 .9 .0 .0 .0 .0
-# .... 
-# grid_17 .0 .0 .0 .0 .8 .8 .8 .0 .0 .0 .0 
 # ....
-# grid_25 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 
+# grid_17 .0 .0 .0 .0 .8 .8 .8 .0 .0 .0 .0
+# ....
+# grid_25 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0
 # horiz   .0 .0 .0 .0 .1 .1 .1 .0 .0 .0 .0
 # vert    .0 .0 .0 .0 .0 .0 .0 .0 .0 .0 .0
-# text    t  h  e  _  c  a  t  _  a  t  e  
+# text    t  h  e  _  c  a  t  _  a  t  e
 
 import io
 import os
@@ -145,7 +145,7 @@ class OCR():
     """
 
     def __init__(self, path, G=config.img_grid_size, T=0.1, account_key='/Users/lemberger/Documents/code/cloud/smarttag-2-5b02d5e85409.json'):
-        self.path = path # path to images 
+        self.path = path # path to images
         # path to annotations
         self.client = vision.ImageAnnotatorClient(credentials = service_account.Credentials.from_service_account_file(account_key))
 
@@ -178,7 +178,7 @@ class OCR():
     def save_annotations(self, annotations, filename):
         with open(filename, 'w') as f:
            json.dump(annotations.dict, f) # json.dump(annotations, f, cls=myJSONEncoder)
-    
+
     def run(self):
         with cd(self.path):
             filenames = [f for f in os.listdir() if os.path.splitext(f)[-1] in ALLOWED_FILE_EXTENSIONS]
@@ -340,7 +340,7 @@ class OCREncoder(object):
         """
         Transforms coordinates into an indexed grid position.
         Position indexed from top left to right bottom
-        
+
         Args:
             h, w : height and width of the image
             annot: ocr annotation
@@ -404,18 +404,15 @@ class OCREncoder(object):
         for annot in annotations: # first annoation is the full list of entities detected
             pos_on_grid = self.grid_index(h, w, annot)
             matches = self.best_matches(text, annot)
-            orientation = annot.orientation 
+            orientation = annot.orientation
             for m in matches:
                 self.add_context_(context_tensor, pos_on_grid, orientation, m['pos'], m['length'], m['score'])
         return context_tensor
 
 def main():
     parser = argparse.ArgumentParser(description='Modules to perform OCR and encode OCR-based context.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-w', '--working_directory', help='Specify the working directory for meta, where to read and write files to')
 
     args = parser.parse_args()
-    if args.working_directory:
-        config.working_directory = args.working_directory
     print("running ocr from",  os.getcwd(), config.image_dir)
     ocr = OCR(config.image_dir, config.img_grid_size)
     ocr.run()
