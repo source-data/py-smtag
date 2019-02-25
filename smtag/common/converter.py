@@ -170,9 +170,7 @@ def main():
     parser = config.create_argument_parser_with_defaults(description="Encode decode string into binary tensors")
     parser.add_argument('input_string', nargs='?', default= "αβγ∂this is so ☾😎 😎 L ‼️" + u'\uE000', help="The string to convert")
     args = parser.parse_args()
-    input_string = args.input_string#.encode('utf-8')
-    NBITS = 17
-    print(f"set to NBITS={NBITS}")
+    input_string = args.input_string
     self_test(input_string)
 
 if __name__ == "__main__":
