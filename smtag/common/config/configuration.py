@@ -95,9 +95,6 @@ class Config():
         """
         return os.path.join(self.working_directory, self._scans_dir_name)
     @property
-    def weight(self):
-        return self._weight
-    @property
     def img_grid_size(self):
         """
         Grid size used to encode the location of elements on images.
