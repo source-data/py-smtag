@@ -26,7 +26,11 @@ class Decoder:
     '''
 
     def __init__(self, input_string:str, prediction:Tensor3D, semantic_groups: OrderedDict):
-        assert len(input_string) == prediction.size(2), "mismatch input string length and size of prediction dim zero"
+        # when input_string empty, length of prediciton is zero, and prediction is only Tensor2D...
+        if input_string:
+            assert (len(input_string) == prediction.size(2)), f"mismatch input string length {len(input_string)} and size of prediction dim zero {prediction.size(2)}"
+        else:
+            assert (len(input_string) == 0 and prediction.dim() == 2)
         self.input_string = input_string
         self.token_list = None
         self.prediction = prediction # character-level prediction 3D tensor
