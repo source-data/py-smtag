@@ -185,7 +185,6 @@ class SmtagEngine:
         output.cat_(reporter) # add reporter prediction to output features
 
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
-
         context = self.__context(entities_less_reporter)
         output.cat_(context)
 

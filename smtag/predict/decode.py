@@ -143,9 +143,9 @@ class Decoder:
     def clone(self) -> 'Decoder':
         other = Decoder(self.input_string, self.prediction.clone(), deepcopy(self.semantic_groups))
         other.token_list = deepcopy(self.token_list)
-        other.concepts = copy(self.concepts) # shallow copy
+        other.concepts = deepcopy(self.concepts) # shallow copy
         other.scores = OrderedDict([(group, self.scores[group].clone()) for group in self.scores])
-        other.char_level_concepts = OrderedDict([(group, copy(self.char_level_concepts[group])) for group in self.char_level_concepts])
+        other.char_level_concepts = OrderedDict([(group, deepcopy(self.char_level_concepts[group])) for group in self.char_level_concepts])
         return other
 
 class CharLevelDecoder(Decoder):

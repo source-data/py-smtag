@@ -45,10 +45,10 @@ class Concept(object):
         self.threshold = detection_threshold
 
     def __str__(self):
-        return "{}".format(self.__class__)
+        return "<{}>".format(self.label)
 
     def __repr__(self):
-        return "{}".format(self.__class__)
+        return "<{}>".format(self.label)
 
     def my_index(self, list):
         for i, c in enumerate(list):
@@ -152,6 +152,14 @@ class Boundary(Concept):
     def __init__(self, *args):
         super(Boundary, self).__init__(*args)
 
+class PanelStart(Boundary):
+    def __init__(self, *args):
+        super(PanelStart, self).__init__(*args)
+
+class PanelStop(Concept):
+    def __init__(self, *args):
+        super(PanelStop, self).__init__(*args)
+
 class Catalogue():
 
     SMALL_MOLECULE = SmallMolecule('small_molecule', ['type', 'small_molecule'], 0.6)
@@ -173,8 +181,8 @@ class Catalogue():
     TIME = TimeVar('time', ['category', 'assay'], 0.5)
     PHYSICAL_VAR = PhysicalVar('physical', ['category', 'physical'], 0.5)
     DISEASE = Disease('disease', ['category', 'disease'], 0.5)
-    PANEL_START = Boundary('panel_start','sd-panel',  0.5)
-    PANEL_STOP = Boundary('panel_stop', 'sd-panel', 0.5) # not ideal!
+    PANEL_START = PanelStart('panel_start','sd-panel',  0.5)
+    PANEL_STOP = PanelStop('panel_stop', 'sd-panel', 0.5) # not ideal!
     GENEPROD = GeneProduct('geneprod', ['type', 'geneprod'], 0.4)
     UNTAGGED = Untagged('untagged', [])
 

@@ -92,7 +92,7 @@ class ContextualPredictor(Predictor):
         token_list = for_anonymization.token_list
         res = list(for_anonymization.input_string)
         for token, concept in zip(token_list, concepts):
-            if concept == concept_to_anonymize:
+            if type(concept) == type(concept_to_anonymize):
                 res[token.start:token.stop] = [mark_char] * token.length
         res = "".join(res)
         return TString(res)
