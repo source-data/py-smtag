@@ -102,9 +102,9 @@ class SmtagEngine:
             ('geneprod_roles',
                (load_model(config.model_geneprod_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
             ),
-            # ('small_molecule_role',
-            #     (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
-            # )
+            ('small_molecule_role',
+                (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+            )
         ]))
         self.panelize_model = CombinedModel(OrderedDict([
             ('panels', load_model(config.model_panel_stop, config.prod_dir))
@@ -158,9 +158,9 @@ class SmtagEngine:
         input_t_string = TString(input_string)
         token_list = tokenize(input_string)['token_list']
         encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
-        encoded.unsqueeze_(0) # 3D
-        semantic_groups = OrderedDict([('all_concepts', Catalogue.standard_channels)])
-        entities = Decoder(input_string, encoded, semantic_groups)
+        encoded.unsqueeze_(0) # 3D byteTensor!
+        semantic_groups = OrderedDict([('entities', Catalogue.standard_channels)])
+        entities = Decoder(input_string, encoded.float(), semantic_groups)
         entities.decode(token_list)
         reporter = self.__reporter(input_t_string, token_list)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
@@ -223,7 +223,7 @@ class SmtagEngine:
     def role(self, input_xml_string:str, sdtag):
         input_xml = fromstring(input_xml_string)
         updatexml_(input_xml, self.__role_from_pretagged(input_xml), pretag=fromstring('<'+sdtag+'/>'))
-        return tostring(input_xml)
+        return str(tostring(input_xml)) # tostring() returns bytes...
 
     @timer
     def panelizer(self, input_string, format):

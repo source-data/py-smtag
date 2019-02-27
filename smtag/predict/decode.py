@@ -34,7 +34,7 @@ class Decoder:
         self.input_string = input_string
         self.token_list = None
         self.prediction = prediction # character-level prediction 3D tensor
-        self.semantic_groups = semantic_groups
+        self.semantic_groups = copy(semantic_groups)
         self.concepts = OrderedDict()
         self.scores = OrderedDict() # torch.zeros(N_group, N_token)
         self.char_level_concepts = OrderedDict()
@@ -134,7 +134,7 @@ class Decoder:
         return cloned_self
 
     def cat_(self, other: 'Decoder'):
-        self.semantic_groups.update(other.semantic_groups)
+        self.semantic_groups.update(copy(other.semantic_groups))
         self.concepts.update(other.concepts)
         self.scores.update(other.scores)
         self.char_level_concepts.update(other.char_level_concepts)
