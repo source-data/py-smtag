@@ -223,7 +223,7 @@ class SmtagEngine:
     def role(self, input_xml_string:str, sdtag):
         input_xml = fromstring(input_xml_string)
         updatexml_(input_xml, self.__role_from_pretagged(input_xml), pretag=fromstring('<'+sdtag+'/>'))
-        return str(tostring(input_xml)) # tostring() returns bytes...
+        return tostring(input_xml) # tostring() returns bytes...
 
     @timer
     def panelizer(self, input_string, format):

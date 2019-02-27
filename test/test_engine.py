@@ -24,7 +24,6 @@ class EngineTest(SmtagTestCase):
             # print(ml)
             self.assertIsInstance(ml, str)
 
-
     @timer
     def test_smtag(self):
         self.repeated_run(self.engine.smtag, self.text_example)  
@@ -42,7 +41,7 @@ class EngineTest(SmtagTestCase):
     def test_role(self):
         pretagged = '<smtag>We analyzed <sd-tag type="tissue" type_score="47">brain</sd-tag> and <sd-tag type="tissue" type_score="44">muscle</sd-tag> from <sd-tag type="geneprod" type_score="49" role_score="46">Creb1</sd-tag>-/- knockout <sd-tag type="organism" type_score="49">mice</sd-tag> after <sd-tag type="small_molecule" type_score="49">bafilomycin A</sd-tag> treatment.</smtag>'
         ml = self.engine.role(pretagged, sdtag='sd-tag')
-        self.assertIsInstance(ml, str)
+        self.assertIsInstance(ml, bytes)
 
 if __name__ == '__main__':
     unittest.main()
