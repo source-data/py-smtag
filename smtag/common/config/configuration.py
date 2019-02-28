@@ -5,6 +5,7 @@ import argparse
 from .working_directory import WorkingDirectoryNotSetError
 from .working_directory import fetch_working_directory, validated_working_directory
 from .working_directory import WORKING_DIRECTORY_CLI_FLAG_NAME, WORKING_DIRECTORY_CLI_FLAG_SHORTNAME
+from .errors import ProdDirNotFoundError
 
 class Config():
     """
@@ -98,9 +99,12 @@ class Config():
         return model_dir
     @property
     def prod_dir(self):
-        prod_dir = os.path.join(self.working_directory, self._prod_dir_name)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        root_path = os.path.join(dir_path, "..", "..", "..")
+        prod_dir = os.path.join(root_path, self._prod_dir_name)
+        prod_dir = os.path.abspath(prod_dir)
         if not os.path.exists(prod_dir):
-            os.mkdir(prod_dir)
+            raise ProdDirNotFoundError(prod_dir)
         return prod_dir
     @property
     def runs_log_dir(self):

@@ -7,12 +7,6 @@ include LICENSE.txt
 include smtag/logging.yaml
 
 # Include the resources directories
-include resources
-recursive-include resources/data *
-recursive-include resources/data4th *
-recursive-include resources/encoded *
-recursive-include resources/img *
-# recursive-include resources/log *
-recursive-include resources/models *
-recursive-include resources/rack *
+include rack
+recursive-include rack *
 # recursive-include resources/runs *
