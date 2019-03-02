@@ -3,9 +3,11 @@
 
 import sys
 import resource
+from collections import namedtuple
 from random import randrange
 from math import log
 import torch
+from torch.utils.data import DataLoader
 from torch import nn, optim
 from torch.nn import functional as F
 from random import shuffle
@@ -14,12 +16,14 @@ from ..common.importexport import export_model
 from ..common.viz import Show, Plotter
 from ..common.progress import progress
 from .evaluator import Accuracy
-
 from .. import config
+
+
+Minibatch = namedtuple('Minibatch', ['input', 'output', 'provenance'])
 
 class Trainer:
 
-    def __init__(self, training_minibatches, validation_minibatches, model):
+    def __init__(self, trainset, validation, model):
         self.model = model
         # we copy the options opt and output_semantics to the trainer itself
         # in case we will need them during accuracy monitoring (for example to binarize output with feature-specific thresholds)
@@ -35,8 +39,7 @@ class Trainer:
         #         freq[j] += f.sum()
         # freq = [f/(N*B*L) for f in freq]
         # self.weight = torch.Tensor([1/f for f in freq])
-        model_descriptor = "\n".join(["{}={}".format(k, self.opt[k]) for k in self.opt])
-        print(model_descriptor)
+        print(self.opt)
         # wrap model into nn.DataParallel if we are on a GPU machine
         if torch.cuda.is_available():
             print(torch.cuda.device_count(), "GPUs available.")
@@ -45,22 +48,38 @@ class Trainer:
             self.model.output_semantics = self.output_semantics
             # self.weight = self.weight.cuda()
             self.cuda_on = True
+            self.num_workers = 96
         else:
             self.cuda_on = False
+            self.num_workers = 0
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
-        self.minibatches = training_minibatches
-        self.validation_minibatches = validation_minibatches
+        self.batch_size = self.opt.minibatch_size
+        self.trainset = trainset
+        self.validation = validation
+        self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True)
+        self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True)
         self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
         self.console = Show('console')
 
+    @staticmethod
+    def collate_fn(example_list):
+        provenance, input, output = zip(*example_list)
+        minibatch = Minibatch(
+            input = torch.cat(input, 0),
+            output = torch.cat(output, 0),
+            provenance = provenance
+        )
+        return minibatch
+        
+
     def validate(self):
         loss = 0
-        for m in self.validation_minibatches:
+        for n, m in enumerate(self.validation_minibatches):
             with torch.no_grad():
                 self.model.eval()
                 loss += self.predict(m)
                 self.model.train()
-        loss /= self.validation_minibatches.minibatch_number
+        loss /= (n+1)
         return loss
 
     def predict(self, batch):
@@ -74,16 +93,15 @@ class Trainer:
         return loss
     
     def train(self):
-        self.learning_rate = self.opt['learning_rate']
-        self.epochs = self.opt['epochs']
+        self.learning_rate = self.opt.learning_rate
+        self.epochs = self.opt.epochs
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
-        self.plot.add_text('parameters', "; ".join([o+"="+str(self.opt[o]) for o in self.opt]))
-        N = self.minibatches.minibatch_number
+        self.plot.add_text('paramters', str(self.opt))
+        N = len(self.trainset) // self.batch_size
         for e in range(self.epochs):
-            shuffle(self.minibatches) # order of minibatches is randomized at every epoch
             avg_train_loss = 0 # loss averaged over all minibatches
 
-            for i, m in enumerate(self.minibatches):
+            for i, m in enumerate(self.trainset_minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
                 loss = self.predict(m)
@@ -96,13 +114,13 @@ class Trainer:
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
             precision, recall, f1 = self.evaluator.run()
-            self.plot.add_scalars("f1", {str(i): f1[i] for i in range(self.validation_minibatches.nf_output)}, e)
-            self.plot.add_scalars("precision", {str(i): precision[i] for i in range(self.validation_minibatches.nf_output)}, e)
-            self.plot.add_scalars("recall", {str(i): recall[i] for i in range(self.validation_minibatches.nf_output)}, e)
+            self.plot.add_scalars("f1", {str(i): f1[i] for i in range(self.opt.nf_output)}, e)
+            self.plot.add_scalars("precision", {str(i): precision[i] for i in range(self.opt.nf_output)}, e)
+            self.plot.add_scalars("recall", {str(i): recall[i] for i in range(self.opt.nf_output)}, e)
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
             print(self.console.example(self.validation_minibatches, self.model))
             # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
-            export_model(self.model, custom_name = self.opt['namebase']+'_last_saved')
+            export_model(self.model, custom_name = self.opt.namebase+'_last_saved')
         self.plot.close()
         print("\n")
         return avg_train_loss, avg_validation_loss, precision, recall, f1

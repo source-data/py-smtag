@@ -15,65 +15,94 @@ import os
 #        logging.basicConfig(level=default_level)
 import argparse
 import torch
-from .loader import Loader
-from .minibatches import Minibatches
+from json import JSONEncoder
+from .dataset import Data4th
 from .trainer import Trainer
 from .scanner import HyperScan
 from .builder import SmtagModel
+from ..common.mapper import Catalogue, concept2index
 from ..common.utils import cd
 from ..common.importexport import export_model, load_model
 from .. import config
 
 
+class Options():
+
+    def __init__(self, opt):
+        self.descriptor = "; ".join([f"{k}={opt[k]}" for k in opt])
+        self.namebase = opt['namebase']
+        self.modelname = opt['modelname']
+        self.learning_rate = opt['learning_rate']
+        self.dropout = opt['dropout']
+        self.skip = opt['skip']
+        self.epochs = opt['epochs']
+        self. minibatch_size = opt['minibatch_size']
+        self.L = None # can only be update when loading dataset...
+        self.nf_table = opt['nf_table']
+        self.pool_table = opt['pool_table']
+        self.kernel_table = opt['kernel_table']
+        self.selected_features = Catalogue.from_list(opt['selected_features'])
+        self.use_ocr_context = opt['use_ocr_context']
+        self.use_viz_context = opt['use_viz_context']
+        self.nf_input = config.nbits
+        if self.use_ocr_context == 'ocr1':
+            self.nf_ocr_context = 1 # fusing horizontal and vertial into single detected-on-image feature
+        elif self.use_ocr_context == 'ocr2':
+            self.nf_ocr_context = 2 # restricting to horizontal / vertical features, disrigarding position
+        elif self.use_ocr_context == 'ocrxy':
+            self.nf_ocr_context = config.img_grid_size ** 2 + 2 # 1-hot encoded position on the grid + 2 orientation-dependent features
+        else:
+            self.nf_ocr_context = 0
+        self.nf_viz_context = config.viz_cxt_features
+        if self.use_ocr_context:
+            self.nf_input += self.nf_ocr_context
+        if self.use_viz_context:
+            self.nf_input += self.nf_viz_context
+        self.nf_output = len(self.selected_features)
+        # softmax requires an <untagged> class
+        self.index_of_notag_class = self.nf_output
+        self.nf_output += 1
+
+        print("nf.output=", self.nf_output)
+        print("nf.input=", self.nf_input)
+        print("concept2index self.selected_features", [concept2index[f] for f in self.selected_features])
+
+    def __str__(self):
+        return self.descriptor 
+
+
 class Meta():
 
     def __init__(self, opt):
-        self.opt = opt
-
-    def _load_data(self):
-        ldr = Loader(self.opt) # careful: needs to be re-initialized since batch size can vary in hyper scan
-        datasets = {
-            'train': ldr.prepare_datasets(os.path.join(config.data4th_dir, self.opt['namebase'], 'train')),
-            'valid': ldr.prepare_datasets(os.path.join(config.data4th_dir, self.opt['namebase'], 'valid'))
-        }
-        return datasets
-
-    def _prep_minibatches(self, datasets):
-        training_minibatches = Minibatches(datasets['train'], self.opt['minibatch_size'])
-        validation_minibatches = Minibatches(datasets['valid'], self.opt['minibatch_size'])
-        self.opt['nf_input'] = datasets['train'].nf_input # dataset
-        self.opt['nf_output'] =  datasets['train'].nf_output # dataset
-        print("input, output sizes: {}, {}".format(training_minibatches[0].output.size(), training_minibatches[0].output.size()))
-        return training_minibatches, validation_minibatches # minibatches
-
-    def _train(self, training_minibatches, validation_minibatches, opt):
+        self.trainset = Data4th(os.path.join(config.data4th_dir, opt.namebase, 'train'), opt)
+        self.validation = Data4th(os.path.join(config.data4th_dir, opt.namebase, 'valid'), opt)
+        self.opt = self.trainset.opt # opt is completed by trainset to get example length
+        
+        
+    def _train(self, trainset, validation, opt):
         # check if previous model specified and load it with importmodel
-        if opt['modelname']:
-            model = load_model(opt['modelname'])
+        if opt.modelname:
+            model = load_model(opt.modelname)
         else:
             model = SmtagModel(opt)
             print(model)
-        train_loss, valid_loss, precision, recall, f1 = Trainer(training_minibatches, validation_minibatches, model).train()
+        train_loss, valid_loss, precision, recall, f1 = Trainer(trainset, validation, model).train()
         return model, {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
 
     def _save(self, model):
         export_model(model)
 
     def simple_training(self):
-        datasets = self._load_data()
-        training_minibatches, validation_minibatches = self._prep_minibatches(datasets)
-        model, perf = self._train(training_minibatches, validation_minibatches, self.opt)
+        model, perf = self._train(self.trainset, self.validation, self.opt)
         print("final perf ({}):".format("\t".join([x for x in perf])), "\t".join(["{:.2}".format(x) for x in perf]))
         self._save(model)
 
     def hyper_scan(self, iterations, hyperparams, scan_name):
-        datasets = self._load_data() # CAREFUL: needs to re-prepare minibatches since minibatch size is a hyperparam
         with cd(config.scans_dir):
             scan = HyperScan(self.opt, scan_name)
             for i in range(iterations):
                 self.opt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
-                training_minibatches, validation_minibatches = self._prep_minibatches(datasets)
-                model, perf = self._train(training_minibatches, validation_minibatches, self.opt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
+                model, perf = self._train(self.trainset, self.validation, self.opt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
                 scan.append(model, perf, self.opt, i)
 
 def main():
@@ -93,9 +122,6 @@ def main():
     parser.add_argument('-D', '--dropout_rate', default=0.1, type=float, help='Dropout rate.')
     parser.add_argument('-S', '--no_skip', action='store_true', help="Use this option to __deactivate__ skip links in unet2 model.")
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
-    parser.add_argument('-i', '--features_as_input', default='', help='Features that should be added to the input (use quotes if comma+space delimited).')
-    parser.add_argument('-a', '--overlap_features', default='', help='Features that should be combined by intersecting them (equivalent to AND operation) (use quotes if comma+space delimited).')
-    parser.add_argument('-c', '--collapsed_features', default='', help='Features that should be collapsed into a single one (equivalent to OR operation) (use quotes if comma+space delimited).')
     parser.add_argument('-n', '--nf_table', default="8,8,8", help='Number of features in each hidden super-layer.')
     parser.add_argument('-k', '--kernel_table', default="6,6,6", help='Convolution kernel for each hidden layer.')
     parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
@@ -119,16 +145,10 @@ def main():
     opt['epochs'] = int(arguments.epochs)
     opt['minibatch_size'] = int(arguments.minibatch_size)
     output_features = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
-    collapsed_features = [x.strip() for x in arguments.collapsed_features.split(',') if x.strip()]
-    overlap_features = [x.strip() for x in arguments.overlap_features.split(',') if x.strip()]
-    features_as_input = [x.strip() for x in arguments.features_as_input.split(',') if x.strip()]
     nf_table = [int(x.strip()) for x in arguments.nf_table.split(',')]
     kernel_table = [int(x.strip()) for x in arguments.kernel_table.split(',')]
     pool_table = [int(x.strip()) for x in arguments.pool_table.split(',')]
     opt['selected_features'] = output_features
-    opt['collapsed_features'] = collapsed_features
-    opt['overlap_features'] = overlap_features
-    opt['features_as_input'] = features_as_input
     opt['nf_table'] =  nf_table
     opt['pool_table'] = pool_table
     opt['kernel_table'] = kernel_table
@@ -141,10 +161,11 @@ def main():
     else:
         opt['use_ocr_context'] = ''
     opt['use_viz_context'] = arguments.viz
-    print("\n".join(["opt[{}]={}".format(o,opt[o]) for o in opt]))
+    options = Options(opt)
+    # print(options)
 
     #with cd(config.working_directory):
-    metatrainer = Meta(opt)
+    metatrainer = Meta(options)
     if not hyperparams:
         metatrainer.simple_training()
     else:

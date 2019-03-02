@@ -36,7 +36,6 @@ class BratEncoder(Encoder):
         return features, L, ""
 
 
-
 class XMLEncoder(Encoder):
 
     @staticmethod

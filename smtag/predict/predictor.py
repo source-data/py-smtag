@@ -35,18 +35,6 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         padded_string = pad + input + pad
         return padded_string
 
-    # def combine_with_input_features(self, input, additional_input_features=None): # for the day when smtag combined with other tagging?
-    #     #CAUTION: should additional_input_features be cloned before modifying it?
-    #     if additional_input_features is not None:
-    #         nf2 = additional_input_features.size(1)
-    #         padding_length = (len(input) - additional_input_features.size(2)) / 2
-    #         pad = torch.zeros(1, nf2, padding_length)
-    #         padded_additional_input_features = torch.cat([pad, additional_input_features, pad], 2) # flanking the encoded string with padding tensor left and right along third dimension
-    #         combined_input = torch.cat([input, padded_additional_input_features], 1) # adding additional inputs under the encoded string along second dimension
-    #     else:
-    #         combined_input = input
-    #     return combined_input
-
     def forward(self, input):
         if isinstance(input, list):
             padded = [self.padding(inp) for inp in input]

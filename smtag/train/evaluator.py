@@ -20,7 +20,7 @@ class Accuracy(object):
     def __init__(self, model, minibatches, tokenize=False):
         self.model = model
         self.minibatches = minibatches
-        self.nf = self.minibatches.nf_output
+        self.nf = next(iter(self.minibatches)).output.size(1)
         self.tokenize  = tokenize
         self.target_concepts = []
         if torch.cuda.is_available(): # or torch.cuda.is_available() ?

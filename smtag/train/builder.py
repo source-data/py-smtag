@@ -40,35 +40,19 @@ class SmtagModel(nn.Module):
 
     def __init__(self, opt):
         super(SmtagModel, self).__init__()
-        nf_input = opt['nf_input']
-        nf_output = opt['nf_output']
-        nf_table = deepcopy(opt['nf_table']) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
-        kernel_table = deepcopy(opt['kernel_table']) # need to deep copy/clone
-        pool_table = deepcopy(opt['pool_table']) # need to deep copy/clone
-        dropout = opt['dropout']
-        skip = opt['skip']
+        nf_input = opt.nf_input
+        nf_output = opt.nf_output
+        nf_table = deepcopy(opt.nf_table) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
+        kernel_table = deepcopy(opt.kernel_table) # need to deep copy/clone
+        pool_table = deepcopy(opt.pool_table) # need to deep copy/clone
+        dropout = opt.dropout
+        skip = opt.skip
 
         self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout, skip)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)
-
-        self.output_semantics = Catalogue.from_list(opt['selected_features'])
-
-        if 'collapsed_features' in opt:
-            if opt['collapsed_features']:
-                concepts = [Catalogue.from_label(f) for f in opt['collapsed_features']]
-                collapsed_concepts = Concept()
-                for c in concepts:
-                    collapsed_concepts += c # __add__ operation defined in mapper, complements or concatenates types, roles and serialization recipes; maybe misleading because not commutative?
-                self.output_semantics.append(collapsed_concepts)
-        if 'overlap_features' in opt:
-             if opt['overlap_features']:
-                concepts = [Catalogue.from_label(f) for f in opt['overlap_features']]
-                overlap_features = Concept()
-                for c in concepts:
-                    overlap_features += c # __add__ operation defined in mapper, complements or concatenates types, roles and serialization recipes; maybe misleading because not commutative?
-                self.output_semantics.append(overlap_features)
+        self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
         self.output_semantics.append(Catalogue.UNTAGGED)
         self.opt = opt
 
@@ -77,7 +61,6 @@ class SmtagModel(nn.Module):
         x = self.unet(x)
         x = self.adapter(x)
         x = self.BN(x)
-        # x = torch.sigmoid(x) # CHECK THIS. PRACTICAL TO HAVE NET OUTPUT as 0..1 !
         x = F.log_softmax(x, 1)
         return x
 

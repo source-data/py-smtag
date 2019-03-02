@@ -31,6 +31,7 @@ class Config():
     ############################################################################
     # VARIABLES
     #
+    _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
     _k_pca_components = 10 # number of PCA components to reduce visual context features
     _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
@@ -123,6 +124,12 @@ class Config():
         if not os.path.exists(scans_dir):
             os.mkdir(scans_dir)
         return scans_dir
+    @property
+    def dirignore(self):
+        """
+        List of directory names that should be ignored when scanning for datasets
+        """
+        return self._dirignore
     @property
     def img_grid_size(self):
         """

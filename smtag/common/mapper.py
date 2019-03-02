@@ -45,10 +45,10 @@ class Concept(object):
         self.threshold = detection_threshold
 
     def __str__(self):
-        return "<{}>".format(self.label)
+        return f"{self.label}"
 
     def __repr__(self):
-        return "<{}>".format(self.label)
+        return f"<{self.label}>"
 
     def my_index(self, list):
         for i, c in enumerate(list):
