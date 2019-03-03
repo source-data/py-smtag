@@ -46,7 +46,6 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
             L = len(padded)
             padding_length = int((L - len(input)) / 2)
             x = padded.toTensor()
-        # combined_input = self.combine_with_input_features(padded, additional_input_features)
 
         #PREDICTION
         with torch.no_grad():

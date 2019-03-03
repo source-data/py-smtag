@@ -27,7 +27,22 @@ from .brat import BratImport
 from .context import VisualContext, PCA_reducer
 from .. import config
 
-NBITS = config.nbits
+
+class EncodedExample:
+    features_filename = 'features.pyth'
+    text_filename = 'text.txt'
+    textcoded_filename = 'textcoded.pyth'
+    provenance_filename = 'provenance.txt'
+    ocr_context_filename = 'ocr_context.pyth'
+    viz_context_filename = 'viz_context.pyth'
+
+    def __init__(self, provenance, text, features, textcoded=None, ocr_context=None, viz_context=None):
+        self.provenance = provenance
+        self.text = text
+        self.features = features
+        self.textcoded = textcoded
+        self.ocr_context = ocr_context
+        self.viz_context = viz_context
 
 class Sampler():
 
@@ -89,16 +104,6 @@ class Sampler():
     #     text_min = min(stats)
     #     print("\nlength of the {} examples selected ({} skipped because too short):".format(N, skipped_examples))
     #     print("{} +/- {} (min = {}, max = {})".format(text_avg, text_std, text_min, text_max))
-
-class EncodedExample:
-    
-    def __init__(self, provenance, text, features, textcoded=None, ocr_context=None, viz_context=None):
-        self.provenance = provenance
-        self.text = text
-        self.features = features
-        self.textcoded = textcoded
-        self.ocr_context = ocr_context
-        self.viz_context = viz_context
 
 class Augment():
     """
@@ -164,6 +169,7 @@ class Augment():
             viz_context4th = None
             if encoded_example.viz_context is not None:
                 viz_context4th = self.pca.reduce(encoded_example.viz_context)
+                viz_context4th /= viz_context4th.max()
             #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
             processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
             self.save(path_to_encoded, j, processed_example)
@@ -171,22 +177,22 @@ class Augment():
                 Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
 
 
-    def save(self, path, j_th_iteration, encoded_example):
+    def save(self, path:str, j_th_iteration:int, encoded_example:EncodedExample):
         full_path = path + "_" + str(j_th_iteration)
         if os.path.exists(full_path):
             print(f"skipping {full_path}: already exists!")
         else:
             os.mkdir(full_path)
-            with open(os.path.join(full_path, "provenance.txt"),'w') as f:
+            with open(os.path.join(full_path, encoded_example.provenance_filename),'w') as f:
                 f.write(encoded_example.provenance)
-            with open(os.path.join(full_path, "text.txt"), 'w') as f:
+            with open(os.path.join(full_path, encoded_example.text_filename), 'w') as f:
                 f.write(encoded_example.text)
-            torch.save(encoded_example.textcoded, os.path.join(full_path, "textcoded.pyth"))
-            torch.save(encoded_example.features, os.path.join(full_path, "features.pyth"))
+            torch.save(encoded_example.textcoded, os.path.join(full_path, encoded_example.textcoded_filename))
+            torch.save(encoded_example.features, os.path.join(full_path, encoded_example.features_filename))
             if encoded_example.ocr_context is not None:
-                torch.save(encoded_example.ocr_context, os.path.join(full_path, "ocr_context.pyth"))
+                torch.save(encoded_example.ocr_context, os.path.join(full_path, encoded_example.ocr_context_filename))
             if encoded_example.viz_context is not None:
-                torch.save(encoded_example.viz_context, os.path.join(full_path, "viz_context.pyth"))
+                torch.save(encoded_example.viz_context, os.path.join(full_path, encoded_example.viz_context_filename))
 
 
     @staticmethod

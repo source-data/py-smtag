@@ -251,7 +251,6 @@ class NeoImport():
 
     @staticmethod
     def save_xml_files(split_dataset, data_dir, namebase):
-        import pdb; pdb.set_trace()
         with cd(data_dir):
             print("saving to: ", data_dir)
             if namebase in os.listdir():

@@ -6,8 +6,6 @@ import torch
 import argparse
 import numpy as np
 from random import randrange
-from .minibatches import Minibatches
-from .loader import Loader
 from ..predict.decode import Decoder
 from ..common.progress import progress
 from ..common.importexport import load_model
@@ -105,34 +103,34 @@ class Accuracy(object):
         return cond_p, tp, fp
 
 
-class Benchmark():
+# class Benchmark():
 
-    def __init__(self, model_basename, testset_basename):#, tokenize):
-        self.model_name = model_basename
-        self.model = load_model(model_basename)
-        self.opt = self.model.opt
-        # self.tokenize = tokenize
-        data_loader = Loader(self.opt)
-        self.testset_name = os.path.join(config.data4th_dir, testset_basename,'test')
-        testset = data_loader.prepare_datasets(self.testset_name)
-        minibatches = Minibatches(testset, self.opt['minibatch_size'])
-        benchmark = Accuracy(self.model, minibatches)#, tokenize=self.tokenize)
-        self.precision, self.recall, self.f1 = benchmark.run()
+#     def __init__(self, model_basename, testset_basename):#, tokenize):
+#         self.model_name = model_basename
+#         self.model = load_model(model_basename)
+#         self.opt = self.model.opt
+#         # self.tokenize = tokenize
+#         data_loader = Loader(self.opt)
+#         self.testset_name = os.path.join(config.data4th_dir, testset_basename,'test')
+#         testset = data_loader.prepare_datasets(self.testset_name)
+#         minibatches = Minibatches(testset, self.opt['minibatch_size'])
+#         benchmark = Accuracy(self.model, minibatches)#, tokenize=self.tokenize)
+#         self.precision, self.recall, self.f1 = benchmark.run()
 
-    def display(self):
-        print("\n\n\033[31;1m========================================================\033[0m")
-        print("\n\033[31;1m Data: {}\033[0m".format(self.testset_name))
-        print("\n\033[31;1m Model: {}\033[0m".format(self.model_name))
-        print("\n Global stats: \033[1m\n")
-        print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision.mean()))
-        print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall.mean()))
-        print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1.mean()))
+#     def display(self):
+#         print("\n\n\033[31;1m========================================================\033[0m")
+#         print("\n\033[31;1m Data: {}\033[0m".format(self.testset_name))
+#         print("\n\033[31;1m Model: {}\033[0m".format(self.model_name))
+#         print("\n Global stats: \033[1m\n")
+#         print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision.mean()))
+#         print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall.mean()))
+#         print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1.mean()))
 
-        for i, feature in enumerate(self.model.output_semantics):
-            print("\n Feature: '\033[1m{}\033[0m'\n".format(feature))
-            print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision[i]))
-            print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall[i]))
-            print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1[i]))
+#         for i, feature in enumerate(self.model.output_semantics):
+#             print("\n Feature: '\033[1m{}\033[0m'\n".format(feature))
+#             print("\t\033[32;1mprecision\033[0m = {}.2f".format(self.precision[i]))
+#             print("\t\033[33;1mrecall\033[0m = {}.2f".format(self.recall[i]))
+#             print("\t\033[36;1mf1\033[0m = {}.2f".format(self.f1[i]))
 
 # class ScanThreshold():
 
@@ -180,8 +178,8 @@ def main():
     #     s = ScanThreshold(model_basename, basename)#, tokenize=tokenize)
     #     s.run()
     # else:
-    b = Benchmark(model_basename, basename)#, tokenize=tokenize)
-    b.display()
+    # b = Benchmark(model_basename, basename)#, tokenize=tokenize)
+    # b.display()
 
 if __name__ == '__main__':
     main()

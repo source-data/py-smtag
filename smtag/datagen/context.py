@@ -56,8 +56,6 @@ for m in vgg_urls:
 # m(x).size() # -->torch.Size([1, 2048, 2, 2])
 # x.numel() # --> 8192
 
-ALLOWED_FILE_EXTENSIONS =['.jpg', '.jpeg']
-
 class VisualContext(object):
 
     def __init__(self, path, selected_output_module=28):
@@ -112,16 +110,9 @@ class VisualContext(object):
             output = self.net(normalized)
         return output # 4D 1 x 512 x 14 x 14
 
-    def load_viz_context(self, graphic_filename):
-        basename = os.path.basename(graphic_filename)
-        basename = os.path.splitext(basename)[0]
-        viz_context_filename = os.path.join(self.path, basename, '.pyth')
-        viz_tensor = torch.load(viz_context_filename)
-        return viz_tensor
-
     def run(self):
         with cd(self.path):
-            filenames = [f for f in os.listdir() if os.path.splitext(f)[-1] in ALLOWED_FILE_EXTENSIONS]
+            filenames = [f for f in os.listdir() if os.path.splitext(f)[-1] in config.allowed_img]
             N = len(filenames)
             for i, filename in enumerate(filenames):
                 basename = os.path.splitext(filename)[0]
