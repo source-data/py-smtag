@@ -10,6 +10,7 @@ import sys
 import re
 import copy
 import pickle
+from threading import Thread
 from math import floor, ceil
 from xml.etree.ElementTree  import XML, parse, tostring
 
@@ -142,8 +143,33 @@ class Augment():
             viz_context4th: a 3D Tensor with vectorized perceptual vision features
         """
 
+        def sample(j, encoded_example):
+                # print("{:3d}/{:3d} samples      ".format(j+1, adaptive_iterations), end='\r')
+                # a text fragment is picked randomly from the text example
+                fragment, start, stop = Sampler.pick_fragment(encoded_example.text, self.length, self.mode)
+                # it is randomly shifted and padded to fit the desired length
+                padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
+                textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
+                # the encoded features of the fragment are selected and padded
+                features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
+                # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
+                features4th[ : , concept2index[Catalogue.GENEPROD],  : ] = features4th[ : , concept2index[Catalogue.GENE],  : ] + features4th[ : ,  concept2index[Catalogue.PROTEIN], : ]
+                # the encoded ocr context features is formatted the same way to stay in register
+                ocr_context4th = None
+                if encoded_example.ocr_context is not None:
+                    ocr_context4th = Sampler.slice_and_pad(self.length, encoded_example.ocr_context, start, stop, self.min_padding, left_padding, right_padding)
+                # the visual context features are independent of the position of the text fragment
+                viz_context4th = None
+                if encoded_example.viz_context is not None:
+                    viz_context4th = self.pca.reduce(encoded_example.viz_context)
+                    viz_context4th /= viz_context4th.max()
+                #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
+                processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
+                self.save(path_to_encoded, j, processed_example)
+                if self.verbose:
+                    Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
+        
         L = len(encoded_example.text)
-
         # if L < 0.3 * self.length: # skip examples that are too short
         #     print("\nskipping example of size {} < 30% of desired length {}".format(L, self.length))
         #     skipped_examples += 1
@@ -151,30 +177,8 @@ class Augment():
         # randomly sampling each example
         adaptive_iterations = int(max(1.0, L / self.length) * iterations)
         for j in range(adaptive_iterations): # j is index of sampling iteration
-            # print("{:3d}/{:3d} samples      ".format(j+1, adaptive_iterations), end='\r')
-            # a text fragment is picked randomly from the text example
-            fragment, start, stop = Sampler.pick_fragment(encoded_example.text, self.length, self.mode)
-            # it is randomly shifted and padded to fit the desired length
-            padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
-            textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
-            # the encoded features of the fragment are selected and padded
-            features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
-            # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
-            features4th[ : , concept2index[Catalogue.GENEPROD],  : ] = features4th[ : , concept2index[Catalogue.GENE],  : ] + features4th[ : ,  concept2index[Catalogue.PROTEIN], : ]
-            # the encoded ocr context features is formatted the same way to stay in register
-            ocr_context4th = None
-            if encoded_example.ocr_context is not None:
-                ocr_context4th = Sampler.slice_and_pad(self.length, encoded_example.ocr_context, start, stop, self.min_padding, left_padding, right_padding)
-            # the visual context features are independent of the position of the text fragment
-            viz_context4th = None
-            if encoded_example.viz_context is not None:
-                viz_context4th = self.pca.reduce(encoded_example.viz_context)
-                viz_context4th /= viz_context4th.max()
-            #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
-            processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
-            self.save(path_to_encoded, j, processed_example)
-            if self.verbose:
-                Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
+            #sample(j, encoded_example)
+            Thread(target=sample, args=(j, encoded_example)).start()
 
 
     def save(self, path:str, j_th_iteration:int, encoded_example:EncodedExample):
