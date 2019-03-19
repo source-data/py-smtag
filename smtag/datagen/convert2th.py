@@ -183,14 +183,12 @@ class Augment():
                 threading.Thread(target=sample, args=(j, encoded_example)).start() 
             except RuntimeError as e: # problem if number of threads to high
                 print(e)
-                while threading.active_count() > 1:
+                while threading.active_count() > 1: 
                     print(f"waiting that {threading.active_count()} threads resume", end='\r')
                     time.sleep(1)
                 print()
-                try: # try again
-                    threading.Thread(target=sample, args=(j, encoded_example)).start()
-                except Exception as e:
-                    print(e)
+                # try again
+                threading.Thread(target=sample, args=(j, encoded_example)).start()
                 
 
 
