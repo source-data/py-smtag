@@ -10,7 +10,8 @@ import sys
 import re
 import copy
 import pickle
-from threading import Thread
+import threading
+import time
 from math import floor, ceil
 from xml.etree.ElementTree  import XML, parse, tostring
 
@@ -178,7 +179,19 @@ class Augment():
         adaptive_iterations = int(max(1.0, L / self.length) * iterations)
         for j in range(adaptive_iterations): # j is index of sampling iteration
             #sample(j, encoded_example)
-            Thread(target=sample, args=(j, encoded_example)).start()
+            try:
+                threading.Thread(target=sample, args=(j, encoded_example)).start() 
+            except RuntimeError as e: # problem if number of threads to high
+                print(e)
+                while threading.active_count() > 1:
+                    print(f"waiting that {threading.active_count()} threads resume", end='\r')
+                    time.sleep(1)
+                print()
+                try: # try again
+                    threading.Thread(target=sample, args=(j, encoded_example)).start()
+                except Exception as e:
+                    print(e)
+                
 
 
     def save(self, path:str, j_th_iteration:int, encoded_example:EncodedExample):
