@@ -9,6 +9,7 @@ from random import randrange
 from ..predict.decode import Decoder
 from ..common.progress import progress
 from ..common.importexport import load_model
+from ..common.utils import timer
 from .. import config
 
 DEFAULT_THRESHOLD = config.default_threshold
@@ -40,6 +41,7 @@ class Accuracy(object):
         #     self.thresholds = self.thresholds.cuda()
         #     self.target_concepts = [b.cuda() for b in self.target_concepts]
 
+    @timer
     def run(self):
         p_sum = torch.zeros(self.nf)
         tp_sum = torch.zeros(self.nf)
