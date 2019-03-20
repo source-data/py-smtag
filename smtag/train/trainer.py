@@ -99,7 +99,7 @@ class Trainer:
         self.learning_rate = self.opt.learning_rate
         self.epochs = self.opt.epochs
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
-        self.plot.add_text('paramters', str(self.opt))
+        self.plot.add_text('parameters', str(self.opt))
         N = len(self.trainset) // self.batch_size
         for e in range(self.epochs):
             avg_train_loss = 0 # loss averaged over all minibatches
@@ -113,6 +113,7 @@ class Trainer:
                 self.optimizer.step()
 
             # Logging/plotting
+            print("\n")
             avg_train_loss = avg_train_loss / N
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
