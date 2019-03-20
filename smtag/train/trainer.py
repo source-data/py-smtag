@@ -74,12 +74,14 @@ class Trainer:
 
     def validate(self):
         loss = 0
-        for n, m in enumerate(self.validation_minibatches):
+        N = len(self.validation) // self.batch_size
+        for i, m in enumerate(self.validation_minibatches):
+            progress(i, N, "\tvalidating                              ")
             with torch.no_grad():
                 self.model.eval()
                 loss += self.predict(m)
                 self.model.train()
-        loss /= (n+1)
+        loss /= N
         return loss
 
     def predict(self, batch):
@@ -90,6 +92,7 @@ class Trainer:
             y = y.cuda()
         y_hat = self.model(x)
         loss = F.nll_loss(y_hat, y.argmax(1))
+        # loss = F.binary_cross_entropy(y_hat, y)
         return loss
     
     def train(self):
