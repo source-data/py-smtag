@@ -48,7 +48,7 @@ class Trainer:
             self.model.output_semantics = self.output_semantics
             # self.weight = self.weight.cuda()
             self.cuda_on = True
-            self.num_workers = 96
+            self.num_workers = 32 # 96
         else:
             self.cuda_on = False
             self.num_workers = 0
