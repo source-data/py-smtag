@@ -41,17 +41,15 @@ class Trainer:
         # self.weight = torch.Tensor([1/f for f in freq])
         print(self.opt)
         # wrap model into nn.DataParallel if we are on a GPU machine
+        self.num_workers = 0
         if torch.cuda.is_available():
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
             self.model.cuda()
             self.model.output_semantics = self.output_semantics
             # self.weight = self.weight.cuda()
-            self.cuda_on = True
-            self.num_workers = 32 # 96
-        else:
-            self.cuda_on = False
-            self.num_workers = 0
+            self.num_workers = 8 # 96
+            
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.batch_size = self.opt.minibatch_size
         self.trainset = trainset
