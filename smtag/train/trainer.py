@@ -56,9 +56,9 @@ class Trainer:
         self.batch_size = self.opt.minibatch_size
         self.trainset = trainset
         self.validation = validation
-        self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True)
-        self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True)
-        self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
+        self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True, pin_memory=True)
+        self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True, pin_memory=True)
+        self.evaluator = Accuracy(self.validation_minibatches, tokenize=False)
         self.console = Show('console')
 
     @staticmethod
@@ -114,17 +114,18 @@ class Trainer:
 
             # Logging/plotting
             print("\n")
+            model_cpu = export_model(self.model, custom_name = self.opt.namebase+'_last_saved')
             avg_train_loss = avg_train_loss / N
             avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
-            precision, recall, f1 = self.evaluator.run()
+            precision, recall, f1 = self.evaluator.run(model_cpu)
             self.plot.add_scalars("f1", {str(i): f1[i] for i in range(self.opt.nf_output)}, e)
             self.plot.add_scalars("precision", {str(i): precision[i] for i in range(self.opt.nf_output)}, e)
             self.plot.add_scalars("recall", {str(i): recall[i] for i in range(self.opt.nf_output)}, e)
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
             print(self.console.example(self.validation_minibatches, self.model))
             # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
-            export_model(self.model, custom_name = self.opt.namebase+'_last_saved')
+            
         self.plot.close()
         print("\n")
         return avg_train_loss, avg_validation_loss, precision, recall, f1

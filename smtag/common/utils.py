@@ -100,6 +100,6 @@ def timer(f):
         output = f(*args, **kwargs)
         end_time = time.time()
         delta_t = end_time - start_time
-        print("Exec time for '{}': {:.3f}s".format(f.__name__, delta_t))
+        print("\nExec time for '{}': {:.3f}s".format(f.__name__, delta_t))
         return output
     return t

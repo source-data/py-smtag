@@ -16,14 +16,14 @@ DEFAULT_THRESHOLD = config.default_threshold
 
 class Accuracy(object):
 
-    def __init__(self, model, minibatches, tokenize=False):
-        self.model = model
+    def __init__(self, minibatches, tokenize=False):
+        # self.model = model # to avoid doing the evaluation on GPUs, we could also first deparalellize the model and run evaluation on CPU only?
         self.minibatches = minibatches
         self.nf = next(iter(self.minibatches)).output.size(1)
         self.tokenize  = tokenize
         self.target_concepts = []
-        if torch.cuda.is_available(): # or torch.cuda.is_available() ?
-            self.cuda_on = True
+        # if torch.cuda.is_available(): # or torch.cuda.is_available() ?
+        #     self.cuda_on = True
         # if self.tokenize:
         #     for i, m in enumerate(self.minibatches):
         #         progress(i, self.minibatches.minibatch_number, "tokenizing minibatch {}".format(i))
@@ -42,24 +42,24 @@ class Accuracy(object):
         #     self.target_concepts = [b.cuda() for b in self.target_concepts]
 
     @timer
-    def run(self):
+    def run(self, model_cpu):
         p_sum = torch.zeros(self.nf)
         tp_sum = torch.zeros(self.nf)
         fp_sum = torch.zeros(self.nf)
-        if torch.cuda.is_available():
-            p_sum = p_sum.cuda()
-            tp_sum = tp_sum.cuda()
-            fp_sum = fp_sum.cuda()
+        # if torch.cuda.is_available():
+        #     p_sum = p_sum.cuda()
+        #     tp_sum = tp_sum.cuda()
+        #     fp_sum = fp_sum.cuda()
         for m in self.minibatches:
             m_input = m.input
             m_output = m.output
-            if torch.cuda.is_available():
-                m_input = m_input.cuda()
-                m_output = m_output.cuda()
+            # if torch.cuda.is_available():
+            #     m_input = m_input.cuda()
+            #     m_output = m_output.cuda()
             with torch.no_grad():
-                self.model.eval()
-                prediction = self.model(m_input)
-                self.model.train()
+                model_cpu.eval()
+                prediction = model_cpu(m_input)
+                model_cpu.train()
             # if self.tokenize:
             #     prediction_decoded = Decoded(m.text, prediction, self.model.output_semantics)
             #     prediction_decoded.decode_with_token(m.tokenized)
@@ -87,11 +87,11 @@ class Accuracy(object):
         pred_p = torch.zeros(nf).to(torch.float)
         tp = torch.zeros(nf).to(torch.float)
         fp = torch.zeros(nf).to(torch.float)
-        if torch.cuda.is_available():
-            cond_p = cond_p.cuda()
-            pred_p = pred_p.cuda()
-            tp = tp.cuda()
-            fp = fp.cuda()
+        # if torch.cuda.is_available():
+        #     cond_p = cond_p.cuda()
+        #     pred_p = pred_p.cuda()
+        #     tp = tp.cuda()
+        #     fp = fp.cuda()
         predicted_classes = prediction.argmax(1)
         target_classes = target.argmax(1)
         for f in range(nf):

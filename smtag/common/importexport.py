@@ -47,7 +47,7 @@ def export_model(model, custom_name = '', model_dir = config.model_dir):
             os.remove(option_path)
         for info in myzip.infolist():
             print("saved {} (size: {})".format(info.filename, info.file_size))
-        return myzip
+    return model_copy
 
 def load_model(archive_filename, model_dir=config.model_dir):
     archive_path = archive_filename # os.path.join(model_dir, archive_filename)
