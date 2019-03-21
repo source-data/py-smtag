@@ -56,8 +56,8 @@ class Trainer:
         self.batch_size = self.opt.minibatch_size
         self.trainset = trainset
         self.validation = validation
-        self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True)
-        self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True)
+        self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True, pin_memory=True)
+        self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True, pin_memory=True)
         self.evaluator = Accuracy(self.validation_minibatches, tokenize=False)
         self.console = Show('console')
 
@@ -71,19 +71,6 @@ class Trainer:
         )
         return minibatch
         
-
-    def validate(self):
-        loss = 0
-        N = len(self.validation) // self.batch_size
-        for i, m in enumerate(self.validation_minibatches):
-            progress(i, N, "\tvalidating                              ")
-            with torch.no_grad():
-                self.model.eval()
-                loss += self.predict(m)
-                self.model.train()
-        loss /= N
-        return loss
-
     def predict(self, batch):
         x = batch.input
         y = batch.output
@@ -93,7 +80,7 @@ class Trainer:
         y_hat = self.model(x)
         loss = F.nll_loss(y_hat, y.argmax(1))
         # loss = F.binary_cross_entropy(y_hat, y)
-        return loss
+        return x, y, y_hat, loss
     
     def train(self):
         self.learning_rate = self.opt.learning_rate
@@ -107,18 +94,17 @@ class Trainer:
             for i, m in enumerate(self.trainset_minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
-                loss = self.predict(m)
+                x, y, y_hat, loss = self.predict(m)
                 loss.backward()
                 avg_train_loss += loss
                 self.optimizer.step()
 
             # Logging/plotting
             print("\n")
-            model_cpu = export_model(self.model, custom_name = self.opt.namebase+'_last_saved')
+            export_model(self.model, custom_name = self.opt.namebase+'_last_saved')
             avg_train_loss = avg_train_loss / N
-            avg_validation_loss = self.validate() # the average loss over the validation minibatches # JUST TAKE A SAMPLE: 
+            precision, recall, f1, avg_validation_loss = self.evaluator.run(self.predict)
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
-            precision, recall, f1 = self.evaluator.run(model_cpu)
             self.plot.add_scalars("f1", {str(i): f1[i] for i in range(self.opt.nf_output)}, e)
             self.plot.add_scalars("precision", {str(i): precision[i] for i in range(self.opt.nf_output)}, e)
             self.plot.add_scalars("recall", {str(i): recall[i] for i in range(self.opt.nf_output)}, e)

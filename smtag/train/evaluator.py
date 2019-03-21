@@ -17,8 +17,8 @@ DEFAULT_THRESHOLD = config.default_threshold
 class Accuracy(object):
 
     def __init__(self, minibatches, tokenize=False):
-        # self.model = model # to avoid doing the evaluation on GPUs, we could also first deparalellize the model and run evaluation on CPU only?
         self.minibatches = minibatches
+        self.N = len(self.minibatches) * self.minibatches.batch_size
         self.nf = next(iter(self.minibatches)).output.size(1)
         self.tokenize  = tokenize
         self.target_concepts = []
@@ -42,37 +42,33 @@ class Accuracy(object):
         #     self.target_concepts = [b.cuda() for b in self.target_concepts]
 
     @timer
-    def run(self, model_cpu):
+    def run(self, predict_fn):
+        loss_avg = 0
         p_sum = torch.zeros(self.nf)
         tp_sum = torch.zeros(self.nf)
         fp_sum = torch.zeros(self.nf)
-        # if torch.cuda.is_available():
-        #     p_sum = p_sum.cuda()
-        #     tp_sum = tp_sum.cuda()
-        #     fp_sum = fp_sum.cuda()
-        for m in self.minibatches:
-            m_input = m.input
-            m_output = m.output
-            # if torch.cuda.is_available():
-            #     m_input = m_input.cuda()
-            #     m_output = m_output.cuda()
-            with torch.no_grad():
-                model_cpu.eval()
-                prediction = model_cpu(m_input)
-                model_cpu.train()
+        if torch.cuda.is_available():
+            p_sum = p_sum.cuda()
+            tp_sum = tp_sum.cuda()
+            fp_sum = fp_sum.cuda()
+        for i, m in enumerate(self.minibatches):
+            progress(i, len(self.minibatches), "\tevaluating model                              ")
+            x, y, y_hat, loss = predict_fn(m)
             # if self.tokenize:
             #     prediction_decoded = Decoded(m.text, prediction, self.model.output_semantics)
             #     prediction_decoded.decode_with_token(m.tokenized)
             #     p, tp, fp = self.tpfp(prediction_decoded.concepts, self.target_concepts[i])
             # else:
-            p, tp, fp = self.tpfp(prediction, m_output)
+            loss_avg += loss
+            p, tp, fp = self.tpfp(y_hat, y)
             p_sum += p
             tp_sum += tp
             fp_sum += fp
         precision = tp_sum / (tp_sum + fp_sum)
         recall = tp_sum / p_sum
         f1 = 2 * recall * precision / (recall + precision)
-        return precision, recall, f1
+        loss_avg = loss_avg / self.N
+        return precision, recall, f1, loss
 
     @staticmethod
     def tpfp(prediction, target):
@@ -87,11 +83,11 @@ class Accuracy(object):
         pred_p = torch.zeros(nf).to(torch.float)
         tp = torch.zeros(nf).to(torch.float)
         fp = torch.zeros(nf).to(torch.float)
-        # if torch.cuda.is_available():
-        #     cond_p = cond_p.cuda()
-        #     pred_p = pred_p.cuda()
-        #     tp = tp.cuda()
-        #     fp = fp.cuda()
+        if torch.cuda.is_available():
+            cond_p = cond_p.cuda()
+            pred_p = pred_p.cuda()
+            tp = tp.cuda()
+            fp = fp.cuda()
         predicted_classes = prediction.argmax(1)
         target_classes = target.argmax(1)
         for f in range(nf):
