@@ -68,7 +68,7 @@ class Accuracy(object):
         recall = tp_sum / p_sum
         f1 = 2 * recall * precision / (recall + precision)
         loss_avg = loss_avg / self.N
-        return precision, recall, f1, loss
+        return precision.float(), recall.float(), f1.float(), loss
 
     @staticmethod
     def tpfp(prediction, target):
