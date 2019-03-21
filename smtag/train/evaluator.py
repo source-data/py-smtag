@@ -59,7 +59,7 @@ class Accuracy(object):
             #     prediction_decoded.decode_with_token(m.tokenized)
             #     p, tp, fp = self.tpfp(prediction_decoded.concepts, self.target_concepts[i])
             # else:
-            loss_avg += loss
+            loss_avg += loss.item()
             p, tp, fp = self.tpfp(y_hat, y)
             p_sum += p
             tp_sum += tp

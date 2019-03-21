@@ -48,7 +48,7 @@ class Trainer:
             self.model.cuda()
             self.model.output_semantics = self.output_semantics
             # self.weight = self.weight.cuda()
-            self.num_workers = 8 # 96
+            self.num_workers = 4 # 96
             
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.batch_size = self.opt.minibatch_size
@@ -100,7 +100,7 @@ class Trainer:
                 self.optimizer.zero_grad()
                 x, y, y_hat, loss = self.predict(m)
                 loss.backward()
-                avg_train_loss += loss
+                avg_train_loss += loss.item()
                 self.optimizer.step()
 
             # Logging/plotting
