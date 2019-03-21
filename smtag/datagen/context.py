@@ -12,7 +12,7 @@ from torch import nn
 from torch.nn import functional as F
 import torchvision
 #https://discuss.pxtorch.org/t/torchvision-url-error-when-loading-pretrained-model/2544/6
-from torchvision.models import vgg19, resnet152
+from torchvision.models import vgg19, resnet152 # densenet161
 from torchvision import transforms
 from tensorboardX import SummaryWriter
 import numpy as np
@@ -23,10 +23,13 @@ from .. import config
 
 from torchvision.models.resnet import model_urls as resnet_urls
 from torchvision.models.vgg import model_urls as vgg_urls
+from torchvision.models.densenet import model_urls as densenet_urls
 for m in resnet_urls:
     resnet_urls[m] = resnet_urls[m].replace('https://', 'http://')
 for m in vgg_urls:
     vgg_urls[m] = vgg_urls[m].replace('https://', 'http://')
+for m in densenet_urls:
+    densenet_urls[m] = densenet_urls[m].replace('https://', 'http://')
 
 
 # All pre-trained models expect input images normalized in the same wax, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224.
@@ -62,6 +65,7 @@ class VisualContext(object):
         self.path = path
         print("loading modules of the vgg19 network")
         modules = list(vgg19(pretrained=True).features) # children() for resnet
+        # densenet161(pretrained=True)
         self.net = nn.Sequential(*modules[:selected_output_module])
         print("done!")
 
@@ -165,6 +169,7 @@ class PCA_reducer():
         p_th.transpose_(1, 3) # B x k x H x W
         # print("reducing resolution by adaptive max pool")
         x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
+        # x_reduced = F.sigmoid(x_reduced)
         return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3 NEED TO VECTORIZE IT?
 
 def main():
