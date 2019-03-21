@@ -54,8 +54,8 @@ class Trainer:
         self.batch_size = self.opt.minibatch_size
         self.trainset = trainset
         self.validation = validation
-        self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True)
-        self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True)
+        self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True, timeout=10)
+        self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn, num_workers=self.num_workers, drop_last=True, timeout=10)
         self.evaluator = Accuracy(self.validation_minibatches, tokenize=False)
         self.console = Show('console')
 
@@ -81,7 +81,7 @@ class Trainer:
                 y_hat = self.model(x)
                 self.model.train()
         else:
-             y_hat = self.model(x)
+            y_hat = self.model(x)
         loss = F.nll_loss(y_hat, y.argmax(1))
         # loss = F.binary_cross_entropy(y_hat, y)
         return x, y, y_hat, loss
