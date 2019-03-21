@@ -19,6 +19,7 @@ class Accuracy(object):
     def __init__(self, minibatches, tokenize=False):
         # self.model = model # to avoid doing the evaluation on GPUs, we could also first deparalellize the model and run evaluation on CPU only?
         self.minibatches = minibatches
+        import pdb; pdb.set_trace()
         self.nf = next(iter(self.minibatches)).output.size(1)
         self.tokenize  = tokenize
         self.target_concepts = []
