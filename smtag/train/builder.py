@@ -119,17 +119,17 @@ class Unet2(nn.Module):
         y = self.dropout(x)
         y = self.conv_down_A(y)
         y = F.relu(self.BN_down_A(y), inplace=True)
-        y_size_1 = y.size()
+        y_size_1 = list(y.size())
         y, pool_1_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
         y = self.conv_down_B(y)
         y = F.relu(self.BN_down_B(y), inplace=True)
 
         if self.unet2 is not None:
-            y_size_2 = y.size()
+            y_size_2 = list(y.size())
             y, pool_2_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
             y = self.unet2(y)
             y = F.relu(self.BN_middle(y), inplace=True)
-            y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_2_indices, y_size_2)
+            y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_2_indices, y_size_2) # problem on 1.0.1 ses issue #16486
         y = self.dropout(y)
         y = self.conv_up_B(y)
         y = F.relu(self.BN_up_B(y), inplace=True)
