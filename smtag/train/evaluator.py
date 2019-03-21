@@ -59,7 +59,7 @@ class Accuracy(object):
             #     prediction_decoded.decode_with_token(m.tokenized)
             #     p, tp, fp = self.tpfp(prediction_decoded.concepts, self.target_concepts[i])
             # else:
-            loss_avg += loss.float().item()
+            loss_avg += loss.cpu().data
             p, tp, fp = self.tpfp(y_hat, y)
             p_sum += p
             tp_sum += tp
@@ -68,7 +68,7 @@ class Accuracy(object):
         recall = tp_sum / p_sum
         f1 = 2 * recall * precision / (recall + precision)
         loss_avg = loss_avg / self.N
-        return precision.float(), recall.float(), f1.float(), loss
+        return precision.cpu(), recall.cpu(), f1.cpu(), loss
 
     @staticmethod
     def tpfp(prediction, target):
