@@ -53,7 +53,7 @@ class Accuracy(object):
             fp_sum = fp_sum.cuda()
         for i, m in enumerate(self.minibatches):
             progress(i, len(self.minibatches), "\tevaluating model                              ")
-            x, y, y_hat, loss = predict_fn(m)
+            x, y, y_hat, loss = predict_fn(m, eval=True)
             # if self.tokenize:
             #     prediction_decoded = Decoded(m.text, prediction, self.model.output_semantics)
             #     prediction_decoded.decode_with_token(m.tokenized)

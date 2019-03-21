@@ -71,13 +71,19 @@ class Trainer:
         )
         return minibatch
         
-    def predict(self, batch):
+    def predict(self, batch, eval=False):
         x = batch.input
         y = batch.output
-        if self.cuda_on:
+        if torch.cuda.is_available():
             x = x.cuda()
             y = y.cuda()
-        y_hat = self.model(x)
+        if eval:
+            with torch.no_grad():
+                self.model.eval()
+                y_hat = self.model(x)
+                self.model.train()
+        else:
+             y_hat = self.model(x)
         loss = F.nll_loss(y_hat, y.argmax(1))
         # loss = F.binary_cross_entropy(y_hat, y)
         return x, y, y_hat, loss
