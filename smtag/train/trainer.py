@@ -100,7 +100,7 @@ class Trainer:
                 self.optimizer.zero_grad()
                 x, y, y_hat, loss = self.predict(m)
                 loss.backward()
-                avg_train_loss += loss.item()
+                avg_train_loss += loss.float().item() # important otherwise not freed from the graph
                 self.optimizer.step()
 
             # Logging/plotting
