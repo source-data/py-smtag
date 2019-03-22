@@ -350,10 +350,11 @@ class DataPreparator(object):
             filenames = [f for f in os.listdir(path) if os.path.splitext(f)[1] == '.xml']
             examples = []
             excluded = []
+            parser = xml.etree.ElementTree.XMLParser(encoding="utf8") 
             for i, filename in enumerate(filenames):
                 #try:
                     with open(os.path.join(path, filename)) as f:
-                        xml = parse(f)
+                        xml = parse(f, parser=parser)
                         print("({}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'), end='\r')
                     for j, e in enumerate(xml.getroot().findall(self.XPath_to_examples)):
                         provenance = os.path.splitext(filename)[0] + "_" + str(j)
