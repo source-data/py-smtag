@@ -13,7 +13,7 @@ import pickle
 import threading
 import time
 from math import floor, ceil
-from xml.etree.ElementTree  import XML, parse, tostring
+from xml.etree.ElementTree  import XML, parse, tostring, XMLParser
 
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
@@ -350,7 +350,7 @@ class DataPreparator(object):
             filenames = [f for f in os.listdir(path) if os.path.splitext(f)[1] == '.xml']
             examples = []
             excluded = []
-            parser = xml.etree.ElementTree.XMLParser(encoding="utf8") 
+            parser = XMLParser(encoding="utf8") 
             for i, filename in enumerate(filenames):
                 #try:
                     with open(os.path.join(path, filename)) as f:
