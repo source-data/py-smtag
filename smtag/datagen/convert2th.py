@@ -353,7 +353,7 @@ class DataPreparator(object):
             # parser = XMLParser(encoding="utf8") 
             for i, filename in enumerate(filenames):
                 #try:
-                    with open(os.path.join(path, filename), "rb") as f:
+                    with open(os.path.join(path, filename), "r") as f:
                         xml = parse(f)
                         print("({}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'), end='\r')
                     for j, e in enumerate(xml.getroot().findall(self.XPath_to_examples)):
