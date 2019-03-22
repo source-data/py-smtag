@@ -199,8 +199,8 @@ class Augment():
         else:
             os.mkdir(full_path)
             with open(os.path.join(full_path, encoded_example.provenance_filename),'w') as f:
-                f.write(encoded_example.provenance)
-            with open(os.path.join(full_path, encoded_example.text_filename), 'wb') as f:
+                f.write(encoded_example.provenance.encode('utf-8'))
+            with open(os.path.join(full_path, encoded_example.text_filename), 'w') as f:
                 f.write(encoded_example.text.encode('utf-8'))
             torch.save(encoded_example.textcoded, os.path.join(full_path, encoded_example.textcoded_filename))
             torch.save(encoded_example.features, os.path.join(full_path, encoded_example.features_filename))
