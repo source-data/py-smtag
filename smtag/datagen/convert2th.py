@@ -163,7 +163,6 @@ class Augment():
                 viz_context4th = None
                 if encoded_example.viz_context is not None:
                     viz_context4th = self.pca.reduce(encoded_example.viz_context)
-                    viz_context4th /= viz_context4th.max()
                 #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
                 processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
                 self.save(path_to_encoded, j, processed_example)

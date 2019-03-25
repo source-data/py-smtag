@@ -169,8 +169,9 @@ class PCA_reducer():
         p_th.transpose_(1, 3) # B x k x H x W
         # print("reducing resolution by adaptive max pool")
         x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
+        x_reduced /= x_reduced.max()
         # x_reduced = F.sigmoid(x_reduced)
-        return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3 NEED TO VECTORIZE IT?
+        return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
