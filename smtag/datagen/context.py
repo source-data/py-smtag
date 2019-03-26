@@ -63,10 +63,15 @@ class VisualContext(object):
 
     def __init__(self, path, selected_output_module=28):
         self.path = path
-        print("loading modules of the vgg19 network")
-        modules = list(vgg19(pretrained=True).features) # children() for resnet
-        # densenet161(pretrained=True)
+        print("loading modules of the pretrained network")
+        # VGG19
+        modules = list(vgg19(pretrained=True).features)
         self.net = nn.Sequential(*modules[:selected_output_module])
+        # DENSENET
+        # self.net = list(densenet161(pretrained=True).children())[0]
+        # RESNET
+        # modules = list(resnet152.children())
+        # self.net = nn.Sequential(*modules[:9])
         print("done!")
 
     def open(self, img_filename):
@@ -169,7 +174,8 @@ class PCA_reducer():
         p_th.transpose_(1, 3) # B x k x H x W
         # print("reducing resolution by adaptive max pool")
         x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
-        #x_reduced /= x_reduced.max()
+        # x_reduced = F.adaptive_avg_pool2d(p_th, grid_size)
+        # x_reduced /= x_reduced.max()
         x_reduced = F.sigmoid(x_reduced)
         return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3
 
