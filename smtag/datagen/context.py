@@ -54,14 +54,15 @@ from torchvision.models.densenet import model_urls as densenet_urls
 
 class VisualContext(object):
 
-    def __init__(self, path, selected_output_module=28):
+    def __init__(self, path):
         self.path = path
         print("loading modules of the pretrained network")
         # VGG19
-        # modules = list(vgg19(pretrained=True).features)
-        # self.net = nn.Sequential(*modules[:selected_output_module])
+        net = vgg19(pretrained=True)
+        self.net = net.features[:28]
         # DENSENET
-        self.net = list(densenet161(pretrained=True).children())[0]
+        # net = densenet161(pretrained=True)
+        #self.net = net.features
         # RESNET
         # modules = list(resnet152.children())
         # self.net = nn.Sequential(*modules[:9])
@@ -109,7 +110,7 @@ class VisualContext(object):
             normalized = torch.zeros(1, 3, 224, 224) # a waste...
         self.net.eval()
         with torch.no_grad():
-            output = self.net(normalized) # densenet[0]: 1 x 2208 x 7 x 7; vgg19[:28] 1 x 512 x 14 x 14
+            output = self.net(normalized) # densenet.features: 1 x 2208 x 7 x 7; vgg19.features[:28] 1 x 512 x 14 x 14; vgg19.features 1 x 512 x 7 x 7
         return output
 
     def run(self):
@@ -166,11 +167,13 @@ class PCA_reducer():
         p_th.resize_(B, W, H, self.k) # B x W x H x k
         p_th.transpose_(1, 3) # B x k x H x W
         # print("reducing resolution by adaptive max pool")
-        x_reduced = F.adaptive_max_pool2d(p_th, grid_size) # optional?
-        # x_reduced = F.adaptive_avg_pool2d(p_th, grid_size)
+        # x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
+        x_reduced = F.adaptive_avg_pool2d(p_th, grid_size)
         # x_reduced /= x_reduced.max()
-        x_reduced = F.sigmoid(x_reduced)
+        x_reduced = torch.sigmoid(x_reduced)
         return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3
+        # p_th = torch.sigmoid(p_th)
+        # return p_th.view(B, -1)
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
@@ -180,7 +183,7 @@ def main():
     image_dir = config.image_dir
     fraction_images_pca_model = args.fraction
     print("running perceptual vision from {} on {}".format(os.getcwd(), image_dir))
-    viz = VisualContext(image_dir, selected_output_module=28)
+    viz = VisualContext(image_dir)
     viz.run()
 
     pca = PCA_reducer(config.k_pca_components, image_dir)
