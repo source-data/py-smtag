@@ -7,19 +7,23 @@ def delete(path, extension):
     dir_path = os.path.join(config.working_directory, path)
     file_list = [f for f in os.listdir(dir_path) if os.path.splitext(f)[-1] == extension]
     not_removed = []
+    count = 0
     N = len(file_list)
-    confirm = input("Are you sure you want to delete {N} files from {dir_path}? [Y/n]: ")
+    confirm = input(f"Are you sure you want to delete {N} files from {dir_path}? [Y/n]: ")
     if confirm == "Y":
         for i, f in enumerate(file_list):
             progress(i, N, f"deleting {f}                                       ")
             try:
                 os.remove(os.path.join(dir_path, f))
+                count += 1
             except Exception as e:
                 not_removed.append((f, e))
         if not_removed:
             for f, e in not_removed:
-                print(f, e)
-    print(f"\n{N} files deleted.")
+                print(f"{f} not removed ({e})")
+        print(f"\n{count} files deleted.")
+    else:
+        print("OK, not deleting anything!")
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
