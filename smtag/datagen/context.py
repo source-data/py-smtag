@@ -109,8 +109,8 @@ class VisualContext(object):
             normalized = torch.zeros(1, 3, 224, 224) # a waste...
         self.net.eval()
         with torch.no_grad():
-            output = self.net(normalized) # densenet: torch.Size([1, 2208, 7, 7])
-        return output # 4D 1 x 512 x 14 x 14
+            output = self.net(normalized) # densenet[0]: 1 x 2208 x 7 x 7; vgg19[:28] 1 x 512 x 14 x 14
+        return output
 
     def run(self):
         with cd(self.path):
@@ -166,7 +166,7 @@ class PCA_reducer():
         p_th.resize_(B, W, H, self.k) # B x W x H x k
         p_th.transpose_(1, 3) # B x k x H x W
         # print("reducing resolution by adaptive max pool")
-        x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
+        x_reduced = F.adaptive_max_pool2d(p_th, grid_size) # optional?
         # x_reduced = F.adaptive_avg_pool2d(p_th, grid_size)
         # x_reduced /= x_reduced.max()
         x_reduced = F.sigmoid(x_reduced)

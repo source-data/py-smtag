@@ -5,7 +5,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 
 setuptools.setup(
     name="smtag",
-    version="1.0.2",
+    version="1.0.3",
     python_requires='>=3.6',
     author="Source Data",
     author_email="source_data@embo.org",
@@ -25,14 +25,11 @@ setuptools.setup(
         'Pillow==4.3.0', #5.1.0 requires Mac OS 10.12; torchvision require at least 4.1.1; GPU EC2 AMI needs >4.3.0
         'PyYAML==3.12',
         'six==1.10.0', # GPU EC2 AMI need 1.10
-        'torch==1.0.1', #0.4.0',
-        'torchvision==0.2.0',
+        'torch==1.0.1',
+        'torchvision==0.2.2.post3',
         'neo4jrestclient==2.1.1',
         'nltk==3.2.4',
-        'python-dotenv==0.10.1',
-        # 'jupyter==1.0.0',
-        # 'bash_kernel==0.7.1',
-        # 'IPython==6.5.0'
+        'python-dotenv==0.10.1'
     ],
     include_package_data=True,
     entry_points = {
