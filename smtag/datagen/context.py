@@ -167,13 +167,9 @@ class PCA_reducer():
         p_th.resize_(B, W, H, self.k) # B x W x H x k
         p_th.transpose_(1, 3) # B x k x H x W
         # print("reducing resolution by adaptive max pool")
-        # x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
-        x_reduced = F.adaptive_avg_pool2d(p_th, grid_size)
-        # x_reduced /= x_reduced.max()
+        x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
         x_reduced = torch.sigmoid(x_reduced)
         return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3
-        # p_th = torch.sigmoid(p_th)
-        # return p_th.view(B, -1)
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
