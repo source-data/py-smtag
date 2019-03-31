@@ -177,7 +177,7 @@ class Augment():
         # randomly sampling each example
         adaptive_iterations = int(max(1.0, L / self.length) * iterations)
         for j in range(adaptive_iterations): # j is index of sampling iteration
-            #sample(j, encoded_example)
+            # sample(j, encoded_example)
             try:
                 threading.Thread(target=sample, args=(j, encoded_example)).start() 
             except RuntimeError as e: # problem if number of threads to high
@@ -262,7 +262,7 @@ class DataPreparator(object):
         """
 
         if self.ocr:
-            ocr = OCREncoder(config.image_dir, G=config.img_grid_size)
+            ocr = OCREncoder(config.image_dir)
         augmenter = Augment(self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         N = len(examples)
         for i, ex in enumerate(examples):

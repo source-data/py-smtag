@@ -34,8 +34,10 @@ class Config():
     _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
     _allowed_img       = ['.jpg', '.jpeg', '.png']
     _img_grid_size     = 3 # grid size used to encode the location of elements on images
-    _k_pca_components = 10 # number of PCA components to reduce visual context features
+    _k_pca_components  = 10 # number of PCA components to reduce visual context features
     _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
+    _ocr_max_edit_dist = 0.5 # max edit distance per character length between ocr term and matching term in caption
+    _ocr_min_overlap   = 2 # minimum lenght of overlap between ocr term and caption term
     _nbits             = 17 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _padding_char      = " " # character used to padd strings; would be smarter to use character different from space
@@ -158,6 +160,18 @@ class Config():
         Fraction of the available visual context files to use to train the PCA model that reduces visual context features.
         """
         return self._fraction_images_pca_model
+    @property
+    def ocr_max_edit_dist(self):
+        """
+        Max edit distance per character length between ocr term and matching term in caption
+        """
+        return self._ocr_max_edit_dist
+    @property
+    def ocr_min_overlap(self):
+        """
+        Minimum length of overlap between ocr term and caption term
+        """
+        return self._ocr_min_overlap
     @property
     def nbits(self):
         """

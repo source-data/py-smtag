@@ -330,10 +330,11 @@ class Annotation(object):
 
 class OCREncoder(object):
 
-    def __init__(self, path, G, T=0.1):
+    def __init__(self, path, G=config.img_grid_size, T=config.ocr_max_edit_dist, L=config.ocr_min_overlap):
         self.path = path
         self.G = G
-        self.T = T
+        self.edit_threshold = T
+        self.min_overlap = L
 
 
     def grid_index(self, h, w, annot):
@@ -361,7 +362,7 @@ class OCREncoder(object):
         for i in range(L-l):
             dist = edit_distance(text[i:i+l].lower(), query.lower()) # Levenshtein distance between query and text at this position
             dist /= l # distance per word length
-            if dist <= self.T and l > 2:
+            if dist <= self.edit_threshold and l >= self.min_overlap:
                 matches.append({
                     'match': text[i:i+l],
                     'query': query,

@@ -56,17 +56,16 @@ class VisualContext(object):
 
     def __init__(self, path):
         self.path = path
-        print("loading modules of the pretrained network")
         # VGG19
-        net = vgg19(pretrained=True)
-        self.net = net.features[:28]
+        # net = vgg19(pretrained=True)
+        # self.net = net.features[:28]
         # DENSENET
-        # net = densenet161(pretrained=True)
-        #self.net = net.features
-        # RESNET
+        net = densenet161(pretrained=True)
+        self.net = net.features
+        # # RESNET
         # modules = list(resnet152.children())
         # self.net = nn.Sequential(*modules[:9])
-        print("done!")
+        print(f"loaded {net.__class__} pretrained network")
 
     def open(self, img_filename):
         try:
@@ -161,14 +160,13 @@ class PCA_reducer():
     def reduce(self, x, grid_size=config.img_grid_size):
         B, C, H, W = x.size()
         x_np = self.convert2np(x) # B*W*H x C
-        # print(f"reducing {B} x {C} x {H} x {W} using PCA ({self.k} components)")
         p_np = self.pca_model.transform(x_np) # B*W*H x k
         p_th = torch.from_numpy(p_np)
         p_th.resize_(B, W, H, self.k) # B x W x H x k
         p_th.transpose_(1, 3) # B x k x H x W
-        # print("reducing resolution by adaptive max pool")
-        x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
-        x_reduced = torch.sigmoid(x_reduced)
+        x_reduced = F.adaptive_max_pool2d(p_th, grid_size) # alternative: F.adaptive_avg_pool2d(p_th, grid_size)
+        # x_reduced = torch.sigmoid(x_reduced) # alternatives: x_reduced /= x_reduced.max(); or: x_reduced -= x_reduced.mean(); x_reduced /= x_reduced.std();
+        x_reduced = (x_reduced - x_reduced.min()) / (x_reduced.max() - x_reduced.min()) # minmax rescaling
         return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3
 
 def main():
