@@ -172,28 +172,32 @@ class PCA_reducer():
 def main():
     parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
     parser.add_argument('-F', '--fraction', type=float, default = config.fraction_images_pca_model, help='Fraction of images to be used to train pca model.')
+    parser.add_argument('--pca', action='store_true', default=False, help='Train the PCA model only, without re-extracting featues from images.')
 
     args = parser.parse_args()
     image_dir = config.image_dir
     fraction_images_pca_model = args.fraction
-    print("running perceptual vision from {} on {}".format(os.getcwd(), image_dir))
-    viz = VisualContext(image_dir)
-    viz.run()
+    pca_only = args.pca    
+    if pca_only:
+        print("Performing only PCA, without running perceptual vision.")
+    else:
+        print("running perceptual vision from {} on {}".format(os.getcwd(), image_dir))
+        viz = VisualContext(image_dir)
+        viz.run()
 
     pca = PCA_reducer(config.k_pca_components, image_dir)
     print(f"\ntraining pca model on viz context files...")
     trainset, filenames = pca.train(fraction_images_pca_model)
-    print("Done!")
-    print("Reducing trainset for visualization...")
-    reduced = pca.reduce(trainset)
-    print("Done! Writing to tensorboard.")
-    writer = SummaryWriter()
-    writer.add_embedding(trainset.transpose(1, 3).transpose(1, 2).contiguous().view(-1, trainset.size(1)), tag="trainset") # # N x C x H x W --> # N*H*W x C
-    writer.add_embedding(reduced.view(reduced.size(0), pca.k, config.img_grid_size, config.img_grid_size).transpose(1, 3).transpose(1, 2).contiguous().view(-1, pca.k), tag="reduced")
+    print("\nDone!")
     pca_reducer_filename = os.path.join(pca.path, "pca_model.pickle")
     with open(pca_reducer_filename, "wb") as f:
         pickle.dump(pca, f)
         print(f"PCA model saved to {pca_reducer_filename}")
+    # print("Reducing trainset for visualization...")
+    # reduced = pca.reduce(trainset)# print("Done! Writing to tensorboard.")
+    # writer = SummaryWriter()
+    # writer.add_embedding(trainset.transpose(1, 3).transpose(1, 2).contiguous().view(-1, trainset.size(1)), tag="trainset") # # N x C x H x W --> # N*H*W x C
+    # writer.add_embedding(reduced.view(reduced.size(0), pca.k, config.img_grid_size, config.img_grid_size).transpose(1, 3).transpose(1, 2).contiguous().view(-1, pca.k), tag="reduced")
 
 if __name__ == '__main__':
     main()
