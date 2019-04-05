@@ -164,7 +164,7 @@ class PCA_reducer():
         p_th = torch.from_numpy(p_np)
         p_th.resize_(B, W, H, self.k) # B x W x H x k
         p_th.transpose_(1, 3) # B x k x H x W
-        x_reduced = F.adaptive_max_pool2d(p_th, grid_size) # alternative: F.adaptive_avg_pool2d(p_th, grid_size)
+        # x_reduced = F.adaptive_max_pool2d(p_th, grid_size) # alternative: F.adaptive_avg_pool2d(p_th, grid_size)
         # x_reduced = torch.sigmoid(x_reduced) # alternatives: x_reduced /= x_reduced.max(); or: x_reduced -= x_reduced.mean(); x_reduced /= x_reduced.std();
         x_reduced = (x_reduced - x_reduced.min()) / (x_reduced.max() - x_reduced.min()) # minmax rescaling
         return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3
