@@ -168,7 +168,7 @@ class PCA_reducer():
         x_reduced = p_th # no pool
         # x_reduced = torch.sigmoid(x_reduced) # alternatives: x_reduced /= x_reduced.max(); or: x_reduced -= x_reduced.mean(); x_reduced /= x_reduced.std();
         x_reduced = (x_reduced - x_reduced.min()) / (x_reduced.max() - x_reduced.min()) # minmax rescaling
-        return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3
+        return x_reduced.contiguous().view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
