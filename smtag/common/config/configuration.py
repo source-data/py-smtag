@@ -33,7 +33,7 @@ class Config():
     #
     _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
     _allowed_img       = ['.jpg', '.jpeg', '.png']
-    _img_grid_size     = 3 # grid size used to encode the location of elements on images
+    _img_grid_size     = 7 # grid size used to encode the location of elements on images
     _k_pca_components  = 3 # number of PCA components to reduce visual context features
     _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
     _ocr_max_edit_dist = 0.5 # max edit distance per character length between ocr term and matching term in caption
