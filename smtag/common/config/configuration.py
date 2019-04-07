@@ -34,8 +34,7 @@ class Config():
     _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
     _allowed_img       = ['.jpg', '.jpeg', '.png']
     _img_grid_size     = 7 # grid size used to encode the location of elements on images
-    _k_pca_components  = 3 # number of PCA components to reduce visual context features
-    _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
+    _viz_context_features = 150 # number of features used in input as visual context features
     _ocr_max_edit_dist = 0.5 # max edit distance per character length between ocr term and matching term in caption
     _ocr_min_overlap   = 2 # minimum lenght of overlap between ocr term and caption term
     _nbits             = 17 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
@@ -143,23 +142,11 @@ class Config():
         """
         return self._img_grid_size
     @property
-    def k_pca_components(self):
-        """
-        The number of components of the PCA model used to reduce visual context features.
-        """
-        return self._k_pca_components
-    @property
     def viz_cxt_features(self):
         """
-        The number of visual context features used (the number of PCA components * positions on the image grid)
+        The number of visual context features used
         """
-        return self.k_pca_components * (self.img_grid_size ** 2)
-    @property
-    def fraction_images_pca_model(self):
-        """
-        Fraction of the available visual context files to use to train the PCA model that reduces visual context features.
-        """
-        return self._fraction_images_pca_model
+        return self._viz_context_features
     @property
     def ocr_max_edit_dist(self):
         """

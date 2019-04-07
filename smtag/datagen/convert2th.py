@@ -26,7 +26,7 @@ from ..common.progress import progress
 from .encoder import XMLEncoder, BratEncoder
 from .ocr import OCREncoder
 from .brat import BratImport
-from .context import VisualContext, PCA_reducer
+from .context import VisualContext
 from .. import config
 
 
@@ -121,12 +121,6 @@ class Augment():
         self.number_of_features = NUMBER_OF_ENCODED_FEATURES # includes the virtual geneprod feature
         self.ocr_cxt_features = config.img_grid_size ** 2 + 2 # square grid + vertical + horizontal
         self.viz_cxt_features = config.viz_cxt_features
-        self.k_components = config.k_pca_components
-        try:
-            with open(os.path.join(config.image_dir, "pca_model.pickle"), "rb") as f:
-                self.pca = pickle.load(f)
-        except:
-            self.pca = None
 
     def sample_and_save(self, path_to_encoded, encoded_example: EncodedExample, iterations):
         """
@@ -160,9 +154,7 @@ class Augment():
             if encoded_example.ocr_context is not None:
                 ocr_context4th = Sampler.slice_and_pad(self.length, encoded_example.ocr_context, start, stop, self.min_padding, left_padding, right_padding)
             # the visual context features are independent of the position of the text fragment
-            viz_context4th = None
-            if encoded_example.viz_context is not None:
-                viz_context4th = self.pca.reduce(encoded_example.viz_context)
+            viz_context4th = encoded_example.viz_context
             #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
             processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
             self.save(path_to_encoded, j, processed_example)

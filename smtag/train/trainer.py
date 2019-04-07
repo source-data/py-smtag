@@ -19,7 +19,7 @@ from .evaluator import Accuracy
 from .. import config
 
 
-Minibatch = namedtuple('Minibatch', ['input', 'output', 'provenance'])
+Minibatch = namedtuple('Minibatch', ['input', 'output', 'viz_context', 'provenance'])
 
 class Trainer:
 
@@ -61,10 +61,11 @@ class Trainer:
 
     @staticmethod
     def collate_fn(example_list):
-        provenance, input, output = zip(*example_list)
+        provenance, input, output, viz_context = zip(*example_list)
         minibatch = Minibatch(
             input = torch.cat(input, 0),
             output = torch.cat(output, 0),
+            viz_context = torch.cat(viz_context, 0),
             provenance = provenance
         )
         return minibatch
@@ -72,16 +73,18 @@ class Trainer:
     def predict(self, batch, eval=False):
         x = batch.input
         y = batch.output
+        viz_context = batch.viz_context
         if torch.cuda.is_available():
             x = x.cuda()
             y = y.cuda()
+            viz_context = viz_context.cuda()
         if eval:
             with torch.no_grad():
                 self.model.eval()
-                y_hat = self.model(x)
+                y_hat = self.model(x, viz_context)
                 self.model.train()
         else:
-            y_hat = self.model(x)
+            y_hat = self.model(x, viz_context)
         loss = F.nll_loss(y_hat, y.argmax(1))
         # loss = F.binary_cross_entropy(y_hat, y)
         return x, y, y_hat, loss
