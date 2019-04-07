@@ -80,6 +80,8 @@ class Assembler:
             viz_context.unsqueeze_(2) # N x C x 1
             viz_context = viz_context.repeat(1, 1, self.opt.L) # N x C x L
 
+        # TODO: USE torch.cat() instead of keep track of feature indices in supp_input
+        
         # INPUT: ENCODED TEXT SAMPLES
         input[ : , :config.nbits , : ] = encoded_example.textcoded
         supp_input = config.nbits
