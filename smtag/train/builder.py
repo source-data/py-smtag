@@ -49,6 +49,7 @@ class SmtagModel(nn.Module):
         skip = opt.skip
 
         self.viz_embed = nn.Conv1d(2208*7*7, 150, 1, 1, bias=BIAS)
+        # self.minmax = lambda x: (x - x.min()) / (x.max() - x.min()) # 0..1 rescale
         self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout, skip)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
@@ -59,7 +60,8 @@ class SmtagModel(nn.Module):
 
     def forward(self, x, viz_context):
         viz_context = self.viz_embed(viz_context) # from batch of vectors B x V to batch of embeddings B x E x 1
-        viz_context = viz_context.repeat(1, 1, x.size(2)) # B x E x L
+        viz_context = F.softmax(viz_context, 1) # auto-classifies images; possibly interpretable; alternative: minmax rescale?
+        viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
         x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
         x = self.pre(x)
         x = self.unet(x)
