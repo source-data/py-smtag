@@ -63,7 +63,7 @@ class SmtagModel(nn.Module):
         viz_context = F.softmax(viz_context, 1) # auto-classifies images; possibly interpretable; alternative: minmax rescale?
         viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
         x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
-        x = self.pre(x)
+        # x = self.pre(x) # not sure about this
         x = self.unet(x)
         x = self.adapter(x)
         x = self.BN(x)
