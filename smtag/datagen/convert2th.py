@@ -120,7 +120,6 @@ class Augment():
         self.length = length # desired length of snippet
         self.number_of_features = NUMBER_OF_ENCODED_FEATURES # includes the virtual geneprod feature
         self.ocr_cxt_features = config.img_grid_size ** 2 + 2 # square grid + vertical + horizontal
-        self.viz_cxt_features = config.viz_cxt_features
 
     def sample_and_save(self, path_to_encoded, encoded_example: EncodedExample, iterations):
         """
@@ -135,7 +134,7 @@ class Augment():
             provenance4th: the id of the example from which the sample was taken
             tensor4th: a 3D Tensor with the encoded features corresponding to the fragment
             ocr_context4th: a 3D Tensor with location features of text elements extracted from the illustration
-            viz_context4th: a 3D Tensor with vectorized perceptual vision features
+            viz_context4th: a 3D Tensor perceptual vision features
         """
 
         def sample(j, encoded_example):

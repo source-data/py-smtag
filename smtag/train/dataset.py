@@ -45,7 +45,7 @@ class Data4th(Dataset):
         viz_context = torch.Tensor(0) # empty tensor
         if self.opt.use_viz_context and os.path.isfile(os.path.join(path, EncodedExample.viz_context_filename)):
             viz_context = torch.load(os.path.join(path, EncodedExample.viz_context_filename)).float()
-            viz_context = viz_context.view(1, -1, 1) # vectorize to 1 x V x 1; can be concatenated into batches torch.cat(vector_list, 0) and used in Conv1d
+            viz_context = viz_context.view(1, -1) # vectorize to 1 x V; can be concatenated into batches torch.cat(vector_list, 0) and used in nn.Linear()
         with open(os.path.join(path, EncodedExample.text_filename), 'r') as f:
             text = f.read()
         with open(os.path.join(path, EncodedExample.provenance_filename), 'r') as f:
