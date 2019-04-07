@@ -65,7 +65,7 @@ class Trainer:
         minibatch = Minibatch(
             input = torch.cat(input, 0),
             output = torch.cat(output, 0),
-            viz_context = torch.cat(viz_context, 0),
+            viz_context = torch.cat(viz_context, 0), 
             provenance = provenance
         )
         return minibatch

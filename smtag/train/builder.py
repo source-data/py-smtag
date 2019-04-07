@@ -59,10 +59,11 @@ class SmtagModel(nn.Module):
         self.opt = opt
 
     def forward(self, x, viz_context):
-        viz_context = self.viz_embed(viz_context) # from batch of vectors B x V to batch of embeddings B x E x 1
-        viz_context = F.softmax(viz_context, 1) # auto-classifies images; possibly interpretable; alternative: minmax rescale?
-        viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
-        x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
+        if viz_context.size(0) != 0: # check that context was provided
+            viz_context = self.viz_embed(viz_context) # from batch of vectors B x V to batch of embeddings B x E x 1
+            viz_context = F.softmax(viz_context, 1) # auto-classifies images; possibly interpretable; alternative: minmax rescale?
+            viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
+            x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
         # x = self.pre(x) # not sure about this
         x = self.unet(x)
         x = self.adapter(x)

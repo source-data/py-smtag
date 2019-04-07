@@ -42,7 +42,7 @@ class Data4th(Dataset):
         ocr_context = None
         if self.opt.use_ocr_context and os.path.isfile(os.path.join(path, EncodedExample.ocr_context_filename)):
             ocr_context = torch.load(os.path.join(path, EncodedExample.ocr_context_filename)).float()
-        viz_context = None
+        viz_context = torch.Tensor(0) # empty tensor
         if self.opt.use_viz_context and os.path.isfile(os.path.join(path, EncodedExample.viz_context_filename)):
             viz_context = torch.load(os.path.join(path, EncodedExample.viz_context_filename)).float()
             viz_context = viz_context.view(1, -1, 1) # vectorize to 1 x V x 1; can be concatenated into batches torch.cat(vector_list, 0) and used in Conv1d

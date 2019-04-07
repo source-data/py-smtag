@@ -77,7 +77,10 @@ class Show():
         rand_j = math.floor(N * random())
         input = minibatch.input[[rand_j], : , : ] # rand_j index as list to keep the tensor 4D
         target = minibatch.output[[rand_j], : , : ]
-        viz_context = minibatch.viz_context[[rand_j], : , : ]
+        if minibatch.viz_context.size(0) !=0:
+            viz_context = minibatch.viz_context[[rand_j], : , : ]
+        else:
+            viz_context = torch.Tensor(0)
 
         # original_text =  minibatches[rand_i].text[rand_j]
         provenance = minibatch.provenance[rand_j]
