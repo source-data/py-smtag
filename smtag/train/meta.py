@@ -145,16 +145,11 @@ def main():
     opt['skip'] = not arguments.no_skip
     opt['epochs'] = int(arguments.epochs)
     opt['minibatch_size'] = int(arguments.minibatch_size)
-    output_features = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
-    nf_table = [int(x.strip()) for x in arguments.nf_table.split(',')]
-    kernel_table = [int(x.strip()) for x in arguments.kernel_table.split(',')]
-    pool_table = [int(x.strip()) for x in arguments.pool_table.split(',')]
-    viz_context_table = [int(x.strip()) for x in arguments.viz_table.split(',')]
-    opt['selected_features'] = output_features
-    opt['nf_table'] =  nf_table
-    opt['pool_table'] = pool_table
-    opt['kernel_table'] = kernel_table
-    opt['viz_context_table'] = viz_context_table
+    opt['selected_features'] = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
+    opt['nf_table'] = [int(x.strip()) for x in arguments.nf_table.split(',')]
+    opt['kernel_table'] = [int(x.strip()) for x in arguments.kernel_table.split(',')]
+    opt['pool_table'] = [int(x.strip()) for x in arguments.pool_table.split(',')]
+    opt['viz_context_table'] = [int(x.strip()) for x in arguments.viz_table.split(',')]
     if arguments.ocrxy:
         opt['use_ocr_context'] = 'ocrxy'
     elif arguments.ocr1:
@@ -163,11 +158,9 @@ def main():
         opt['use_ocr_context'] = 'ocr2'
     else:
         opt['use_ocr_context'] = ''
-    # opt['use_viz_context'] = arguments.viz_table
     options = Options(opt)
     # print(options)
 
-    #with cd(config.working_directory):
     metatrainer = Meta(options)
     if not hyperparams:
         metatrainer.simple_training()
