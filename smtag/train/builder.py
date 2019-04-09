@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from copy import deepcopy
 from math import sqrt
 from ..common.mapper import Concept, Catalogue
+from .. import config
 
 BNTRACK = True
 AFFINE = True
@@ -48,7 +49,7 @@ class SmtagModel(nn.Module):
         dropout = opt.dropout
         skip = opt.skip
 
-        self.viz_embed = nn.Linear(2208*7*7, 150)
+        self.viz_embed = nn.Linear(2208*7*7, config.viz_cxt_features)
         # self.minmax = lambda x: (x - x.min()) / (x.max() - x.min()) # 0..1 rescale
         self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
         self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, dropout, skip)
