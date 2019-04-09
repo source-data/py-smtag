@@ -34,7 +34,7 @@ class Config():
     _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
     _allowed_img       = ['.jpg', '.jpeg', '.png']
     _img_grid_size     = 7 # grid size used to encode the location of elements on images
-    _viz_context_features = 150 # number of features used in input as visual context features
+    _viz_context_features = 10 # number of features used in input as visual context features
     _ocr_max_edit_dist = 0.5 # max edit distance per character length between ocr term and matching term in caption
     _ocr_min_overlap   = 2 # minimum lenght of overlap between ocr term and caption term
     _nbits             = 17 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
