@@ -52,8 +52,8 @@ class SmtagModel(nn.Module):
 
         self.viz_ctxt = Context(context_in, 150)#context_table)
         self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
-        self.unet = Unet2(nf_input+150, nf_table, kernel_table, pool_table, dropout, skip)#context_table, dropout, skip)
-        self.adapter = nn.Conv1d(nf_input+150, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
+        self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, [150], dropout, skip)#context_table, dropout, skip)
+        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
         self.output_semantics.append(Catalogue.UNTAGGED)
@@ -103,13 +103,13 @@ class Context(nn.Module):
         return ctx
 
 class Unet2(nn.Module):
-    def __init__(self, nf_input, nf_table, kernel_table, pool_table, dropout_rate, skip=True):
+    def __init__(self, nf_input, nf_table, kernel_table, pool_table, context_table, dropout_rate, skip=True):
         super(Unet2, self).__init__()
-        #self.context_table = context_table
+        self.context_table = context_table
         self.nf_input = nf_input
-        # self.nf_context = 0
-        # if self.context_table:
-        #     self.nf_context = context_table.pop(0)
+        self.nf_context = 0
+        if self.context_table:
+            self.nf_context = context_table.pop(0)
         self.nf_table = nf_table
         self.nf_output = nf_table.pop(0)
         self.pool_table = pool_table
@@ -126,27 +126,27 @@ class Unet2(nn.Module):
         self.skip = skip
         self.dropout = nn.Dropout(self.dropout_rate)
         # self.BN_context = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
-        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
-        self.BN_down_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
+        self.conv_down_A = nn.Conv1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding, bias=BIAS)
+        self.BN_down_A = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_down_B = nn.Conv1d(self.nf_input, self.nf_output, self.kernel, self.stride, self.padding, bias=BIAS)
+        self.conv_down_B = nn.Conv1d(self.nf_input+self.nf_context, self.nf_output, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_down_B = nn.BatchNorm1d(self.nf_output, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
-        self.BN_up_B = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
+        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding, bias=BIAS)
+        self.BN_up_B = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
 
-        self.conv_up_A = nn.ConvTranspose1d(self.nf_input, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
-        self.BN_up_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
+        self.conv_up_A = nn.ConvTranspose1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding, bias=BIAS)
+        self.BN_up_A = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
 
         if len(self.nf_table) > 0:
-            self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, self.dropout_rate, self.skip)
+            self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, context_table, self.dropout_rate, self.skip)
             self.BN_middle = nn.BatchNorm1d(self.nf_output, track_running_stats=BNTRACK, affine=AFFINE)
         else:
             self.unet2 = None
 
         if self.skip:
             self.concat = Concat(1)
-            self.reduce = nn.Conv1d(2*self.nf_input, self.nf_input, 1, 1)
+            self.reduce = nn.Conv1d(2*(self.nf_input+self.nf_context), self.nf_input, 1, 1)
 
     def forward(self, x, context_list):
         # if context_list:
