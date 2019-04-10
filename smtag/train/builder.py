@@ -117,7 +117,7 @@ class Unet2(nn.Module):
         self.dropout_rate = dropout_rate
         self.skip = skip
         self.dropout = nn.Dropout(self.dropout_rate)
-        # self.BN_context = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
+        self.BN_context = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
         self.conv_down_A = nn.Conv1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_down_A = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
 
@@ -146,7 +146,7 @@ class Unet2(nn.Module):
             viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
             x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
             # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
-            # x = self.BN_context(x)
+            x = self.BN_context(x)
             context_list = context_list[1:]
         y = self.dropout(x)
         y = self.conv_down_A(y)
