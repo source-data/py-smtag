@@ -88,7 +88,7 @@ class Context(nn.Module):
         embedding_list = []
         if context.size(0) > 0:
             for lin in self.linears:
-                ctx = lin(context) # from batch of vectors B x V to batch of embeddings B x E
+                ctx = lin(context.clone()) # from batch of vectors B x V to batch of embeddings B x E
                 ctx = F.softmax(ctx, 1) # auto-classifies images; possibly interpretable
                 ctx = ctx.unsqueeze(2) # B x E x 1
                 embedding_list.append(ctx)
@@ -117,6 +117,7 @@ class Unet2(nn.Module):
         self.dropout_rate = dropout_rate
         self.skip = skip
         self.dropout = nn.Dropout(self.dropout_rate)
+        # self.BN_context = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
         self.conv_down_A = nn.Conv1d(self.nf_input+self.nf_context, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_down_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
@@ -144,6 +145,8 @@ class Unet2(nn.Module):
             viz_context = context_list[0]
             viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
             x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
+            # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
+            # x = self.BN_context(x)
             context_list = context_list[1:]
         y = self.dropout(x)
         y = self.conv_down_A(y)
