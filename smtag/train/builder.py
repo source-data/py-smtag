@@ -50,9 +50,9 @@ class SmtagModel(nn.Module):
         dropout = opt.dropout
         skip = opt.skip
 
-        self.viz_ctxt = Context(context_in, 150)#context_table)
+        self.viz_ctxt = Context(context_in, context_table)
         self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
-        self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, [150], dropout, skip)#context_table, dropout, skip)
+        self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, context_table, dropout, skip)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
@@ -60,12 +60,9 @@ class SmtagModel(nn.Module):
         self.opt = opt
 
     def forward(self, x, viz_context):
-        # context_list = self.viz_ctxt(viz_context)
-        viz_context = self.viz_ctxt(viz_context)
-        viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
-        x = torch.cat((x, viz_context), 1)
+        context_list = self.viz_ctxt(viz_context)
         # x = self.pre(x) # not sure about this
-        x = self.unet(x, [])#context_list)
+        x = self.unet(x, context_list)
         x = self.adapter(x)
         x = self.BN(x)
         x = F.log_softmax(x, 1)
@@ -85,22 +82,17 @@ class Context(nn.Module):
         super(Context, self).__init__()
         self.in_channels = in_channels
         self.context_table = context_table
-        self.lin = nn.Linear(in_channels, self.context_table)
-        # self.linears = nn.ModuleList([nn.Linear(self.in_channels, out_channels) for out_channels in self.context_table])
+        self.linears = nn.ModuleList([nn.Linear(self.in_channels, out_channels) for out_channels in self.context_table])
 
     def forward(self, context):
-        # embedding_list = []
-        # if context.size(0) > 0:
-        #     for lin in self.linears:
-        #         ctx = lin(context) # from batch of vectors B x V to batch of embeddings B x E
-        #         ctx = F.softmax(ctx, 1) # auto-classifies images; possibly interpretable
-        #         ctx = ctx.unsqueeze(2) # B x E x 1
-        #         embedding_list.append(ctx)
-        # return embedding_list
-        ctx = self.lin(context)
-        ctx = F.softmax(ctx, 1)
-        ctx = ctx.unsqueeze(2)
-        return ctx
+        embedding_list = []
+        if context.size(0) > 0:
+            for lin in self.linears:
+                ctx = lin(context) # from batch of vectors B x V to batch of embeddings B x E
+                ctx = F.softmax(ctx, 1) # auto-classifies images; possibly interpretable
+                ctx = ctx.unsqueeze(2) # B x E x 1
+                embedding_list.append(ctx)
+        return embedding_list
 
 class Unet2(nn.Module):
     def __init__(self, nf_input, nf_table, kernel_table, pool_table, context_table, dropout_rate, skip=True):
@@ -149,13 +141,13 @@ class Unet2(nn.Module):
             self.reduce = nn.Conv1d(2*(self.nf_input+self.nf_context), self.nf_input, 1, 1)
 
     def forward(self, x, context_list):
-        # if context_list:
-        #     viz_context = context_list[0]
-        #     viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
-        #     x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
-        #     # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
-        #     # x = self.BN_context(x)
-        #     context_list = context_list[1:]
+        if context_list:
+            viz_context = context_list[0]
+            viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
+            x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
+            # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
+            # x = self.BN_context(x)
+            context_list = context_list[1:]
         y = self.dropout(x)
         y = self.conv_down_A(y)
         y = F.relu(self.BN_down_A(y), inplace=True)
