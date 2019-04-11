@@ -100,7 +100,7 @@ class TString:
         all the remaining methods from torch.Tensor
     '''
 
-    def __init__(self, x:str='', dtype:torch.dtype=torch.float):
+    def __init__(self, x='', dtype:torch.dtype=torch.float):
         #super(TString, self).__init__()
         self.dtype = dtype
         self._t = torch.zeros([], dtype=self.dtype) # empty tensor
