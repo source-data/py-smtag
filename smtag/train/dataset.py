@@ -43,7 +43,7 @@ class Data4th(Dataset):
         if self.opt.use_ocr_context and os.path.isfile(os.path.join(path, EncodedExample.ocr_context_filename)):
             ocr_context = torch.load(os.path.join(path, EncodedExample.ocr_context_filename)).float()
         viz_context = torch.Tensor(0) # empty tensor
-        if self.opt.use_viz_context and os.path.isfile(os.path.join(path, EncodedExample.viz_context_filename)):
+        if self.opt.viz_context_table and os.path.isfile(os.path.join(path, EncodedExample.viz_context_filename)):
             viz_context = torch.load(os.path.join(path, EncodedExample.viz_context_filename)).float()
             viz_context = viz_context.view(1, -1) # vectorize to 1 x V; can be concatenated into batches torch.cat(vector_list, 0) and used in nn.Linear()
         with open(os.path.join(path, EncodedExample.text_filename), 'r') as f:

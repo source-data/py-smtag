@@ -43,7 +43,8 @@ class Options():
         self.kernel_table = opt['kernel_table']
         self.selected_features = Catalogue.from_list(opt['selected_features'])
         self.use_ocr_context = opt['use_ocr_context']
-        self.use_viz_context = opt['use_viz_context']
+        self.viz_context_table = opt['viz_context_table'] 
+        self.viz_context_features = config._viz_context_features # not ideal; it depends on which pre-trained network is used
         self.nf_input = config.nbits
         if self.use_ocr_context == 'ocr1':
             self.nf_ocr_context = 1 # fusing horizontal and vertial into single detected-on-image feature
@@ -53,11 +54,11 @@ class Options():
             self.nf_ocr_context = config.img_grid_size ** 2 + 2 # 1-hot encoded position on the grid + 2 orientation-dependent features
         else:
             self.nf_ocr_context = 0
-        self.nf_viz_context = config.viz_cxt_features
         if self.use_ocr_context:
             self.nf_input += self.nf_ocr_context
-        if self.use_viz_context:
-            self.nf_input += self.nf_viz_context
+        # self.nf_viz_context = config.viz_cxt_features
+        # if self.use_viz_context:
+        #     self.nf_input += self.nf_viz_context
         self.nf_output = len(self.selected_features)
         # softmax requires an <untagged> class
         self.index_of_notag_class = self.nf_output
@@ -131,7 +132,7 @@ def main():
     parser.add_argument('--ocrxy', action="store_true", help='Use as additional input position and orientation of words extracted by OCR from the illustration.')
     parser.add_argument('--ocr1', action="store_true", help='Use as additional presence of words extracted by OCR from the illustration.')
     parser.add_argument('--ocr2', action="store_true", help='Use as additional input orientation of words extracted by OCR from the illustration.')
-    parser.add_argument('--viz', action="store_true", help='Use as additional visual features extracted from the illustration.')
+    parser.add_argument('-V', '--viz_table', default="0,10,0", help='Use as additional visual features extracted from the illustration.')
 
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
@@ -144,14 +145,11 @@ def main():
     opt['skip'] = not arguments.no_skip
     opt['epochs'] = int(arguments.epochs)
     opt['minibatch_size'] = int(arguments.minibatch_size)
-    output_features = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
-    nf_table = [int(x.strip()) for x in arguments.nf_table.split(',')]
-    kernel_table = [int(x.strip()) for x in arguments.kernel_table.split(',')]
-    pool_table = [int(x.strip()) for x in arguments.pool_table.split(',')]
-    opt['selected_features'] = output_features
-    opt['nf_table'] =  nf_table
-    opt['pool_table'] = pool_table
-    opt['kernel_table'] = kernel_table
+    opt['selected_features'] = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
+    opt['nf_table'] = [int(x.strip()) for x in arguments.nf_table.split(',')]
+    opt['kernel_table'] = [int(x.strip()) for x in arguments.kernel_table.split(',')]
+    opt['pool_table'] = [int(x.strip()) for x in arguments.pool_table.split(',')]
+    opt['viz_context_table'] = [int(x.strip()) for x in arguments.viz_table.split(',')]
     if arguments.ocrxy:
         opt['use_ocr_context'] = 'ocrxy'
     elif arguments.ocr1:
@@ -160,11 +158,9 @@ def main():
         opt['use_ocr_context'] = 'ocr2'
     else:
         opt['use_ocr_context'] = ''
-    opt['use_viz_context'] = arguments.viz
     options = Options(opt)
     # print(options)
 
-    #with cd(config.working_directory):
     metatrainer = Meta(options)
     if not hyperparams:
         metatrainer.simple_training()
