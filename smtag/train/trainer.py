@@ -48,7 +48,7 @@ class Trainer:
             self.model.cuda()
             self.model.output_semantics = self.output_semantics
             # self.weight = self.weight.cuda()
-            self.num_workers = 16
+            self.num_workers = 64
             
         self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
         self.batch_size = self.opt.minibatch_size
