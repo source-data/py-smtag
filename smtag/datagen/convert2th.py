@@ -241,8 +241,9 @@ class DataPreparator(object):
         self.anonymization_xpath = options['anonymize']
         self.enrichment_xpath = options['enrich']
         self.exclusive_xpath = options['exclusive']
-        self.XPath_to_examples = options['XPath_to_examples'] # .//sd-panel'
-        self.XPath_to_assets = options['XPath_to_assets'] # .//graphic'
+        # self.XPath_to_fig_title = options['Xpath_to_fig_title'] # './/fig/caption/title
+        self.XPath_to_examples = options['XPath_to_examples'] # './/fig/caption' or './/sd-panel'
+        self.XPath_to_assets = options['XPath_to_assets'] # './/sd-panel/graphic' or './/fig/caption/graphic'
         self.ocr = options['ocr']
         self.viz = options['viz']
 
@@ -340,32 +341,33 @@ class DataPreparator(object):
             filenames = [f for f in os.listdir(path) if os.path.splitext(f)[1] == '.xml']
             examples = []
             excluded = []
-            # parser = XMLParser(encoding="utf8") 
             for i, filename in enumerate(filenames):
-                #try:
-                    with open(os.path.join(path, filename), "r") as f:
-                        xml = parse(f)
-                        print("({}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'), end='\r')
-                    for j, e in enumerate(xml.getroot().findall(self.XPath_to_examples)):
-                        provenance = os.path.splitext(filename)[0] + "_" + str(j)
-                        if not self.enrich(e, self.enrichment_xpath):
-                            excluded.append(provenance)
+                with open(os.path.join(path, filename), "r") as f:
+                    xml = parse(f)
+                    print("({}/{}) doi:".format(i+1, len(filenames)), xml.getroot().get('doi'), end='\r')
+                for j, e in enumerate(xml.getroot().findall(self.XPath_to_examples)):
+                    provenance = os.path.splitext(filename)[0] + "_" + str(j)
+                    if not self.enrich(e, self.enrichment_xpath):
+                        excluded.append(provenance)
+                    else:
+                        e = self.exclusive(e, self.exclusive_xpath)
+                        processed = self.anonymize(e, self.anonymization_xpath)
+                        g = e.find(self.XPath_to_assets)
+                        if g is not None:
+                            url = g.get('href')
+                            id = re.search(r'(panel_id|figure_id)=(\d+)', url)
+                            prefix = id.group(1)
+                            number = id.group(2)
+                            graphic_filename = prefix + "_" + number +".jpg"
                         else:
-                            e = self.exclusive(e, self.exclusive_xpath)
-                            processed = self.anonymize(e, self.anonymization_xpath)
-                            g = e.find(self.XPath_to_assets)
-                            if g is not None:
-                                basename = re.search(r'panel_id=(\w+)', g.get('href')).group(1)
-                                graphic_filename = basename + '.jpg'
-                            else:
-                                print('\nno graphic element found in the xml')
-                                graphic_filename = None
-                            examples.append({
-                                'xml': e,
-                                'processed': processed, #
-                                'provenance': provenance,
-                                'graphic': graphic_filename
-                            })
+                            print('\nno graphic element found in the xml')
+                            graphic_filename = None
+                        examples.append({
+                            'xml': e,
+                            'processed': processed, #
+                            'provenance': provenance,
+                            'graphic': graphic_filename
+                        })
             print("\nnumber of examples excluded because of enrichment: {}".format(len(excluded)))
         return examples
 

@@ -6,7 +6,7 @@ import os
 import argparse
 from getpass import getpass
 from io import open as iopen
-from xml.etree.ElementTree import parse, fromstring, Element, ElementTree, SubElement, tostring
+from xml.etree.ElementTree import parse, fromstring, Element, ElementTree, SubElement, tostring, ParseError
 from neo4jrestclient.client import GraphDatabase, Node
 from random import shuffle
 from math import floor
@@ -19,6 +19,15 @@ from .. import config
 MARKING_CHAR = config.marking_char
 MARKING_CHAR_ORD = ord(MARKING_CHAR)
 SD_PANEL_OPEN, SD_PANEL_CLOSE = "<sd-panel>", "</sd-panel>"
+
+
+### BYPASSING A PROBLEM DUE TO THE SOURCEDATA API THAT ESCAPES URLS SLASHES ####
+def TEMPORARY_HACK(url):
+    # source data API curl https://api.sourcedata.io/index.php/collection/97/paper/10.1083/jcb.138.1.37/figure/
+    # escapes slashe in URL https:\/\/api.sourcedata.io\/file.php?figure_id=4725"
+    # as a consequence requests.get() returns https://api.sourcedata.iofile.php?figure_id=4723
+    # and we need https://api.sourcedata.io/file.php?figure_id=4723
+    return url.replace('iofile', 'io/file')
 
 class NeoImport():
 
@@ -45,7 +54,11 @@ class NeoImport():
         tag_errors = []
         # panel_caption = panel_caption.encode('utf-8')
         if safe_mode:
-            # need protection agains missing spaces
+            # need protection agains missing spaces after parenthesis, typically in figure or panel labels
+            findings = re.search(r'(\(.*?\))(\w)', panel_caption)
+            if findings:
+                print("WARNING: adding space after closing parenthesis {}".format(re.findall(r'(\(.*?\))(\w)')))
+                panel_caption = re.sub(r'(\(.*?\))(\w)',r'\1 \2', panel_caption)
 
             # protection against carriage return
             if re.search('[\r\n]', panel_caption):
@@ -163,35 +176,66 @@ class NeoImport():
                 q_figures = '''
                     MATCH (a:Article )-->(f:Figure)
                     WHERE id(a) = {}
-                    RETURN id(f), f.fig_label, f.image_link //, f.caption
+                    RETURN id(f), f.fig_label, f.href, f.caption
                     ORDER BY f.fig_label ASC
                     '''.format(a_id)
                 results_figures = DB.query(q_figures)
 
-                self.articles[doi] = Element('Article')
+                self.articles[doi] = Element('article') # TODO: generate proper JATS with front, journal-meta, journal-id etc...
                 self.articles[doi].attrib['doi'] = doi
+                self.articles[doi].attrib['id'] = str(a_id)
 
                 for f in results_figures:
                     f_id = f[0]
                     fig_label = f[1]
                     fig_img_url = f[2]
+                    fig_caption = f[3]
+                    try:
+                        # from O'Reilly's Regular Expressions Cookbook
+                        xml_tag_regexp = r'''</?([A-Za-z][^\s>/]*)(?:[^>"']|"[^"]*"|'[^']*')*>'''
+                        fig_caption = re.sub(xml_tag_regexp, '', fig_caption)
+                        first_sentence = re.match(r"\W*([^\n\r]*?)[\.\r\n]", fig_caption)
+                    except ParseError as e:
+                        print("Problems parsing figure caption:")
+                        print(fig_caption)
+                        print(e)
+                        first_sentence = None
+                    if first_sentence is not None:
+                        fig_title = first_sentence.group(1)
+                        fig_title = fig_title + "." # adds a dot just in case it is missing
+                        fig_title = fig_title.replace("..", ".") # makes sure that title finishes with a single . 
+                    else:
+                        fig_title = ""
+                    figure_element = Element("fig")
+                    figure_label_element = Element("label")
+                    figure_label_element.text = fig_label
+                    figure_label_element.tail = ". "
+                    figure_element.append(figure_label_element)
+                    figure_graphic_element = Element("graphic")
+                    figure_graphic_element.attrib['href'] = TEMPORARY_HACK(fig_img_url)
+                    figure_element.append(figure_graphic_element)
+                    figure_title_element = Element("title")
+                    figure_title_element.text = fig_title
+                    figure_title_element.tail = " "
+                    figure_element.append(figure_title_element) # NOT JATS!!!, BUT MORE CONVENIENT TO SEPARATE TITLE FROM CAPTION TEXT WITH XPAth supported by etree
+                    figure_caption_element = Element("caption")
+                    # figure_caption_element.append(figure_title_element) # THIS FOLLOWS JATS
 
                     q_panel = '''
                     MATCH (f:Figure)-->(p:Panel)-->(t:Tag)
                     WHERE id(f) = {} AND t.in_caption = true
                     {} //AND t.type = some_entity_type OR some other type
                     {} //AND t.role = some role OR some role
-                    WITH p.formatted_caption AS formatted_caption, p.label AS label, p.panel_id AS panel_id, p.image_link As url, COLLECT(DISTINCT t) AS tags
-                    RETURN formatted_caption, label, panel_id, url, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
+                    WITH p.formatted_caption AS formatted_caption, p.label AS panel_label, p.panel_id AS panel_id, p.href As url, COLLECT(DISTINCT t) AS tags
+                    RETURN formatted_caption, panel_label, panel_id, url, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
                     '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
                     results_panels = DB.query(q_panel)
                     print("{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi))
 
                     # for text-image do NOT fuse panels
                     if results_panels:
-                        figure_xml_element = Element('figure-caption')
                         #panels not in the proper order, need resorting via label
-                        results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'fig_label':fig_label, 'image_link': p[3], 'tags':p[4], 'tags2anonym':p[5]} for p in results_panels}
+                        results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'panel_label':p[1], 'href': p[3], 'tags':p[4], 'tags2anonym':p[5]} for p in results_panels}
                         sorted_panel_labels = list(results_labeled.keys())
                         sorted_panel_labels.sort()
 
@@ -199,29 +243,29 @@ class NeoImport():
                             panel_caption = results_labeled[p]['panel_caption']
                             tags = results_labeled[p]['tags']
                             tags2anonym = results_labeled[p]['tags2anonym']
-                            image_link = results_labeled[p]['image_link']
+                            image_link = results_labeled[p]['href']
                             try:
-                                panel_xml_element, tag_errors = self.caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
-                                graphic = Element('graphic') # https://jats.nlm.nih.gov/publishing/tag-library/1.2d1/element/graphic.html
-                                graphic.attrib['href'] = image_link
-                                panel_xml_element.append(graphic)
-                                figure_xml_element.append(panel_xml_element)
+                                panel_element, tag_errors = self.caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
+                                graphic = Element('graphic')
+                                graphic.attrib['href'] = TEMPORARY_HACK(image_link)
+                                panel_element.append(graphic)
+                                figure_caption_element.append(panel_element)
                                 if tag_errors:
                                     panel_id = results_labeled[p]['panel_id']
-                                    fig_label = results_labeled[p]['fig_label']
-                                    tag_level_errors.append([doi, fig_label, p, panel_id, panel_caption, tag_errors])
+                                    panel_label = results_labeled[p]['panel_label']
+                                    tag_level_errors.append([doi, fig_label, panel_label, p, panel_id, panel_caption, tag_errors])
                                 counter += 1
                             except Exception as e:
                                 panel_id = results_labeled[p]['panel_id']
-                                fig_label = results_labeled[p]['fig_label']
-                                print("problem parsing fig {} panel {} (panel_id:{}) in article {}".format(fig_label, p, panel_id, doi))
+                                panel_label = results_labeled[p]['panel_label']
+                                print("problem parsing fig {} panel {} (panel_id:{}) in article {}".format(fig_label, panel_label, panel_id, doi))
                                 print(panel_caption.encode('utf-8'))
                                 print(" ==> error: ", e, "\n")
-                                caption_errors.append([doi, fig_label, p, panel_id, e, panel_caption])
+                                caption_errors.append([doi, fig_label, panel_label, p, panel_id, e, panel_caption])
+                        figure_element.append(figure_caption_element)
+                        self.articles[doi].append(figure_element)
 
-                        self.articles[doi].append(figure_xml_element)
-
-                print("number of figures in ", a_id, doi, len(self.articles[doi].getchildren()))
+                print("number of figures in {} (internal id {}) is {}".format(doi, a_id, len(self.articles[doi].getchildren())))
                 print("counted {} panels.".format(counter))
 
         return {'paper_level':paper_errors, 'caption_level': caption_errors, 'tag_level': tag_level_errors}
@@ -272,7 +316,7 @@ class NeoImport():
                                 ElementTree(article).write(filename, encoding='utf-8', xml_declaration=True)
 
     @staticmethod
-    def download_images(data_dir, namebase, XPath_to_graphics='.//graphic'):
+    def download_images(data_dir, namebase, XPath_to_fig_graphics='./fig/graphic', XPath_to_panel_graphics='.//sd-panel/graphic'):
         path_to_compendium = os.path.join(data_dir, namebase)
         if not os.path.isdir(path_to_compendium):
             print("{} does not exists; nothing to download.".format(namebase))
@@ -288,17 +332,21 @@ class NeoImport():
                     with open(path_to_xml_file) as f:
                         article = parse(f)
                         article = article.getroot()
-                        graphics = article.findall(XPath_to_graphics)
-                        print("found {} graphics in {}".format(len(graphics), article.get('doi')))
-                    for g in graphics:
+                        panel_graphics = article.findall(XPath_to_panel_graphics)
+                        figure_graphics = article.findall(XPath_to_fig_graphics)
+                        all_graphics = panel_graphics+figure_graphics
+                        print("found {} graphics in {}".format(len(all_graphics), article.get('doi')))
+                    for g in all_graphics:
                         url = g.get('href') # exampe: 'https://api.sourcedata.io/file.php?panel_id=10'
-                        id = re.search(r'panel_id=(\d+)', url).group(1)
-                        image_filename = id +".jpg"
+                        id = re.search(r'(panel_id|figure_id)=(\d+)', url)
+                        prefix = id.group(1)
+                        number = id.group(2)
+                        image_filename = prefix + "_" + number +".jpg"
                         path_to_image = os.path.join(config.image_dir, image_filename)
                         if os.path.exists(path_to_image):
                             print("image {} already downloaded".format(image_filename))
                         else:
-                            print("trying to download image {} from {}".format(id, url))
+                            print("trying to download image from {}".format(url))
                             try:
                                 #add authentication here!
                                 resp = requests.get(url, auth=("lemberger", "ONuYev3ydK9L"))
