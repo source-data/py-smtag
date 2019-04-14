@@ -56,9 +56,6 @@ class Options():
             self.nf_ocr_context = 0
         if self.use_ocr_context:
             self.nf_input += self.nf_ocr_context
-        # self.nf_viz_context = config.viz_cxt_features
-        # if self.use_viz_context:
-        #     self.nf_input += self.nf_viz_context
         self.nf_output = len(self.selected_features)
         # softmax requires an <untagged> class
         self.index_of_notag_class = self.nf_output
@@ -132,7 +129,7 @@ def main():
     parser.add_argument('--ocrxy', action="store_true", help='Use as additional input position and orientation of words extracted by OCR from the illustration.')
     parser.add_argument('--ocr1', action="store_true", help='Use as additional presence of words extracted by OCR from the illustration.')
     parser.add_argument('--ocr2', action="store_true", help='Use as additional input orientation of words extracted by OCR from the illustration.')
-    parser.add_argument('-V', '--viz_table', default="0,10,0", help='Use as additional visual features extracted from the illustration.')
+    parser.add_argument('-V', '--viz_table', default="150", help='Use as additional visual features extracted from the illustration.')
 
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]

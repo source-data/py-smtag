@@ -12,9 +12,8 @@ from torch import nn
 from torch.nn import functional as F
 import torchvision
 #https://discuss.pxtorch.org/t/torchvision-url-error-when-loading-pretrained-model/2544/6
-from torchvision.models import vgg19, resnet152, densenet161
+from torchvision.models import densenet161 #vgg19, resnet152
 from torchvision import transforms
-from tensorboardX import SummaryWriter
 import numpy as np
 from sklearn.decomposition import PCA, IncrementalPCA
 from ..common.utils import cd
@@ -33,38 +32,17 @@ from torchvision.models.densenet import model_urls as densenet_urls
 #     self.laxer2 = self._make_laxer(block, 128, laxers[1], stride=2)
 #     self.laxer3 = self._make_laxer(block, 256, laxers[2], stride=2)
 #     self.laxer4 = self._make_laxer(block, 512, laxers[3], stride=2)
-
-#model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
-# https://discuss.pxtorch.org/t/how-can-l-use-the-pre-trained-resnet-to-extract-feautres-from-mx-own-dataset/9008
-# from torch.autograd import Variable
-# resnet152 = models.resnet152(pretrained=True)
-# modules=list(resnet152.children())[:-1]
-# resnet152=nn.Sequential(*modules)
-# for p in resnet152.parameters():
-#     p.requires_grad = False
-
-# All pre-trained models expect input images normalized in the same wax, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224. The images have to be loaded in to a range of [0, 1] and then normalized using mean = [0.485, 0.456, 0.406] and std = [0.229, 0.224, 0.225]. You can use the following transform to normalize:
+# All pre-trained models expect input images normalized in the same wax, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224. The images have to be loaded in to a range of [0, 1] and then normalized using mean = [0.485, 0.456, 0.406] and std = [0.229, 0.224, 0.225]. 
 
 
-# modules = list(resnet152(pretrained=True).children())[:-1]
-# m = nn.Sequential(*modules)
-# x = torch.zeros(1, 3, 244, 244)
-# m(x).size() # -->torch.Size([1, 2048, 2, 2])
-# x.numel() # --> 8192
+PRETRAINED = densenet161(pretrained=True)
 
 class VisualContext(object):
 
     def __init__(self, path):
         self.path = path
-        # VGG19
-        # net = vgg19(pretrained=True)
-        # self.net = net.features[:28]
-        # DENSENET
-        net = densenet161(pretrained=True)
+        net = PRETRAINED
         self.net = net.features
-        # # RESNET
-        # modules = list(resnet152.children())
-        # self.net = nn.Sequential(*modules[:9])
         print(f"loaded {net.__class__} pretrained network")
 
     def open(self, img_filename):
@@ -90,7 +68,7 @@ class VisualContext(object):
         RGB = RGB.float() / 255.0
         return RGB
 
-    def resize(self, cv_image, h=224, w=224): # h and w should be specified in config
+    def resize(self, cv_image, h=config.resized_img_size, w=config.resized_img_size):
         resized = cv.resize(cv_image, (h, w), interpolation=cv.INTER_AREA)
         return resized
 
@@ -106,7 +84,7 @@ class VisualContext(object):
             normalized = self.normalize(image)
             normalized.unsqueeze_(0) # 4D 1 x C x H x W
         else:
-            normalized = torch.zeros(1, 3, 224, 224) # a waste...
+            normalized = torch.zeros(1, 3, config.resized_img_size, config.resized_img_size) # a waste...
         self.net.eval()
         with torch.no_grad():
             output = self.net(normalized) # densenet.features: 1 x 2208 x 7 x 7; vgg19.features[:28] 1 x 512 x 14 x 14; vgg19.features 1 x 512 x 7 x 7
@@ -129,10 +107,6 @@ class VisualContext(object):
         print()
 
 def main():
-    parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
-    parser.add_argument('-F', '--fraction', type=float, default = config.fraction_images_pca_model, help='Fraction of images to be used to train pca model.')
-    
-    args = parser.parse_args()
     image_dir = config.image_dir
     print("running perceptual vision from {} on {}".format(os.getcwd(), image_dir))
     viz = VisualContext(image_dir)
