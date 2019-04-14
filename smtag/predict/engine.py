@@ -27,7 +27,6 @@ from collections import OrderedDict
 from xml.etree.ElementTree import tostring, fromstring, Element
 from ..common.importexport import load_model
 from ..common.utils import tokenize, timer
-from ..train.builder import Concat
 from ..common.converter import TString
 from ..common.mapper import Catalogue
 from ..datagen.encoder import XMLEncoder
@@ -56,14 +55,13 @@ class CombinedModel(nn.Module):#SmtagModel?
             name = 'unet2__'+ str(group)
             self.add_module(name, model) # self.module_list.append(model)
             self.semantic_groups[group] = model.output_semantics
-        self.concat = Concat(1)
 
     def forward(self, x):
         y_list = []
         for n, m in self.named_children():
             if re.match('unet2__', n): # the child module is one of the unet models
                 y_list.append(m(x))
-        y = self.concat(y_list)
+        y = torch.cat(y_list, 1)
         return y
 
 class ContextCombinedModel(CombinedModel):

@@ -37,6 +37,13 @@ BIAS =  True
 #         y = self.gamma * x + self.beta
 #         return y
 
+def self_attn(x):
+    d = x.size(1)
+    position_wise_interactions = torch.matmul(x.transpose(1, 2), x)
+    weights = torch.softmax(position_wise_interactions / math.sqrt(d), -1)
+    attention = torch.matmul(x, weights)
+    return attention
+
 class SmtagModel(nn.Module):
 
     def __init__(self, opt):
@@ -69,14 +76,6 @@ class SmtagModel(nn.Module):
         x = F.log_softmax(x, 1)
         # x = F.sigmoid(x)
         return x
-
-class Concat(nn.Module):
-    def __init__(self, dim):
-        super(Concat, self).__init__()
-        self.dim = dim
-
-    def forward(self, tensor_sequence):
-        return torch.cat(tensor_sequence, self.dim)
 
 class Context(nn.Module):
     def __init__(self, in_channels, context_table):
@@ -138,7 +137,6 @@ class Unet2(nn.Module):
             self.unet2 = None
 
         if self.skip:
-            self.concat = Concat(1)
             self.reduce = nn.Conv1d(2*(self.nf_input+self.nf_context), self.nf_input, 1, 1)
 
     def forward(self, x, context_list):
@@ -171,7 +169,7 @@ class Unet2(nn.Module):
         y = F.relu(self.BN_up_A(y), inplace=True)
 
         if self.skip:
-            y = self.concat((x, y)) # merge via concatanation of output layers 
+            y = torch.cat((x, y), 1) # merge via concatanation of output layers 
             y = self.reduce(y) # reducing from 2*nf_output to nf_output
             # y = x + y # this would be the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
 
