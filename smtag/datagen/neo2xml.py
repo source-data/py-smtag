@@ -57,7 +57,7 @@ class NeoImport():
             # need protection agains missing spaces after parenthesis, typically in figure or panel labels
             findings = re.search(r'(\(.*?\))(\w)', panel_caption)
             if findings:
-                print("WARNING: adding space after closing parenthesis {}".format(re.findall(r'(\(.*?\))(\w)')))
+                print("WARNING: adding space after closing parenthesis {}".format(re.findall(r'(\(.*?\))(\w)', panel_caption)))
                 panel_caption = re.sub(r'(\(.*?\))(\w)',r'\1 \2', panel_caption)
 
             # protection against carriage return
