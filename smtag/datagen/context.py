@@ -35,14 +35,13 @@ from torchvision.models.densenet import model_urls as densenet_urls
 # All pre-trained models expect input images normalized in the same wax, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224. The images have to be loaded in to a range of [0, 1] and then normalized using mean = [0.485, 0.456, 0.406] and std = [0.229, 0.224, 0.225]. 
 
 
-PRETRAINED = densenet161(pretrained=True)
+PRETRAINED = densenet161(pretrained=True).features
 
 class VisualContext(object):
 
     def __init__(self, path):
         self.path = path
-        net = PRETRAINED
-        self.net = net.features
+        self.net = PRETRAINED
         print(f"loaded {net.__class__} pretrained network")
 
     def open(self, img_filename):

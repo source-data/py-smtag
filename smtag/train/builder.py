@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from copy import deepcopy
 from math import sqrt
 from ..common.mapper import Concept, Catalogue
+from ..datagen.context import PRETRAINED
 from .. import config
 
 BNTRACK = True
@@ -54,7 +55,7 @@ class SmtagModel(nn.Module):
         kernel_table = deepcopy(opt.kernel_table) # need to deep copy/clone
         pool_table = deepcopy(opt.pool_table) # need to deep copy/clone
         context_table = deepcopy(opt.viz_context_table)  # need to deep copy/clone
-        context_in = opt.viz_context_features # from ..datagen.context import PRETRAINED; PRETRAINED(torch.Tensor([1, config.resized_img_size, config.resized_img_size])).numelement()
+        context_in = PRETRAINED(torch.Tensor(1, 3, config.resized_img_size, config.resized_img_size)).numel()
         dropout = opt.dropout
         skip = opt.skip
 

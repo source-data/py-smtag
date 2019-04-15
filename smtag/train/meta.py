@@ -44,7 +44,6 @@ class Options():
         self.selected_features = Catalogue.from_list(opt['selected_features'])
         self.use_ocr_context = opt['use_ocr_context']
         self.viz_context_table = opt['viz_context_table'] 
-        self.viz_context_features = config._viz_context_features # not ideal; it depends on which pre-trained network is used
         self.nf_input = config.nbits
         if self.use_ocr_context == 'ocr1':
             self.nf_ocr_context = 1 # fusing horizontal and vertial into single detected-on-image feature
