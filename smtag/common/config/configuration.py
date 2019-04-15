@@ -34,7 +34,7 @@ class Config():
     _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
     _allowed_img       = ['.jpg', '.jpeg', '.png']
     _img_grid_size     = 7 # grid size used to encode the location of elements on images
-    _resized_img_size  = 224 # size of the resized image used for visual context
+    _resized_img_size  = 512 # size of the resized image used for visual context
     _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
     _ocr_max_edit_dist = 0.5 # max edit distance per character length between ocr term and matching term in caption
     _ocr_min_overlap   = 2 # minimum lenght of overlap between ocr term and caption term
