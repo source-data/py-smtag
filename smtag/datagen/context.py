@@ -42,7 +42,7 @@ class VisualContext(object):
     def __init__(self, path):
         self.path = path
         self.net = PRETRAINED
-        print(f"loaded {net.__class__} pretrained network")
+        print(f"loaded {self.net.__class__} pretrained network")
 
     def open(self, img_filename):
         try:
