@@ -21,14 +21,6 @@ MARKING_CHAR_ORD = ord(MARKING_CHAR)
 SD_PANEL_OPEN, SD_PANEL_CLOSE = "<sd-panel>", "</sd-panel>"
 
 
-### BYPASSING A PROBLEM DUE TO THE SOURCEDATA API THAT ESCAPES URLS SLASHES ####
-def TEMPORARY_HACK(url):
-    # source data API curl https://api.sourcedata.io/index.php/collection/97/paper/10.1083/jcb.138.1.37/figure/
-    # escapes slashe in URL https:\/\/api.sourcedata.io\/file.php?figure_id=4725"
-    # as a consequence requests.get() returns https://api.sourcedata.iofile.php?figure_id=4723
-    # and we need https://api.sourcedata.io/file.php?figure_id=4723
-    return url.replace('iofile', 'io/file')
-
 class NeoImport():
 
     def __init__(self, options):
@@ -212,7 +204,7 @@ class NeoImport():
                     figure_label_element.tail = ". "
                     figure_element.append(figure_label_element)
                     figure_graphic_element = Element("graphic")
-                    figure_graphic_element.attrib['href'] = TEMPORARY_HACK(fig_img_url)
+                    figure_graphic_element.attrib['href'] = fig_img_url
                     figure_element.append(figure_graphic_element)
                     figure_title_element = Element("title")
                     figure_title_element.text = fig_title
@@ -247,7 +239,7 @@ class NeoImport():
                             try:
                                 panel_element, tag_errors = self.caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
                                 graphic = Element('graphic')
-                                graphic.attrib['href'] = TEMPORARY_HACK(image_link)
+                                graphic.attrib['href'] = image_link
                                 panel_element.append(graphic)
                                 figure_caption_element.append(panel_element)
                                 if tag_errors:
