@@ -352,7 +352,7 @@ class DataPreparator(object):
                     else:
                         e = self.exclusive(e, self.exclusive_xpath)
                         processed = self.anonymize(e, self.anonymization_xpath)
-                        g = e.find(self.XPath_to_assets)
+                        g = e.find(self.XPath_to_assets) # Note: XPath_to_assets is to find graphic element *within* the example; NOT within the whole xml document!
                         if g is not None:
                             url = g.get('href')
                             id = re.search(r'(panel_id|figure_id)=(\d+)', url)
