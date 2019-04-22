@@ -39,8 +39,7 @@ PRETRAINED = densenet161(pretrained=True).features
 
 class VisualContext(object):
 
-    def __init__(self, path):
-        self.path = path
+    def __init__(self):
         self.net = PRETRAINED
         print(f"loaded {self.net.__class__} pretrained network")
 
@@ -75,8 +74,7 @@ class VisualContext(object):
         normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         return normalizer(image)
 
-    def get_context(self, filename):
-        cv_image = self.open(filename) # H x W x C
+    def get_context(self, cv_image):
         if cv_image is not None:
             resized = self.resize(cv_image) # 224 x 224
             image = self.cv2th(resized) # 3D C x H x W
@@ -89,8 +87,8 @@ class VisualContext(object):
             output = self.net(normalized) # densenet.features: 1 x 2208 x 7 x 7; vgg19.features[:28] 1 x 512 x 14 x 14; vgg19.features 1 x 512 x 7 x 7
         return output
 
-    def run(self):
-        with cd(self.path):
+    def run(self, path):
+        with cd(path):
             filenames = [f for f in os.listdir() if os.path.splitext(f)[-1] in config.allowed_img]
             N = len(filenames)
             for i, filename in enumerate(filenames):
@@ -99,7 +97,8 @@ class VisualContext(object):
                 if os.path.exists(viz_filename):
                     msg = "{} already analyzed".format(filename)
                 else: # never analyzed before
-                    viz_context = self.get_context(filename) # 4D tensor!
+                    cv_image = self.open(filename) # H x W x C
+                    viz_context = self.get_context(cv_image) # 4D tensor!
                     torch.save(viz_context, viz_filename)
                     msg = "saved {}".format(viz_filename)
                 progress(i, N, msg+"                   ")
@@ -108,8 +107,8 @@ class VisualContext(object):
 def main():
     image_dir = config.image_dir
     print("running perceptual vision from {} on {}".format(os.getcwd(), image_dir))
-    viz = VisualContext(image_dir)
-    viz.run()
+    viz = VisualContext()
+    viz.run(image_dir)
 
 if __name__ == '__main__':
     main()

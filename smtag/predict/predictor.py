@@ -35,7 +35,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         padded_string = pad + input + pad
         return padded_string
 
-    def forward(self, input):
+    def forward(self, input, viz_context):
         if isinstance(input, list):
             padded = [self.padding(inp) for inp in input]
             L = len(padded[0])
@@ -50,7 +50,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         #PREDICTION
         with torch.no_grad():
             self.model.eval()
-            prediction = self.model(x) #.float() # prediction is 3D 1 x C x L
+            prediction = self.model(x, viz_context) #.float() # prediction is 3D 1 x C x L
             prediction = torch.sigmoid(prediction) # to get 0..1 positive scores
             self.model.train()
 
@@ -63,8 +63,8 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         decoded.decode(token_list)
         return decoded
     
-    def predict(self, input_t_string, token_list):
-        prediction = self.forward(input_t_string)
+    def predict(self, input_t_string, token_list, viz_context):
+        prediction = self.forward(input_t_string, viz_context)
         decoded = self.decode(str(input_t_string), token_list, prediction, self.model.semantic_groups)
         return decoded
 
@@ -84,14 +84,14 @@ class ContextualPredictor(Predictor):
         res = "".join(res)
         return TString(res)
 
-    def predict(self, for_anonymization: Decoder) -> Decoder:
+    def predict(self, for_anonymization: Decoder, viz_context) -> Decoder:
         prediction = []
         anonymized_t = []
         for anonymization in self.model.anonymize_with:
             group = anonymization['group']
             concept = anonymization['concept']
             anonymized_t.append(self.anonymize(for_anonymization, group, concept))
-        prediction = self.forward(anonymized_t) # ContextCombinedModel takes list of anonymized inputs; ouch need to be all padded
+        prediction = self.forward(anonymized_t, viz_context) # ContextCombinedModel takes list of anonymized inputs; ouch need to be all padded
         input_string = for_anonymization.input_string
         token_list = for_anonymization.token_list
         decoded = self.decode(input_string, token_list, prediction, self.model.semantic_groups) # input_string will be tokenized again; a waste, but maybe not worth the complication; could have an *args or somethign

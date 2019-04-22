@@ -30,6 +30,7 @@ from ..common.utils import tokenize, timer
 from ..common.converter import TString
 from ..common.mapper import Catalogue
 from ..datagen.encoder import XMLEncoder
+from ..datagen.context import VisualContext
 from .decode import CharLevelDecoder, Decoder
 from .predictor import Predictor, ContextualPredictor, CharLevelPredictor
 from .markup import Serializer
@@ -107,6 +108,7 @@ class SmtagEngine:
         self.panelize_model = CombinedModel(OrderedDict([
             ('panels', load_model(config.model_panel_stop, config.prod_dir))
         ]))
+        self.viz_context_processor = VisualContext()
 
     def __panels(self, input_t_string: TString, token_list) -> CharLevelDecoder:
         decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list)
@@ -116,7 +118,7 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __entity(self, input_t_string: TString, token_list) -> Decoder:
+    def __entity(self, input_t_string: TString, token_list, viz_context) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_string, token_list)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
@@ -124,7 +126,7 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __reporter(self, input_t_string: TString, token_list) -> Decoder:
+    def __reporter(self, input_t_string: TString, token_list, viz_context) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_string, token_list)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
@@ -132,7 +134,7 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
+    def __context(self, entities: Decoder, viz_context) -> Decoder: # entities carries the copy of the input_string and token_list
         decoded = ContextualPredictor(self.context_models).predict(entities)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
@@ -140,7 +142,7 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __entity_and_role(self, input_t_string, token_list) -> Decoder:
+    def __entity_and_role(self, input_t_string, token_list, viz_context) -> Decoder:
         entities = self.__entity(input_t_string, token_list)
         output = entities.clone() # clone just in case, test if necessary...should not be
         reporter = self.__reporter(input_t_string, token_list)
@@ -151,7 +153,7 @@ class SmtagEngine:
 
         return output
 
-    def __role_from_pretagged(self, input_xml: Element) -> Decoder:
+    def __role_from_pretagged(self, input_xml: Element, viz_context) -> Decoder:
         input_string = ''.join([s for s in input_xml.itertext()])
         input_t_string = TString(input_string)
         token_list = tokenize(input_string)['token_list']
@@ -167,7 +169,7 @@ class SmtagEngine:
         output.cat_(context)
         return output
 
-    def __all(self, input_t_string, token_list):
+    def __all(self, input_t_string, token_list, viz_context):
 
         if self.DEBUG:
             print("\nText:")
@@ -176,14 +178,14 @@ class SmtagEngine:
         panels = self.__panels(input_t_string, token_list)
         output = panels
 
-        entities = self.__entity(input_t_string, token_list)
+        entities = self.__entity(input_t_string, token_list, viz_context)
         output.cat_(entities.clone())
 
-        reporter = self.__reporter(input_t_string, token_list)
+        reporter = self.__reporter(input_t_string, token_list, viz_context)
         output.cat_(reporter) # add reporter prediction to output features
 
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
-        context = self.__context(entities_less_reporter)
+        context = self.__context(entities_less_reporter, viz_context)
         output.cat_(context)
 
         if self.DEBUG:
@@ -201,31 +203,43 @@ class SmtagEngine:
     def __string_preprocess(self, input_string):
         return TString(input_string), tokenize(input_string)['token_list']
 
+    def __img_preprocess(self, img):
+        return self.self.viz_context_processor.get_context(img)
+    
     @timer
-    def entity(self, input_string, sdtag, format):
+    def entity(self, input_string, img, sdtag, format):
         input_t_string, token_list = self.__string_preprocess(input_string)
-        return self.__serialize(self.__entity(input_t_string, token_list), sdtag, format)
+        viz_context = self.__img_preprocess(img)
+        pred = self.__entity(input_t_string, token_list, viz_context)
+        return self.__serialize(pred, sdtag, format)
 
     @timer
-    def tag(self, input_string, sdtag, format):
+    def tag(self, input_string, img, sdtag, format):
         input_t_string, token_list = self.__string_preprocess(input_string)
-        return self.__serialize(self.__entity_and_role(input_t_string, token_list), sdtag, format)
+        viz_context = self.__img_preprocess(img)
+        pred = self.__entity_and_role(input_t_string, token_list, viz_context)
+        return self.__serialize(pred, sdtag, format)
 
     @timer
-    def smtag(self, input_string, sdtag, format):
+    def smtag(self, input_string, img, sdtag, format):
         input_t_string, token_list = self.__string_preprocess(input_string)
-        return self.__serialize(self.__all(input_t_string, token_list), sdtag, format)
+        viz_context = self.__img_preprocess(img)
+        pred = self.__all(input_t_string, token_list, viz_context)
+        return self.__serialize(pred, sdtag, format)
 
     @timer
-    def role(self, input_xml_string:str, sdtag):
+    def role(self, input_xml_string:str, img, sdtag):
         input_xml = fromstring(input_xml_string)
-        updatexml_(input_xml, self.__role_from_pretagged(input_xml), pretag=fromstring('<'+sdtag+'/>'))
+        viz_context = self.__img_preprocess(img)
+        pred = self.__role_from_pretagged(input_xml, viz_context)
+        updatexml_(input_xml, pred, pretag=fromstring('<'+sdtag+'/>'))
         return tostring(input_xml) # tostring() returns bytes...
 
     @timer
     def panelizer(self, input_string, format):
         input_t_string, token_list = self.__string_preprocess(input_string)
-        return self.__serialize(self.__panels(input_t_string, token_list), format=format)
+        pred = self.__panels(input_t_string, token_list)
+        return self.__serialize(pred, format=format)
 
 def main():
     arguments = docopt(__doc__, version='0.1')
