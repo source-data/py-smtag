@@ -66,7 +66,7 @@ def load_model(archive_filename, model_dir=config.model_dir):
                     option_path = filename
                     #print("extracted {}".format(option_path))
 
-        with open(option_path, 'r') as optionfile:
+        with open(option_path, 'rb') as optionfile:
             opt = pickle.load(optionfile)
         print("trying to build model with options:")
         print(opt)

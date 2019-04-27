@@ -41,7 +41,7 @@ BIAS =  True
 def self_attn(x):
     d = x.size(1)
     position_wise_interactions = torch.matmul(x.transpose(1, 2), x)
-    weights = torch.softmax(position_wise_interactions / math.sqrt(d), -1)
+    weights = torch.softmax(position_wise_interactions / sqrt(d), -1)
     attention = torch.matmul(x, weights)
     return attention
 

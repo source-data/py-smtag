@@ -41,7 +41,6 @@ from ..common.viz import Show
 
 # from test.test_max_window_unet import test_model
 
-# maybe should be in builder.py
 class CombinedModel(nn.Module):#SmtagModel?
     '''
     This module takes a list of SmtagModels and concatenates their output along the second dimension (feature axe).
@@ -51,37 +50,36 @@ class CombinedModel(nn.Module):#SmtagModel?
     def __init__(self, models: OrderedDict):
         super(CombinedModel, self).__init__()
         self.semantic_groups = OrderedDict()
-        for group in models: # replace by self.module_list = nn.ModuleList(models) in torch 1.0.0
-            model = models[group]
-            name = 'unet2__'+ str(group)
-            self.add_module(name, model) # self.module_list.append(model)
-            self.semantic_groups[group] = model.output_semantics
+        self.model_list = nn.ModuleDict(models)
+        self.semantic_groups = {g:models[g].output_semantics for g in models}
 
-    def forward(self, x):
+    def forward(self, x, viz_context):
         y_list = []
-        for n, m in self.named_children():
-            if re.match('unet2__', n): # the child module is one of the unet models
-                y_list.append(m(x))
-        y = torch.cat(y_list, 1)
+        for g in self.semantic_groups:
+            m = self.model_list[g]
+            y_list.append(m(x, viz_context))
+        y = torch.cat(y_list, 1)        
         return y
 
-class ContextCombinedModel(CombinedModel):
+class ContextCombinedModel(nn.Module):
 
     def __init__(self, models: OrderedDict):
-        model_list = OrderedDict()
+        super(ContextCombinedModel, self).__init__()
+        self.semantic_groups = OrderedDict()
         self.anonymize_with = []
+        self.model_list = nn.ModuleList()
         for group in models:
             model, anonymization = models[group]
             self.anonymize_with.append(anonymization)
-            model_list[group] = model
-        super(ContextCombinedModel, self).__init__(model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
+            self.model_list.append(model)
+            self.semantic_groups[group] = model.output_semantics
+         #super(ContextCombinedModel, self).__init__(self.model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
 
-    def forward(self, x_list): # takes a list of inputs each specifically anonymized for each context model
+    def forward(self, x_list, viz_context): # takes a list of inputs each specifically anonymized for each context model
         y_list = []
-        for (n, m), x in zip(self.named_children(), x_list):
-            if re.match('unet2__', n): # the child module is one of the unet models;
-                y_list.append(m(x))
-        y = self.concat(y_list)
+        for m, x in zip(self.model_list, x_list):
+            y_list.append(m(x, viz_context))
+        y = torch.cat(y_list, 1)
         return y
 
 class SmtagEngine:
@@ -91,8 +89,8 @@ class SmtagEngine:
     def __init__(self):
         self.entity_models = CombinedModel(OrderedDict([
             ('entities', load_model(config.model_entity, config.prod_dir)),
-            ('diseases', load_model(config.model_disease, config.prod_dir)),
-            ('exp_assay', load_model(config.model_assay, config.prod_dir)) # can in fact be co-trained with entities since mutually exclusive
+            # ('diseases', load_model(config.model_disease, config.prod_dir)),
+            # ('exp_assay', load_model(config.model_assay, config.prod_dir)) # can in fact be co-trained with entities since mutually exclusive
         ]))
         self.reporter_models = CombinedModel(OrderedDict([
             ('reporter', load_model(config.model_geneprod_reporter, config.prod_dir))
@@ -101,9 +99,9 @@ class SmtagEngine:
             ('geneprod_roles',
                (load_model(config.model_geneprod_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
             ),
-            ('small_molecule_role',
-                (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
-            )
+            # ('small_molecule_role',
+            #     (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+            # )
         ]))
         self.panelize_model = CombinedModel(OrderedDict([
             ('panels', load_model(config.model_panel_stop, config.prod_dir))
@@ -111,7 +109,7 @@ class SmtagEngine:
         self.viz_context_processor = VisualContext()
 
     def __panels(self, input_t_string: TString, token_list) -> CharLevelDecoder:
-        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list)
+        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list, torch.Tensor(0))
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
@@ -119,15 +117,15 @@ class SmtagEngine:
         return decoded
 
     def __entity(self, input_t_string: TString, token_list, viz_context) -> Decoder:
-        decoded = Predictor(self.entity_models).predict(input_t_string, token_list)
+        decoded = Predictor(self.entity_models).predict(input_t_string, token_list, viz_context)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __reporter(self, input_t_string: TString, token_list, viz_context) -> Decoder:
-        decoded = Predictor(self.reporter_models).predict(input_t_string, token_list)
+    def __reporter(self, input_t_string: TString, token_list) -> Decoder:
+        decoded = Predictor(self.reporter_models).predict(input_t_string, token_list, torch.Tensor(0))
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\n2: after reporter: {decoded.semantic_groups} {B}x{C}x{L}")
@@ -135,7 +133,7 @@ class SmtagEngine:
         return decoded
 
     def __context(self, entities: Decoder, viz_context) -> Decoder: # entities carries the copy of the input_string and token_list
-        decoded = ContextualPredictor(self.context_models).predict(entities)
+        decoded = ContextualPredictor(self.context_models).predict(entities, viz_context)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter context: {decoded.semantic_groups} {B}x{C}x{L}")
@@ -143,12 +141,12 @@ class SmtagEngine:
         return decoded
 
     def __entity_and_role(self, input_t_string, token_list, viz_context) -> Decoder:
-        entities = self.__entity(input_t_string, token_list)
+        entities = self.__entity(input_t_string, token_list, viz_context)
         output = entities.clone() # clone just in case, test if necessary...should not be
         reporter = self.__reporter(input_t_string, token_list)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output.cat_(reporter)
-        context = self.__context(entities_less_reporter)
+        context = self.__context(entities_less_reporter, viz_context)
         output.cat_(context)
 
         return output
@@ -165,7 +163,7 @@ class SmtagEngine:
         reporter = self.__reporter(input_t_string, token_list)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output = reporter # there was a clone() here??
-        context = self.__context(entities_less_reporter)
+        context = self.__context(entities_less_reporter, viz_context)
         output.cat_(context)
         return output
 
@@ -181,7 +179,7 @@ class SmtagEngine:
         entities = self.__entity(input_t_string, token_list, viz_context)
         output.cat_(entities.clone())
 
-        reporter = self.__reporter(input_t_string, token_list, viz_context)
+        reporter = self.__reporter(input_t_string, token_list)
         output.cat_(reporter) # add reporter prediction to output features
 
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
@@ -204,7 +202,9 @@ class SmtagEngine:
         return TString(input_string), tokenize(input_string)['token_list']
 
     def __img_preprocess(self, img):
-        return self.self.viz_context_processor.get_context(img)
+        viz_context = self.viz_context_processor.get_context(img)
+        vectorized = viz_context.view(1, -1)
+        return vectorized
     
     @timer
     def entity(self, input_string, img, sdtag, format):
@@ -264,20 +264,21 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
 
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
+    cv_img = torch.zeros(500, 500, 3).numpy()
 
     engine = SmtagEngine()
     engine.DEBUG = DEBUG
 
     if method == 'smtag':
-        print(engine.smtag(input_string, sdtag, format))
+        print(engine.smtag(input_string, cv_img, sdtag, format))
     elif method == 'panelize':
         print(engine.panelizer(input_string, format))
     elif method == 'tag':
-        print(engine.tag(input_string, sdtag, format))
+        print(engine.tag(input_string, cv_img, sdtag, format))
     elif method == 'entity':
-        print(engine.entity(input_string, sdtag, format))
+        print(engine.entity(input_string, cv_img, sdtag, format))
     elif method == 'role':
-        print(engine.role(input_string, sdtag)) # can only be xml format
+        print(engine.role(input_string, cv_img, sdtag)) # can only be xml format
     else:
         print("unknown method {}".format(method))
 

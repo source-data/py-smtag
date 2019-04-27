@@ -50,11 +50,11 @@ class Config():
     # MODELS
     #
     _model_assay = "10X_L400_all_large_padding_no_ocr_assay_2019-02-12-15-18.zip"
-    _model_entity = "10X_L400_all_large_padding_no_ocr_small_molecule_geneprod_subcellular_cell_tissue_organism_2019-02-11-18-08.zip"
-    _model_geneprod_role = "10X_L400_geneprod_anonym_not_reporter_large_padding_no_ocr_intervention_assayed_2019-02-11-23-22.zip"
-    _model_geneprod_reporter = "10X_L400_geneprod_exclusive_padding_no_ocr_reporter_2019-02-12-10-57.zip"
+    _model_entity = "entities_fig_viz.zip" # "10X_L400_all_large_padding_no_ocr_small_molecule_geneprod_subcellular_cell_tissue_organism_2019-02-11-18-08.zip"
+    _model_geneprod_role = "roles_geneprod_fig_viz.zip" # 10X_L400_geneprod_anonym_not_reporter_large_padding_no_ocr_intervention_assayed_2019-02-11-23-22.zip"
+    _model_geneprod_reporter = "reporter.zip" # 10X_L400_geneprod_exclusive_padding_no_ocr_reporter_2019-02-12-10-57.zip"
     _model_molecule_role = "10X_L400_small_molecule_anonym_large_padding_no_ocr_intervention_assayed_2019-02-18-15-32.zip"
-    _model_panel_stop = "10X_L1200_all_large_padding_no_ocr_panel_stop_2019-02-18-17-00.zip"
+    _model_panel_stop = "panel_start.zip" # 10X_L1200_all_large_padding_no_ocr_panel_stop_2019-02-18-17-00.zip"
     _model_disease = "10X_L1200_NCBI_disease_augmented_large_padding_disease_2019-02-12-17-46.zip"
 
     def __init__(self):
