@@ -46,6 +46,8 @@ class VisualContext(object):
     def open(self, img_filename):
         try:
             cv_image = cv.imread(img_filename) #H x W x C, BGR
+            if len(cv_image.shape) == 2:
+                cv2.cvtColor(cv_image,cv2.COLOR_GRAY2RGB)
         except Exception as e:
             print("{} not loaded".format(img_filename), e)
             cv_image = None
