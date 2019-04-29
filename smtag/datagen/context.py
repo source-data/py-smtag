@@ -46,8 +46,6 @@ class VisualContext(object):
     def open(self, img_filename):
         try:
             cv_image = cv.imread(img_filename) #H x W x C, BGR
-            if len(cv_image.shape) == 2:
-                cv2.cvtColor(cv_image,cv2.COLOR_GRAY2RGB)
         except Exception as e:
             print("{} not loaded".format(img_filename), e)
             cv_image = None
@@ -55,6 +53,8 @@ class VisualContext(object):
 
     @staticmethod
     def cv2th(cv_image):
+        if len(cv_image.shape) == 2: # B&W images are 2D tensors
+            cv.cvtColor(cv_image,cv.COLOR_GRAY2RGB)
         BGR = torch.from_numpy(cv_image) # cv image is BGR # cv images are height x width  x channels
         blu  = BGR[ : , : , 0]
         gre  = BGR[ : , : , 1]
