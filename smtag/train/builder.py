@@ -119,8 +119,7 @@ class Unet2(nn.Module):
         self.dropout_rate = dropout_rate
         self.skip = skip
         self.dropout = nn.Dropout(self.dropout_rate)
-        self.BN_pre = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
-        self.BN_context = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
+        self.BN_pre = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
         self.conv_down_A = nn.Conv1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_down_A = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
 
@@ -143,15 +142,13 @@ class Unet2(nn.Module):
             self.reduce = nn.Conv1d(2*(self.nf_input+self.nf_context), self.nf_input, 1, 1)
 
     def forward(self, x, context_list):
-        if context_list: # skipped if no context_list empty
+        if context_list: # skipped if no context_list empty in which case nf_context is also 0
             viz_context = context_list[0]
             viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
             x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
             # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
-            x = self.BN_context(x)
             context_list = context_list[1:]
-        else:
-            x = self.BN_pre(x)
+        x = self.BN_pre(x) # or y = self.BN_pre(x)
         y = self.dropout(x)
         y = self.conv_down_A(y)
         y = F.relu(self.BN_down_A(y), inplace=True)
