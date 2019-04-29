@@ -36,8 +36,8 @@ class Config():
     _img_grid_size     = 7 # grid size used to encode the location of elements on images
     _resized_img_size  = 512 # size of the resized image used for visual context
     _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
-    _ocr_max_edit_dist = 0.5 # max edit distance per character length between ocr term and matching term in caption
-    _ocr_min_overlap   = 2 # minimum lenght of overlap between ocr term and caption term
+    _ocr_max_edit_dist = 0.2 # max edit distance per character length between ocr term and matching term in caption
+    _ocr_min_overlap   = 3 # minimum lenght of overlap between ocr term and caption term
     _nbits             = 17 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _padding_char      = " " # character used to padd strings; would be smarter to use character different from space
