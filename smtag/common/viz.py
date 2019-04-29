@@ -82,15 +82,15 @@ class Show():
         else:
             viz_context = torch.Tensor(0)
             if torch.cuda.is_available():
-                viz_context.cuda()
-                import pdb; pdb.set_trace()
+                viz_context = viz_context.cuda()
 
         # original_text =  minibatches[rand_i].text[rand_j]
         provenance = minibatch.provenance[rand_j]
         nf_input = input.size(1)
         if model is not None:
             model.eval()
-            prediction = model(input, viz_context)
+            with torch.no_grad():
+                prediction = model(input, viz_context)
             model.train()
 
         text = str(TString(input[[0], 0:config.nbits, : ])) #sometimes input has more than NBITS features if feature2input option was chosen
