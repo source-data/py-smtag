@@ -81,6 +81,8 @@ class Show():
             viz_context = minibatch.viz_context[[rand_j], : ]
         else:
             viz_context = torch.Tensor(0)
+            if torch.cuda.is_available():
+                viz_context.cuda()
 
         # original_text =  minibatches[rand_i].text[rand_j]
         provenance = minibatch.provenance[rand_j]
