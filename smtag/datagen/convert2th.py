@@ -425,7 +425,6 @@ def main():
     parser.add_argument('-X', '--iterations', default=5, type=int, help='number of times each example is sampled')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbosity')
     parser.add_argument('-L', '--length', default=150, type=int, help='length of the text snippets used as example')
-    parser.add_argument('-W', '--window', action='store_true', help='switches to the sampling fig legends using a random window instead of parsing full sentences')
     parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
     parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
     parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
@@ -450,12 +449,10 @@ def main():
     options['viz'] = not args.noviz
     options['XPath_to_examples'] = args.example
     options['XPath_to_assets'] = args.graphic
-    if args.window:
-        options['sampling_mode'] = 'window'
-    elif args.start:
+    if args.start:
         options['sampling_mode'] = 'start'
     else:
-        options['sampling_mode'] = 'sentence'
+        options['sampling_mode'] = 'window'
     options['random_shifting'] = not args.disable_shifting
     options['padding'] = int(args.padding)
     options['anonymize'] =  [a for a in args.anonymize.split(',') if a] # to make sure list is empty if args is ''
