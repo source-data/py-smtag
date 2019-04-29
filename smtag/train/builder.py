@@ -96,6 +96,32 @@ class Context(nn.Module):
                 embedding_list.append(ctx)
         return embedding_list
 
+class OCR_attn(nn.Module):
+    def __init__(self, nf_input, nf_table, kernel_table, pool_table, dropout_rate):
+        super(OCR_attn, self).__init__()
+        self.nf_input = nf_input
+        self.nf_table = nf_table
+        self.nf_output = nf_table.pop(0)
+        self.pool_table = pool_table
+        self.pool = pool_table.pop(0)
+        self.kernel_table = kernel_table
+        self.kernel = kernel_table.pop(0)
+        self.padding = 0 
+        self.stride = 1
+        self.dropout_rate = dropout_rate
+        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
+        self.BN_down_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
+
+    def forward(x, ocr_t):
+        y = self.conv_down_A(ocr_t)
+        y = F.relu(self.BN_down_A(y), inplace=True)
+        y = self.lin(y)
+        att = attn(x, y)
+
+        y = torch.cat([x, att])
+
+
+
 class Unet2(nn.Module):
     def __init__(self, nf_input, nf_table, kernel_table, pool_table, context_table, dropout_rate, skip=True):
         super(Unet2, self).__init__()
