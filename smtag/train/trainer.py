@@ -98,10 +98,10 @@ class Trainer:
         for e in range(self.epochs):
             avg_train_loss = 0 # loss averaged over all minibatches
 
-            for i, m in enumerate(self.trainset_minibatches):
+            for i, batch in enumerate(self.trainset_minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
-                x, y, y_hat, loss = self.predict(m)
+                x, y, y_hat, loss = self.predict(batch)
                 loss.backward()
                 avg_train_loss += loss.cpu().data # important otherwise not freed from the graph
                 self.optimizer.step()

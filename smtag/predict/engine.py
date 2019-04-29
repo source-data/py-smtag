@@ -55,9 +55,9 @@ class CombinedModel(nn.Module):#SmtagModel?
 
     def forward(self, x, viz_context):
         y_list = []
-        for g in self.semantic_groups:
-            m = self.model_list[g]
-            y_list.append(m(x, viz_context))
+        for group in self.semantic_groups:
+            model = self.model_list[group]
+            y_list.append(model(x, viz_context))
         y = torch.cat(y_list, 1)        
         return y
 
@@ -108,8 +108,8 @@ class SmtagEngine:
         ]))
         self.viz_context_processor = VisualContext()
 
-    def __panels(self, input_t_string: TString, token_list) -> CharLevelDecoder:
-        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list, torch.Tensor(0))
+    def __panels(self, input_t_string: TString, token_list, viz_context) -> CharLevelDecoder:
+        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list, viz_context)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
@@ -124,8 +124,8 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __reporter(self, input_t_string: TString, token_list) -> Decoder:
-        decoded = Predictor(self.reporter_models).predict(input_t_string, token_list, torch.Tensor(0))
+    def __reporter(self, input_t_string: TString, token_list, viz_context) -> Decoder:
+        decoded = Predictor(self.reporter_models).predict(input_t_string, token_list, viz_context)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\n2: after reporter: {decoded.semantic_groups} {B}x{C}x{L}")
@@ -143,7 +143,7 @@ class SmtagEngine:
     def __entity_and_role(self, input_t_string, token_list, viz_context) -> Decoder:
         entities = self.__entity(input_t_string, token_list, viz_context)
         output = entities.clone() # clone just in case, test if necessary...should not be
-        reporter = self.__reporter(input_t_string, token_list)
+        reporter = self.__reporter(input_t_string, token_list, viz_context)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output.cat_(reporter)
         context = self.__context(entities_less_reporter, viz_context)
@@ -160,7 +160,7 @@ class SmtagEngine:
         semantic_groups = OrderedDict([('entities', Catalogue.standard_channels)])
         entities = Decoder(input_string, encoded.float(), semantic_groups)
         entities.decode(token_list)
-        reporter = self.__reporter(input_t_string, token_list)
+        reporter = self.__reporter(input_t_string, token_list, viz_context)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output = reporter # there was a clone() here??
         context = self.__context(entities_less_reporter, viz_context)
@@ -173,13 +173,13 @@ class SmtagEngine:
             print("\nText:")
             print("    "+str(input_t_string))
 
-        panels = self.__panels(input_t_string, token_list)
+        panels = self.__panels(input_t_string, token_list, viz_context)
         output = panels
 
         entities = self.__entity(input_t_string, token_list, viz_context)
         output.cat_(entities.clone())
 
-        reporter = self.__reporter(input_t_string, token_list)
+        reporter = self.__reporter(input_t_string, token_list, viz_context)
         output.cat_(reporter) # add reporter prediction to output features
 
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
@@ -236,9 +236,10 @@ class SmtagEngine:
         return tostring(input_xml) # tostring() returns bytes...
 
     @timer
-    def panelizer(self, input_string, format):
+    def panelizer(self, input_string, img, format):
         input_t_string, token_list = self.__string_preprocess(input_string)
-        pred = self.__panels(input_t_string, token_list)
+        viz_context = self.__img_preprocess(img) # DEBUG
+        pred = self.__panels(input_t_string, token_list, viz_context)
         return self.__serialize(pred, format=format)
 
 def main():
@@ -272,7 +273,7 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
     if method == 'smtag':
         print(engine.smtag(input_string, cv_img, sdtag, format))
     elif method == 'panelize':
-        print(engine.panelizer(input_string, format))
+        print(engine.panelizer(input_string, cv_img, format))
     elif method == 'tag':
         print(engine.tag(input_string, cv_img, sdtag, format))
     elif method == 'entity':

@@ -128,7 +128,7 @@ def main():
     parser.add_argument('--ocrxy', action="store_true", help='Use as additional input position and orientation of words extracted by OCR from the illustration.')
     parser.add_argument('--ocr1', action="store_true", help='Use as additional presence of words extracted by OCR from the illustration.')
     parser.add_argument('--ocr2', action="store_true", help='Use as additional input orientation of words extracted by OCR from the illustration.')
-    parser.add_argument('-V', '--viz_table', default="150", help='Use as additional visual features extracted from the illustration.')
+    parser.add_argument('-V', '--viz_table', default="", help='Use as additional visual features extracted from the illustration.')
 
     arguments = parser.parse_args()
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
@@ -145,7 +145,10 @@ def main():
     opt['nf_table'] = [int(x.strip()) for x in arguments.nf_table.split(',')]
     opt['kernel_table'] = [int(x.strip()) for x in arguments.kernel_table.split(',')]
     opt['pool_table'] = [int(x.strip()) for x in arguments.pool_table.split(',')]
-    opt['viz_context_table'] = [int(x.strip()) for x in arguments.viz_table.split(',')]
+    if arguments.viz_table:
+        opt['viz_context_table'] = [int(x.strip()) for x in arguments.viz_table.split(',')]
+    else:
+        opt['viz_context_table'] = ''
     if arguments.ocrxy:
         opt['use_ocr_context'] = 'ocrxy'
     elif arguments.ocr1:

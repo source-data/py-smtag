@@ -83,12 +83,13 @@ class Context(nn.Module):
         super(Context, self).__init__()
         self.in_channels = in_channels
         self.context_table = context_table
+        # in context_table is empty, self.linears is empty too
         self.linears = nn.ModuleList([nn.Linear(self.in_channels, out_channels) for out_channels in self.context_table])
 
     def forward(self, context):
         embedding_list = []
-        if context.size(0) > 0:
-            for lin in self.linears:
+        if context.size(0) > 0: # don't compute context embedding if no context provided 
+            for lin in self.linears: # skipped in self.linears empty
                 ctx = lin(context) # from batch of vectors B x V to batch of embeddings B x E
                 ctx = F.softmax(ctx, 1) # auto-classifies images; possibly interpretable
                 ctx = ctx.unsqueeze(2) # B x E x 1
@@ -141,7 +142,7 @@ class Unet2(nn.Module):
             self.reduce = nn.Conv1d(2*(self.nf_input+self.nf_context), self.nf_input, 1, 1)
 
     def forward(self, x, context_list):
-        if context_list:
+        if context_list: # skipped if no context_list empty
             viz_context = context_list[0]
             viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
             x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
