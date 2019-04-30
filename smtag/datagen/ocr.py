@@ -144,7 +144,7 @@ class OCR():
         accound_key: path to the account_key json file created in https://console.cloud.google.com/apis/credentials
     """
 
-    def __init__(self, path, G=config.img_grid_size, T=0.1, account_key='/Users/lemberger/Documents/code/cloud/smarttag-2-5b02d5e85409.json'):
+    def __init__(self, path, G=config.img_grid_size, T=0.1, account_key='smarttag-2-5b02d5e85409.json'):
         self.path = path # path to images
         # path to annotations
         self.client = vision.ImageAnnotatorClient(credentials = service_account.Credentials.from_service_account_file(account_key))
