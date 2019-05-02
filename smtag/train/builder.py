@@ -38,12 +38,6 @@ BIAS =  True
 #         y = self.gamma * x + self.beta
 #         return y
 
-def self_attn(x):
-    d = x.size(1)
-    position_wise_interactions = torch.matmul(x.transpose(1, 2), x)
-    weights = torch.softmax(position_wise_interactions / sqrt(d), -1)
-    attention = torch.matmul(x, weights)
-    return attention
 
 class SmtagModel(nn.Module):
 
@@ -112,15 +106,6 @@ class OCR_attn(nn.Module):
         self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
         self.BN_down_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
 
-    def forward(x, ocr_t):
-        y = self.conv_down_A(ocr_t)
-        y = F.relu(self.BN_down_A(y), inplace=True)
-        y = self.lin(y)
-        att = attn(x, y)
-
-        y = torch.cat([x, att])
-
-
 
 class Unet2(nn.Module):
     def __init__(self, nf_input, nf_table, kernel_table, pool_table, context_table, dropout_rate, skip=True):
@@ -174,7 +159,7 @@ class Unet2(nn.Module):
             x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
             # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
             context_list = context_list[1:]
-        x = self.BN_pre(x) # or y = self.BN_pre(x)
+        # x = self.BN_pre(x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
         y = self.dropout(x)
         y = self.conv_down_A(y)
         y = F.relu(self.BN_down_A(y), inplace=True)
