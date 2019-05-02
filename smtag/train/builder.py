@@ -159,7 +159,7 @@ class Unet2(nn.Module):
             x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
             # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
             context_list = context_list[1:]
-        # TESTING x = self.BN_pre(x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
+        y = self.BN_pre(x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
         y = self.dropout(x)
         y = self.conv_down_A(y)
         y = F.relu(self.BN_down_A(y), inplace=True)
