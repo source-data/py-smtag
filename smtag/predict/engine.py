@@ -114,7 +114,7 @@ try:
         ])),
         viz_preprocessor = VisualContext()
     )
-except FileNotFoundError as e:
+except Exception as e:
     print("CARTRIDGE_WITH_VIZ not available")
     CARTRIDGE_WITH_VIZ = None
     print(e)
@@ -141,7 +141,7 @@ try:
         ])),
         viz_preprocessor = VisualContext()
     )
-except FileNotFoundError as e:
+except Exception as e:
     print("CARTRIDGE_NO_VIZ not available")
     CARTRIDGE_WITH_VIZ = None
     print(e)
