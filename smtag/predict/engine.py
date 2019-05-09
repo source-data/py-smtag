@@ -82,31 +82,70 @@ class ContextCombinedModel(nn.Module):
         y = torch.cat(y_list, 1)
         return y
 
+class Cartridge():
+
+    def __init__(self, entity_models: CombinedModel, reporter_models: CombinedModel, context_models:CombinedModel, panelize_model:CombinedModel, viz_preprocessor:VisualContext):
+        self.entity_models = entity_models
+        self.reporter_models = reporter_models
+        self.context_models = context_models
+        self.panelize_model = panelize_model
+        self.viz_preprocessor = viz_preprocessor
+
+
+CARTRIDGE_WITH_VIZ = Cartridge(
+    entity_models = CombinedModel(OrderedDict([
+        ('entities', load_model(config.model_entity_viz, config.prod_dir)),
+        # ('diseases', load_model(config.model_disease_no_viz, config.prod_dir))
+    ])),
+    reporter_models = CombinedModel(OrderedDict([
+        ('reporter', load_model(config.model_geneprod_reporter_no_viz, config.prod_dir))
+    ])),
+    context_models = ContextCombinedModel(OrderedDict([
+        ('geneprod_roles',
+            (load_model(config.model_geneprod_role_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
+        ),
+        # ('small_molecule_role',
+        #     (load_model(config.model_molecule_role_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+        # )
+    ])),
+    panelize_model = CombinedModel(OrderedDict([
+        ('panels', load_model(config.model_panel_stop_no_viz, config.prod_dir))
+    ])),
+    viz_preprocessor = VisualContext()
+)
+
+CARTRIDGE_NO_VIZ = Cartridge(
+    entity_models = CombinedModel(OrderedDict([
+        ('entities', load_model(config.model_entity_no_viz, config.prod_dir)),
+        # ('diseases', load_model(config.model_disease_no_viz, config.prod_dir))
+    ])),
+    reporter_models = CombinedModel(OrderedDict([
+        ('reporter', load_model(config.model_geneprod_reporter_no_viz, config.prod_dir))
+    ])),
+    context_models = ContextCombinedModel(OrderedDict([
+        ('geneprod_roles',
+            (load_model(config.model_geneprod_role_no_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
+        ),
+        # ('small_molecule_role',
+        #     (load_model(config.model_molecule_role_no_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+        # )
+    ])),
+    panelize_model = CombinedModel(OrderedDict([
+        ('panels', load_model(config.model_panel_stop_no_viz, config.prod_dir))
+    ])),
+    viz_preprocessor = VisualContext()
+)
+
 class SmtagEngine:
 
     DEBUG = False
 
-    def __init__(self):
-        self.entity_models = CombinedModel(OrderedDict([
-            ('entities', load_model(config.model_entity, config.prod_dir)),
-            # ('diseases', load_model(config.model_disease, config.prod_dir)),
-            # ('exp_assay', load_model(config.model_assay, config.prod_dir)) # can in fact be co-trained with entities since mutually exclusive
-        ]))
-        self.reporter_models = CombinedModel(OrderedDict([
-            ('reporter', load_model(config.model_geneprod_reporter, config.prod_dir))
-        ]))
-        self.context_models = ContextCombinedModel(OrderedDict([
-            ('geneprod_roles',
-               (load_model(config.model_geneprod_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
-            ),
-            # ('small_molecule_role',
-            #     (load_model(config.model_molecule_role, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
-            # )
-        ]))
-        self.panelize_model = CombinedModel(OrderedDict([
-            ('panels', load_model(config.model_panel_stop, config.prod_dir))
-        ]))
-        self.viz_context_processor = VisualContext()
+    def __init__(self, cartridge:Cartridge):
+        self.entity_models = cartridge.entity_models
+        self.reporter_models = cartridge.reporter_models
+        self.context_models = cartridge.context_models
+        self.panelize_model = cartridge.panelize_model
+        self.viz_context_processor = cartridge.viz_preprocessor
 
     def __panels(self, input_t_string: TString, token_list, viz_context) -> CharLevelDecoder:
         decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list, viz_context)
@@ -202,8 +241,16 @@ class SmtagEngine:
         return TString(input_string), tokenize(input_string)['token_list']
 
     def __img_preprocess(self, img):
-        viz_context = self.viz_context_processor.get_context(img)
-        vectorized = viz_context.view(1, -1)
+        # what does get_context return if img is None? or torch.Tensor(0)?
+        # context returns a black image if img is None
+        # the Context module returns an empty list if context is torch.Tensor(0)
+        # what to do if no img for _with_viz model
+        # what to do if img for _no_viz
+        if img is not None:
+            viz_context = self.viz_context_processor.get_context(img)
+            vectorized = viz_context.view(1, -1) # WATCH OUT: torch.Tensor(0).view(1,-1).size() is torch.Size([1, 0])
+        else:
+            vectorized = torch.Tensor(0) # the model will then skip the Context module and only uses the unet with the text
         return vectorized
     
     @timer
@@ -266,8 +313,8 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
     cv_img = torch.zeros(500, 500, 3).numpy()
-
-    engine = SmtagEngine()
+        
+    engine = SmtagEngine(CARTRIDGE_WITH_VIZ)
     engine.DEBUG = DEBUG
 
     if method == 'smtag':
