@@ -49,13 +49,21 @@ class Config():
     ############################################################################
     # MODELS
     #
-    _model_assay = "10X_L400_all_large_padding_no_ocr_assay_2019-02-12-15-18.zip"
-    _model_entity = "entities_fig_viz.zip" # "10X_L400_all_large_padding_no_ocr_small_molecule_geneprod_subcellular_cell_tissue_organism_2019-02-11-18-08.zip"
-    _model_geneprod_role = "roles_geneprod_fig_viz.zip" # 10X_L400_geneprod_anonym_not_reporter_large_padding_no_ocr_intervention_assayed_2019-02-11-23-22.zip"
-    _model_geneprod_reporter = "reporter.zip" # 10X_L400_geneprod_exclusive_padding_no_ocr_reporter_2019-02-12-10-57.zip"
-    _model_molecule_role = "10X_L400_small_molecule_anonym_large_padding_no_ocr_intervention_assayed_2019-02-18-15-32.zip"
-    _model_panel_stop = "panel_stop.zip" # 10X_L1200_all_large_padding_no_ocr_panel_stop_2019-02-18-17-00.zip"
-    _model_disease = "10X_L1200_NCBI_disease_augmented_large_padding_disease_2019-02-12-17-46.zip"
+    # WITH VISUAL CONTEXT
+    _model_entity_viz = "entities_fig_viz.zip"
+    _model_geneprod_role_viz = "roles_geneprod_fig_viz.zip"
+    _model_molecule_role_viz = None # under construction
+    # no diseasee model with viz context because no traininset for this
+    # no reporter model with viz because viz does not help
+    # no panel_stop model with viz because viz does not help
+    
+    # WITHOUT VISUAL CONTEXT
+    _model_entity_no_viz = None # under construction
+    _model_geneprod_reporter_no_viz = "reporter.zip"
+    _model_geneprod_role_no_viz = None # under construction
+    _model_molecule_role_no_viz = None # under construction
+    _model_disease_no_viz = None # under construction
+    _model_panel_stop_no_viz = "panel_stop.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
@@ -209,26 +217,32 @@ class Config():
         """
         return self._fusion_threshold
     @property
-    def model_assay(self):
-        return self._model_assay
+    def model_entity_viz(self):
+        return self._model_entity_viz
     @property
-    def model_entity(self):
-        return self._model_entity
+    def model_entity_no_viz(self):
+        return self._model_entity_no_viz
     @property
-    def model_geneprod_role(self):
-        return self._model_geneprod_role
+    def model_geneprod_role_viz(self):
+        return self._model_geneprod_role_viz
     @property
-    def model_geneprod_reporter(self):
-        return self._model_geneprod_reporter
+    def model_geneprod_role_no_viz(self):
+        return self._model_geneprod_role_no_viz
     @property
-    def model_molecule_role(self):
-        return self._model_molecule_role
+    def model_geneprod_reporter_no_viz(self):
+        return self._model_geneprod_reporter_no_viz
     @property
-    def model_panel_stop(self):
-        return self._model_panel_stop
+    def model_molecule_role_viz(self):
+        return self._model_molecule_role_viz
     @property
-    def model_disease(self):
-        return self._model_disease
+    def model_molecule_role_no_viz(self):
+        return self._model_molecule_role_no_viz
+    @property
+    def model_panel_stop_no_viz(self):
+        return self._model_panel_stop_no_viz
+    @property
+    def model_disease_no_viz(self):
+        return self._model_disease_no_viz
 
     def create_argument_parser_with_defaults(self, description=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter

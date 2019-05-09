@@ -411,8 +411,11 @@ class BratDataPreparator(DataPreparator):
         with cd(config.encoded_dir):
             for ex in examples: # 'text': text, 'annot': parsed_annotations, 'provenance': basename
                 encoded_features = BratEncoder.encode(ex)
-                path_to_encoded = os.path.join(config.data4th_dir, self.namebase, subset, ex.provenance)
-                encoded_example = EncodedExample(ex.provenance, ex.text, encoded_features)
+                try:
+                    path_to_encoded = os.path.join(config.data4th_dir, self.namebase, subset, ex['provenance'])
+                except:
+                    import pdb; pdb.set_trace()
+                encoded_example = EncodedExample(ex['provenance'], ex['text'], encoded_features)
                 augmenter.sample_and_save(path_to_encoded, encoded_example, self.iterations)
 
 
@@ -459,7 +462,6 @@ def main():
     options['exclusive'] =  [a for a in args.exclusive.split(',') if a]
     options['enrich'] =  [a for a in args.enrich.split(',') if a]
     print(options)
-    #with cd(config.working_directory):
     if args.brat:
         prep = BratDataPreparator(options)
     else:
