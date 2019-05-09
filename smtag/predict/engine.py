@@ -92,49 +92,59 @@ class Cartridge():
         self.viz_preprocessor = viz_preprocessor
 
 
-CARTRIDGE_WITH_VIZ = Cartridge(
-    entity_models = CombinedModel(OrderedDict([
-        ('entities', load_model(config.model_entity_viz, config.prod_dir)),
-        # ('diseases', load_model(config.model_disease_no_viz, config.prod_dir))
-    ])),
-    reporter_models = CombinedModel(OrderedDict([
-        ('reporter', load_model(config.model_geneprod_reporter_no_viz, config.prod_dir))
-    ])),
-    context_models = ContextCombinedModel(OrderedDict([
-        ('geneprod_roles',
-            (load_model(config.model_geneprod_role_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
-        ),
-        # ('small_molecule_role',
-        #     (load_model(config.model_molecule_role_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
-        # )
-    ])),
-    panelize_model = CombinedModel(OrderedDict([
-        ('panels', load_model(config.model_panel_stop_no_viz, config.prod_dir))
-    ])),
-    viz_preprocessor = VisualContext()
-)
+try:
+    CARTRIDGE_WITH_VIZ = Cartridge(
+        entity_models = CombinedModel(OrderedDict([
+            ('entities', load_model(config.model_entity_viz, config.prod_dir)),
+            # ('diseases', load_model(config.model_disease_no_viz, config.prod_dir))
+        ])),
+        reporter_models = CombinedModel(OrderedDict([
+            ('reporter', load_model(config.model_geneprod_reporter_no_viz, config.prod_dir))
+        ])),
+        context_models = ContextCombinedModel(OrderedDict([
+            ('geneprod_roles',
+                (load_model(config.model_geneprod_role_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
+            ),
+            # ('small_molecule_role',
+            #     (load_model(config.model_molecule_role_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+            # )
+        ])),
+        panelize_model = CombinedModel(OrderedDict([
+            ('panels', load_model(config.model_panel_stop_no_viz, config.prod_dir))
+        ])),
+        viz_preprocessor = VisualContext()
+    )
+except FileNotFoundError as e:
+    print("CARTRIDGE_WITH_VIZ not available")
+    CARTRIDGE_WITH_VIZ = None
+    print(e)
 
-CARTRIDGE_NO_VIZ = Cartridge(
-    entity_models = CombinedModel(OrderedDict([
-        ('entities', load_model(config.model_entity_no_viz, config.prod_dir)),
-        # ('diseases', load_model(config.model_disease_no_viz, config.prod_dir))
-    ])),
-    reporter_models = CombinedModel(OrderedDict([
-        ('reporter', load_model(config.model_geneprod_reporter_no_viz, config.prod_dir))
-    ])),
-    context_models = ContextCombinedModel(OrderedDict([
-        ('geneprod_roles',
-            (load_model(config.model_geneprod_role_no_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
-        ),
-        # ('small_molecule_role',
-        #     (load_model(config.model_molecule_role_no_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
-        # )
-    ])),
-    panelize_model = CombinedModel(OrderedDict([
-        ('panels', load_model(config.model_panel_stop_no_viz, config.prod_dir))
-    ])),
-    viz_preprocessor = VisualContext()
-)
+try:
+    CARTRIDGE_NO_VIZ = Cartridge(
+        entity_models = CombinedModel(OrderedDict([
+            ('entities', load_model(config.model_entity_no_viz, config.prod_dir)),
+            # ('diseases', load_model(config.model_disease_no_viz, config.prod_dir))
+        ])),
+        reporter_models = CombinedModel(OrderedDict([
+            ('reporter', load_model(config.model_geneprod_reporter_no_viz, config.prod_dir))
+        ])),
+        context_models = ContextCombinedModel(OrderedDict([
+            ('geneprod_roles',
+                (load_model(config.model_geneprod_role_no_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.GENEPROD})
+            ),
+            # ('small_molecule_role',
+            #     (load_model(config.model_molecule_role_no_viz, config.prod_dir), {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE})
+            # )
+        ])),
+        panelize_model = CombinedModel(OrderedDict([
+            ('panels', load_model(config.model_panel_stop_no_viz, config.prod_dir))
+        ])),
+        viz_preprocessor = VisualContext()
+    )
+except FileNotFoundError as e:
+    print("CARTRIDGE_NO_VIZ not available")
+    CARTRIDGE_WITH_VIZ = None
+    print(e)
 
 class SmtagEngine:
 
@@ -167,7 +177,7 @@ class SmtagEngine:
         decoded = Predictor(self.reporter_models).predict(input_t_string, token_list, viz_context)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
-            print(f"\n2: after reporter: {decoded.semantic_groups} {B}x{C}x{L}")
+            print(f"\nafter reporter: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
