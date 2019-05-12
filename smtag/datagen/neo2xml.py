@@ -224,7 +224,6 @@ class NeoImport():
                     results_panels = DB.query(q_panel)
                     print("{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi))
 
-                    # for text-image do NOT fuse panels
                     if results_panels:
                         #panels not in the proper order, need resorting via label
                         results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'panel_label':p[1], 'href': p[3], 'tags':p[4], 'tags2anonym':p[5]} for p in results_panels}
