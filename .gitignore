@@ -9,6 +9,8 @@ resources/runs/**/*
 resources/models/**/*
 resources/scans/**/*
 log/*.log*
+docs/*
+corpora/*
 ##
 #####################################################################################
 
