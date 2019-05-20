@@ -1,5 +1,6 @@
 from .engine import CombinedModel, ContextCombinedModel, Cartridge
 from ..common.importexport import load_model
+from ..common.mapper import Catalogue
 from collections import OrderedDict
 from ..datagen.context import VisualContext
 from .. import config

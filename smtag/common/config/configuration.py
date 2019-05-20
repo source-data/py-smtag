@@ -51,16 +51,16 @@ class Config():
     #
     # WITH VISUAL CONTEXT
     _model_entity_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-01-16-07.zip"
-    _model_geneprod_role_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-04-24-00-38.zip"
+    _model_geneprod_role_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-20-14-52.zip"
     _model_molecule_role_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-15-17.zip"
     # no diseasee model with viz context because no traininset for this
     # no reporter model with viz because viz does not help
     # no panel_stop model with viz because viz does not help
     
     # WITHOUT VISUAL CONTEXT
-    _model_entity_no_viz = None # under construction
-    _model_geneprod_reporter_no_viz = "5X_L1200_fig_reporter_2019-05-13-09-02.zip"
-    _model_geneprod_role_no_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-02-06-13.zip" 
+    _model_entity_no_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-02-06-13.zip" # under construction
+    _model_geneprod_reporter_no_viz = "5X_L1200_fig_reporter_2019-05-20-16-12.zip"
+    _model_geneprod_role_no_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-12-16-47.zip" 
     _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-17-18.zip"
     _model_disease_no_viz = "10X_L1200_disease_disease_2019-05-10-07-05.zip"
     _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-05-11-01-10.zip"
