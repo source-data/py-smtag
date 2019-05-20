@@ -59,7 +59,7 @@ class Config():
     
     # WITHOUT VISUAL CONTEXT
     _model_entity_no_viz = None # under construction
-    _model_geneprod_reporter_no_viz = "5X_L1200_fig_reporter_2019-04-29-20-40.zip"
+    _model_geneprod_reporter_no_viz = "5X_L1200_fig_reporter_2019-05-13-09-02.zip"
     _model_geneprod_role_no_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-02-06-13.zip" 
     _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-17-18.zip"
     _model_disease_no_viz = "10X_L1200_disease_disease_2019-05-10-07-05.zip"
