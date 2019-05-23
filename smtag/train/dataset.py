@@ -17,15 +17,18 @@ from .. import config
 
 class Data4th(Dataset):
 
-    def __init__(self, data_dir_path: str, opt: 'Options'):
-        self.data_dir_path = data_dir_path
-        self.path_list = [os.path.join(self.data_dir_path, d) for d in os.listdir(self.data_dir_path) if d not in config.dirignore]
+    def __init__(self, data_dir_path_list: List, opt: 'Options'):
+        # use a list of data_dir_path to aggregate several training set
+        self.path_list = []
+        for data_dir_path in data_dir_path_list:
+            new_list = [os.path.join(data_dir_path, d) for d in os.listdir(data_dir_path) if d not in config.dirignore]
+            self.path_list += new_list
         self.N = len(self.path_list)
         self.opt = opt
         self.opt.L = self.sniff()
         self.millefeuille = Assembler(self.opt)
         self.tokenized = []
-        print(f"{self.data_dir_path} has {len(self.path_list)} data packages")
+        print(f"listed {len(self.path_list)} data packages")
 
     def sniff(self):
         sample_input = torch.load(os.path.join(self.path_list[0], EncodedExample.textcoded_filename))
