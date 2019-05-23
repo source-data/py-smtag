@@ -51,6 +51,7 @@ def export_model(model, custom_name = '', model_dir = config.model_dir):
 
 def load_model(archive_filename, model_dir=config.model_dir):
     archive_path = archive_filename # os.path.join(model_dir, archive_filename)
+    print(f"\n\nloading {archive_filename} \nfrom {model_dir}\n\n")
     with cd(model_dir):
         # print("now in {}".format(os.getcwd()))
         with ZipFile(archive_path) as myzip:
