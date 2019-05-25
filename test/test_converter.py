@@ -5,13 +5,16 @@
 import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
-from smtag.common.converter import Converter, TString
+from smtag.common.converter import ConverterNBITS, TString
 from smtag.common.utils import timer
-from timeit import timeit
+from string import ascii_letters
+from random import choice
 
 from smtag import config
 
 NBITS = config.nbits
+N_RANDOM_LETTERS = 10000
+RANDOM_LETTERS = [choice(ascii_letters) for _ in range(N_RANDOM_LETTERS)]
 
 class ConverterTest(SmtagTestCase):
     def setUp(self):
@@ -22,17 +25,17 @@ class ConverterTest(SmtagTestCase):
         self.tensor = torch.Tensor([int(b) for b in bits]).resize_(1,NBITS,1)
 
     def test_encode_string_into_tensor(self):
-        converted = Converter.t_encode(self.single_character)
+        converted = ConverterNBITS().encode(self.single_character)
         self.assertTensorEqual(self.tensor, converted)
 
     def test_decode_tensor_into_string(self):
-        self.assertEqual(self.single_character, Converter.t_decode(self.tensor))
+        self.assertEqual(self.single_character, ConverterNBITS().decode(self.tensor))
 
     def test_lossless_encode_decode(self):
-        self.assertEqual(self.input_string, Converter.t_decode(Converter.t_encode(self.input_string)))
+        self.assertEqual(self.input_string, ConverterNBITS().decode(ConverterNBITS().encode(self.input_string)))
 
     def test_lossless_decode_encode(self):
-        self.assertTensorEqual(self.tensor, Converter.t_encode(Converter.t_decode(self.tensor)))
+        self.assertTensorEqual(self.tensor, ConverterNBITS().encode(ConverterNBITS().decode(self.tensor)))
 
     def test_concat_1(self):
         a = "the "
@@ -40,7 +43,7 @@ class ConverterTest(SmtagTestCase):
         ab = a + b
         t_ab = TString(a) + TString(b)
         self.assertEqual(ab, str(t_ab))
-        self.assertTensorEqual(TString(ab).toTensor(), t_ab.toTensor())
+        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
 
     def test_concat_2(self):
         a = "the "
@@ -48,7 +51,7 @@ class ConverterTest(SmtagTestCase):
         ab = a + b
         t_ab = TString(a) + TString(b)
         self.assertEqual(ab, str(t_ab))
-        self.assertTensorEqual(TString(ab).toTensor(), t_ab.toTensor())
+        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
 
     def test_concat_3(self):
         a = ""
@@ -56,7 +59,7 @@ class ConverterTest(SmtagTestCase):
         ab = a + b
         t_ab = TString(a) + TString(b)
         self.assertEqual(ab, str(t_ab))
-        self.assertTensorEqual(TString(ab).toTensor(), t_ab.toTensor())
+        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
 
     def test_slice(self):
         the_cat = "The cat"
@@ -64,21 +67,22 @@ class ConverterTest(SmtagTestCase):
         the_ts = the_cat_ts[0:3]
         the = the_cat[0:3]
         expected = TString(the)
-        self.assertEqual(expected.s, the_ts.s)
-        self.assertTensorEqual(expected.t, the_ts.t)
+        self.assertEqual(str(expected), str(the_ts))
+        self.assertTensorEqual(expected.tensor, the_ts.tensor)
 
     def test_empty_string(self):
         empty_string = ''
-        empty_string_ts = TString('')
+        empty_string_ts = TString(empty_string)
         expected_tensor = torch.Tensor()
         expected_string = ''
         self.assertEqual(expected_string, str(empty_string_ts))
-        self.assertTensorEqual(expected_tensor, empty_string_ts.toTensor())
+        self.assertTensorEqual(expected_tensor, empty_string_ts.tensor)
 
     @timer
     def test_timing(self):
-        for _ in range(100000):
-            Converter.t_encode("🐌")
+        c = ConverterNBITS()
+        for i in range(N_RANDOM_LETTERS):
+            c.encode(RANDOM_LETTERS[i])
 
 class TStringTest(SmtagTestCase):
 
