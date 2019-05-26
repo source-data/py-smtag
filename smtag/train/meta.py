@@ -31,6 +31,7 @@ class Options():
     def __init__(self, opt):
         self.descriptor = "; ".join([f"{k}={opt[k]}" for k in opt])
         self.namebase = opt['namebase']
+        self.data_path_list = opt['data_path_list']
         self.modelname = opt['modelname']
         self.learning_rate = opt['learning_rate']
         self.dropout = opt['dropout']
@@ -71,9 +72,10 @@ class Options():
 class Meta():
 
     def __init__(self, opt):
-        self.trainset = Data4th(os.path.join(config.data4th_dir, opt.namebase, 'train'), opt)
-        self.validation = Data4th(os.path.join(config.data4th_dir, opt.namebase, 'valid'), opt)
-        self.opt = self.trainset.opt # opt is completed by trainset to get example length
+        self.opt = opt
+        self.trainset = Data4th(opt, 'train')
+        self.validation = Data4th(opt, 'valid')
+        self.opt.L = self.trainset.opt.L
         
         
     def _train(self, trainset, validation, opt):
@@ -112,7 +114,7 @@ def main():
     # READ COMMAND LINE ARGUMENTS
     #arguments = docopt(__doc__, version='0.1')
     parser = config.create_argument_parser_with_defaults(description='Top level module to manage training.')
-    parser.add_argument('-f', '--file', default='demo_xml_train', help='Namebase of dataset to import')
+    parser.add_argument('-f', '--files', default='demo_xml_train', help='Namebase of dataset to import')
     parser.add_argument('-E' , '--epochs',  default=200, help='Number of training epochs.')
     parser.add_argument('-Z', '--minibatch_size', default=32, help='Minibatch size.')
     parser.add_argument('-R', '--learning_rate', default=0.01, type=float, help='Learning rate.')
@@ -134,7 +136,8 @@ def main():
     hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
     iterations = int(arguments.iterations)
     opt = {}
-    opt['namebase'] = arguments.file
+    opt['data_path_list'] = [dir.strip() for dir in arguments.files.split(',')]
+    opt['namebase'] = "-".join(opt['data_path_list'])
     opt['modelname'] = arguments.model
     opt['learning_rate'] = float(arguments.learning_rate)
     opt['dropout'] = float(arguments.dropout_rate)
