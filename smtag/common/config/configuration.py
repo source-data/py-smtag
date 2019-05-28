@@ -31,6 +31,7 @@ class Config():
     ############################################################################
     # VARIABLES
     #
+    _cache_dataset     = 1024 # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
     _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
     _allowed_img       = ['.jpg', '.jpeg', '.png']
     _img_grid_size     = 7 # grid size used to encode the location of elements on images
@@ -62,7 +63,7 @@ class Config():
     _model_geneprod_reporter_no_viz = "5X_L1200_fig_reporter_2019-05-20-16-12.zip"
     _model_geneprod_role_no_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-12-16-47.zip" 
     _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-17-18.zip"
-    _model_disease_no_viz = "10X_L1200_disease_disease_2019-05-10-07-05.zip"
+    _model_disease_no_viz = "10X_L1200_disease-5X_L1200_fig_disease_2019-05-27-16-34.zip"
     _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-05-11-01-10.zip"
 
     def __init__(self):
@@ -135,6 +136,12 @@ class Config():
         if not os.path.exists(scans_dir):
             os.mkdir(scans_dir)
         return scans_dir
+    @property
+    def cache_dataset(self):
+        """
+        Size of the cache used in Dataset
+        """
+        return self._cache_dataset
     @property
     def dirignore(self):
         """

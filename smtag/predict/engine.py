@@ -18,7 +18,6 @@ Options:
 """
 
 
-
 import re
 from torch import nn
 import torch
@@ -39,7 +38,7 @@ from ..common.viz import Show
 from .. import config
 
 
-class CombinedModel(nn.Module):#SmtagModel?
+class CombinedModel(nn.Module):
     '''
     This module takes a list of SmtagModels and concatenates their output along the second dimension (feature axe).
     The output_semantics keeps track of the semantics of each module in the right order.
@@ -267,8 +266,7 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
     cv_img = torch.zeros(500, 500, 3).numpy()
-    import cartridges
-    engine = SmtagEngine(cartridges.WITH_VIZ)
+    engine = SmtagEngine(NO_VIZ)
     engine.DEBUG = DEBUG
 
     if method == 'smtag':
@@ -285,4 +283,5 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
         print("unknown method {}".format(method))
 
 if __name__ == "__main__":
+    # from .cartridges import NO_VIZ
     main()

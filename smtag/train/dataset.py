@@ -8,6 +8,7 @@ import math
 import os
 from typing import List
 from random import shuffle
+from functools import lru_cache
 from ..common.mapper import Catalogue, concept2index
 from ..common.progress import progress
 from ..common.utils import tokenize, cd
@@ -39,6 +40,7 @@ class Data4th(Dataset):
     def __len__(self):
         return self.N
 
+    @lru_cache(maxsize=config.cache_dataset)
     def __getitem__(self, i):
         path = self.path_list[i]
         textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename)).float()
