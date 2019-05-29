@@ -267,7 +267,7 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
     cv_img = torch.zeros(500, 500, 3).numpy()
-    import cartridges
+    from . import cartridges
     engine = SmtagEngine(cartridges.WITH_VIZ)
     engine.DEBUG = DEBUG
 

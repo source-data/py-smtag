@@ -21,15 +21,18 @@ setuptools.setup(
         #'tensorflow==1.4', # needed for tensorboardX visualization
         'tensorboardX==1.4',
         'docopt==0.6.2',
-        'numpy==1.14.2',
+        'numpy==1.15',
         'Pillow==4.3.0', #5.1.0 requires Mac OS 10.12; torchvision require at least 4.1.1; GPU EC2 AMI needs >4.3.0
-        'PyYAML==3.12',
-        'six==1.10.0', # GPU EC2 AMI need 1.10
         'torch==1.0.1',
         'torchvision==0.2.2.post3',
+        'PyYAML==5.1',
+        #'six==1.10.0', # GPU EC2 AMI need 1.10
+        'six==1.11.0', # Alex fixing build issue
         'neo4jrestclient==2.1.1',
         'nltk==3.2.4',
-        'python-dotenv==0.10.1'
+        'python-dotenv==0.10.1',
+        'scikit-learn',
+        'google-cloud-vision==0.34',
     ],
     include_package_data=True,
     entry_points = {
