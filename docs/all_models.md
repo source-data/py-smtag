@@ -5,9 +5,14 @@ Required data:
 - latest sd-graph in neo4j.
 - NCBI_disease corpus in brat format.
 
+Generation of corpuses:
+
     smtag-neo2xml -l10000 -f 181203all # on large sd-graph with 30000 panels from 1100 papers
     smtag-neo2xml -y 1998:2012 -J "embo journal" -f emboj_until_2012 -l 10000
-    smtag-ocr # run only once
+
+Processing of images:
+
+    # smtag-ocr # run only once, optional since not yet in use
     smtag-viz # run only once
     
 # Preparation of ready-to-train datasets
