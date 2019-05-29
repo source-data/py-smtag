@@ -33,11 +33,10 @@ def cached_zeroed(L, dtype):
     t = torch.zeros(1, NBITS, L, dtype=dtype)
     return t
 
-CODE2BITS = [code2bits(code) for code in range(2**NBITS-1)]
-
-
 class ConverterNBITS(Converter):
-
+    
+    CODE2BITS = [code2bits(code) for code in range(2**NBITS)]
+    
     def __init__(self, dtype:torch.dtype=torch.float):
        super(ConverterNBITS, self).__init__(dtype)
 
@@ -57,7 +56,7 @@ class ConverterNBITS(Converter):
             t = cached_zeroed(L, self.dtype)
             for i in range(L):
                 code = ord(input_string[i])
-                t[0, : , i] = CODE2BITS[code]
+                t[0, : , i] = self.CODE2BITS[code]
         return t
 
     def decode(self, t: torch.Tensor) -> str:
