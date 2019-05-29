@@ -1,6 +1,7 @@
 # Preparation of corpus of xml documents and images
 
 Required data:
+
 - latest sd-graph in neo4j.
 - NCBI_disease corpus in brat format.
 
