@@ -3,21 +3,30 @@ version: '2.3'
 services:
   neo4j:
     image: neo4j:3.1
-    ports:
-      - 7474:7474
-      - 7687:7687
+    #ports:
+    #  - 6006:6006
+    #  - 7474:7474
+    #  - 7687:7687
     volumes:
       - ~/neo4j/data:/data
     networks:
       - default
   smtag:
     image: embo/py-smtag:dev-tldev
+    # build: .
     runtime: nvidia
+    ipc: host
+    working_dir: /workspace/py-smtag
     volumes:
-      - ~/dev/py-smtag:/workspace/py-smtag
+      - .:/workspace/py-smtag
+      #- ./resources:/workspace/resources
+    env_file:
+      - .env
+    #environment:
+    #- SMTAG_WORKING_DIRECTORY=/workspace/resources
     networks:
       - default
 
-networks:
-  default:
-    driver: bridge
+#networks:
+#  default:
+#    driver: bridge
