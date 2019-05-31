@@ -467,7 +467,12 @@ def main():
     options['safe_mode'] = safe_mode
     options['exclusive_mode'] = exclusive_mode
     options['keep_roles_only_for_selected_tags'] = keep_roles_only_for_selected_tags
-    options['source'] = {'db': 'http://localhost:7474/db/data/', 'username': 'neo4j', 'password': 'sourcedata'} #getpass()}
+    #options['source'] = {'db': 'http://localhost:7474/db/data/', 'username': 'neo4j', 'password': 'sourcedata'} #getpass()}
+    options['source'] = {
+       'db': os.environ.get('SMTAG_NEO4J_URL', 'http://localhost:7474/db/data/'),
+       'username': os.environ.get('SMTAG_NEO4J_USER', 'neo4j'),
+       'password': os.environ.get('SMTAG_NEO4J_PASS', 'sourcedata'),
+  }
 
     if options['verbose']: print(options)
 
