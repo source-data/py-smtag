@@ -243,6 +243,7 @@ class SmtagEngine:
         return self.__serialize(pred, format=format)
 
 def main():
+    from .cartridges import NO_VIZ
     arguments = docopt(__doc__, version='0.1')
     input_string = arguments['--text']
     method = arguments['--method']
@@ -283,5 +284,4 @@ F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the in
         print("unknown method {}".format(method))
 
 if __name__ == "__main__":
-    # from .cartridges import NO_VIZ
     main()
