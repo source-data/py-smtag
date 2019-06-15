@@ -69,22 +69,28 @@ class Show():
         self.close =  Show.CLOSE_COLOR[format]
         self.nl =  Show.BR[format]
 
-    def example(self, minibatches, model = None):
+    def example(self, dataloader, model = None):
         out = ""
-        M = len(minibatches) # M minibatches
-        N = minibatches[0].N # N examples per minibatch
+        minibatch = next(iter(dataloader))
+        N = minibatch.input.size(0) # N examples per minibatch
         #select random j-th example in i-th minibatch
-        rand_i = math.floor(M * random())
-        rand_j = math.floor(N *  random())
-        input = minibatches[rand_i].input[[rand_j], : , : ] # rand_j index as list to keep the tensor 4D
-        target = minibatches[rand_i].output[[rand_j], : , : ]
+        rand_j = math.floor(N * random())
+        input = minibatch.input[[rand_j], : , : ] # rand_j index as list to keep the tensor 4D
+        target = minibatch.output[[rand_j], : , : ]
+        if minibatch.viz_context.size(0) != 0:
+            viz_context = minibatch.viz_context[[rand_j], : ]
+        else:
+            viz_context = torch.Tensor(0)
+            if torch.cuda.is_available():
+                viz_context = viz_context.cuda()
 
         # original_text =  minibatches[rand_i].text[rand_j]
-        provenance = minibatches[rand_i].provenance[rand_j]
+        provenance = minibatch.provenance[rand_j]
         nf_input = input.size(1)
         if model is not None:
             model.eval()
-            prediction = model(input)
+            with torch.no_grad():
+                prediction = model(input, viz_context)
             model.train()
 
         text = str(TString(input[[0], 0:config.nbits, : ])) #sometimes input has more than NBITS features if feature2input option was chosen

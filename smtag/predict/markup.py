@@ -148,33 +148,6 @@ class AbstractTagger:
             for count, token in enumerate(panel):
                 text = xml_escape(token.text)
                 left_spacer = token.left_spacer if count > 0 else ""
-
-                # print(f"1.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
-                # if something new or changed?
-                #    if any new or changed to something that is not untagged
-                #        close accumulated element with all active features
-                #        reset innert_text to empty
-                #        update all current features to add new one or change modified ones
-                #        check for tagge to untagged transition and reduce active feature
-                #        initiate new element with toked text into inner_text
-                #        add left spacer to ml_string
-                #
-                #    if nothing new but anything changed to untagged
-                #        close accumulated element with all active features
-                #        add ccumulated element to ml_string
-                #        add left spacer to ml_string
-                #        if some features are still open
-                #              initialize inner text with token text
-                #         else add left_spacer and text to ml_string
-                #         update all current features and reduce number of feature active
-                #     else everytin the same?
-                #         is anything active? 
-                #             add left spacer to inner_text
-                #             add textto innert_text
-                #         nothing active
-                #             add left spacer to ml_string
-                #             add text to ml_string
-
                 for group in decoded.semantic_groups: # scan across feature groups the features that need to be opened
                     concept = decoded.concepts[group][pos]
                     if type(concept) != type(Catalogue.UNTAGGED) and concept != current_concepts[group]: # a new concept

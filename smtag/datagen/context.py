@@ -12,9 +12,8 @@ from torch import nn
 from torch.nn import functional as F
 import torchvision
 #https://discuss.pxtorch.org/t/torchvision-url-error-when-loading-pretrained-model/2544/6
-from torchvision.models import vgg19, resnet152
+from torchvision.models import densenet161 #vgg19, resnet152
 from torchvision import transforms
-from tensorboardX import SummaryWriter
 import numpy as np
 from sklearn.decomposition import PCA, IncrementalPCA
 from ..common.utils import cd
@@ -23,11 +22,7 @@ from .. import config
 
 from torchvision.models.resnet import model_urls as resnet_urls
 from torchvision.models.vgg import model_urls as vgg_urls
-for m in resnet_urls:
-    resnet_urls[m] = resnet_urls[m].replace('https://', 'http://')
-for m in vgg_urls:
-    vgg_urls[m] = vgg_urls[m].replace('https://', 'http://')
-
+from torchvision.models.densenet import model_urls as densenet_urls
 
 # All pre-trained models expect input images normalized in the same wax, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224.
 # The images have to be loaded in to a range of [0, 1] and then normalized using mean = [0.485, 0.456, 0.406] and std = [0.229, 0.224, 0.225]. You can use the following transform to normalize:
@@ -37,35 +32,16 @@ for m in vgg_urls:
 #     self.laxer2 = self._make_laxer(block, 128, laxers[1], stride=2)
 #     self.laxer3 = self._make_laxer(block, 256, laxers[2], stride=2)
 #     self.laxer4 = self._make_laxer(block, 512, laxers[3], stride=2)
-
-#model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
-# https://discuss.pxtorch.org/t/how-can-l-use-the-pre-trained-resnet-to-extract-feautres-from-mx-own-dataset/9008
-# from torch.autograd import Variable
-# resnet152 = models.resnet152(pretrained=True)
-# modules=list(resnet152.children())[:-1]
-# resnet152=nn.Sequential(*modules)
-# for p in resnet152.parameters():
-#     p.requires_grad = False
-
-# All pre-trained models expect input images normalized in the same wax, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224. The images have to be loaded in to a range of [0, 1] and then normalized using mean = [0.485, 0.456, 0.406] and std = [0.229, 0.224, 0.225]. You can use the following transform to normalize:
+# All pre-trained models expect input images normalized in the same wax, i.e. mini-batches of 3-channel RGB images of shape (3 x H x W), where H and W are expected to be at least 224. The images have to be loaded in to a range of [0, 1] and then normalized using mean = [0.485, 0.456, 0.406] and std = [0.229, 0.224, 0.225]. 
 
 
-# modules = list(resnet152(pretrained=True).children())[:-1]
-# m = nn.Sequential(*modules)
-# x = torch.zeros(1, 3, 244, 244)
-# m(x).size() # -->torch.Size([1, 2048, 2, 2])
-# x.numel() # --> 8192
-
-ALLOWED_FILE_EXTENSIONS =['.jpg', '.jpeg']
+PRETRAINED = densenet161(pretrained=True).features
 
 class VisualContext(object):
 
-    def __init__(self, path, selected_output_module=28):
-        self.path = path
-        print("loading modules of the vgg19 network")
-        modules = list(vgg19(pretrained=True).features) # children() for resnet
-        self.net = nn.Sequential(*modules[:selected_output_module])
-        print("done!")
+    def __init__(self):
+        self.net = PRETRAINED
+        print(f"loaded {self.net.__class__} pretrained network")
 
     def open(self, img_filename):
         try:
@@ -77,6 +53,8 @@ class VisualContext(object):
 
     @staticmethod
     def cv2th(cv_image):
+        if len(cv_image.shape) == 2: # B&W images are 2D tensors
+            cv_image = cv.cvtColor(cv_image, cv.COLOR_GRAY2RGB)
         BGR = torch.from_numpy(cv_image) # cv image is BGR # cv images are height x width  x channels
         blu  = BGR[ : , : , 0]
         gre  = BGR[ : , : , 1]
@@ -90,7 +68,7 @@ class VisualContext(object):
         RGB = RGB.float() / 255.0
         return RGB
 
-    def resize(self, cv_image, h=224, w=224): # h and w should be specified in config
+    def resize(self, cv_image, h=config.resized_img_size, w=config.resized_img_size):
         resized = cv.resize(cv_image, (h, w), interpolation=cv.INTER_AREA)
         return resized
 
@@ -98,30 +76,22 @@ class VisualContext(object):
         normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         return normalizer(image)
 
-    def get_context(self, filename):
-        cv_image = self.open(filename) # H x W x C
+    def get_context(self, cv_image):
         if cv_image is not None:
             resized = self.resize(cv_image) # 224 x 224
             image = self.cv2th(resized) # 3D C x H x W
             normalized = self.normalize(image)
             normalized.unsqueeze_(0) # 4D 1 x C x H x W
         else:
-            normalized = torch.zeros(1, 3, 224, 224) # a waste...
+            normalized = torch.zeros(1, 3, config.resized_img_size, config.resized_img_size) # a waste...
         self.net.eval()
         with torch.no_grad():
-            output = self.net(normalized)
-        return output # 4D 1 x 512 x 14 x 14
+            output = self.net(normalized) # densenet.features: 1 x 2208 x 7 x 7; vgg19.features[:28] 1 x 512 x 14 x 14; vgg19.features 1 x 512 x 7 x 7
+        return output
 
-    def load_viz_context(self, graphic_filename):
-        basename = os.path.basename(graphic_filename)
-        basename = os.path.splitext(basename)[0]
-        viz_context_filename = os.path.join(self.path, basename, '.pyth')
-        viz_tensor = torch.load(viz_context_filename)
-        return viz_tensor
-
-    def run(self):
-        with cd(self.path):
-            filenames = [f for f in os.listdir() if os.path.splitext(f)[-1] in ALLOWED_FILE_EXTENSIONS]
+    def run(self, path):
+        with cd(path):
+            filenames = [f for f in os.listdir() if os.path.splitext(f)[-1] in config.allowed_img]
             N = len(filenames)
             for i, filename in enumerate(filenames):
                 basename = os.path.splitext(filename)[0]
@@ -129,78 +99,18 @@ class VisualContext(object):
                 if os.path.exists(viz_filename):
                     msg = "{} already analyzed".format(filename)
                 else: # never analyzed before
-                    viz_context = self.get_context(filename) # 4D tensor!
+                    cv_image = self.open(filename) # H x W x C
+                    viz_context = self.get_context(cv_image) # 4D tensor!
                     torch.save(viz_context, viz_filename)
                     msg = "saved {}".format(viz_filename)
                 progress(i, N, msg+"                   ")
         print()
 
-
-class PCA_reducer():
-    def __init__(self, k, path):
-        self.path = path
-        self.k = k
-        self.pca_model = None
-
-    def train(self, fraction_images_pca_model=config.fraction_images_pca_model): # path to pre-processed viz context tensors for pca training set
-        filenames = [f for f in os.listdir(self.path) if os.path.splitext(f)[-1] == '.pyth']
-        shuffle(filenames)
-        N = int(len(filenames) * fraction_images_pca_model)
-        filenames = filenames[:N]
-        t = []
-        for i, filename in enumerate(filenames):
-            progress(i, len(filenames), f"{filename}                    ")
-            t.append(torch.load(os.path.join(self.path, filename)))
-        t = torch.cat(t, 0)
-        self.pca_model = PCA(n_components=self.k, svd_solver='randomized').fit(self.convert2np(t)) # approximation for large datasets # IncrementalPCA(n_components=self.k, batch_size=self.k * 5).fit(self.convert2np(t)) #
-        return t, filenames[:N] # N x C x H x W
-
-    def convert2np(self, x):
-        B, C, H, W = x.size()
-        x = x - x.mean()
-        x = x / x.std()
-        x.transpose_(1, 3) # B x W x H x C
-        x.resize_(B * W * H, C) # rows=vectorized position, columns = features
-        x_np = x.numpy()
-        return x_np
-
-    def reduce(self, x, grid_size=config.img_grid_size):
-        B, C, H, W = x.size()
-        x_np = self.convert2np(x) # B*W*H x C
-        # print(f"reducing {B} x {C} x {H} x {W} using PCA ({self.k} components)")
-        p_np = self.pca_model.transform(x_np) # B*W*H x k
-        p_th = torch.from_numpy(p_np)
-        p_th.resize_(B, W, H, self.k) # B x W x H x k
-        p_th.transpose_(1, 3) # B x k x H x W
-        # print("reducing resolution by adaptive max pool")
-        x_reduced = F.adaptive_max_pool2d(p_th, grid_size)
-        return x_reduced.view(B, self.k*grid_size*grid_size) # 4D B x k * 3 * 3 NEED TO VECTORIZE IT?
-
 def main():
-    parser = config.create_argument_parser_with_defaults(description='Exracting visual context vectors from images')
-    parser.add_argument('-F', '--fraction', type=float, default = config.fraction_images_pca_model, help='Fraction of images to be used to train pca model.')
-
-    args = parser.parse_args()
     image_dir = config.image_dir
-    fraction_images_pca_model = args.fraction
     print("running perceptual vision from {} on {}".format(os.getcwd(), image_dir))
-    viz = VisualContext(image_dir, selected_output_module=28)
-    viz.run()
-
-    pca = PCA_reducer(config.k_pca_components, image_dir)
-    print(f"\ntraining pca model on viz context files...")
-    trainset, filenames = pca.train(fraction_images_pca_model)
-    print("Done!")
-    print("Reducing trainset for visualization...")
-    reduced = pca.reduce(trainset)
-    print("Done! Writing to tensorboard.")
-    writer = SummaryWriter()
-    writer.add_embedding(trainset.transpose(1, 3).transpose(1, 2).contiguous().view(-1, trainset.size(1)), tag="trainset") # # N x C x H x W --> # N*H*W x C
-    writer.add_embedding(reduced.view(reduced.size(0), pca.k, config.img_grid_size, config.img_grid_size).transpose(1, 3).transpose(1, 2).contiguous().view(-1, pca.k), tag="reduced")
-    pca_reducer_filename = os.path.join(pca.path, "pca_model.pickle")
-    with open(pca_reducer_filename, "wb") as f:
-        pickle.dump(pca, f)
-        print(f"PCA model saved to {pca_reducer_filename}")
+    viz = VisualContext()
+    viz.run(image_dir)
 
 if __name__ == '__main__':
     main()

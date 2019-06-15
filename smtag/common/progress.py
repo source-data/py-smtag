@@ -27,8 +27,8 @@ def progress(count, total, status=''):
     filled_len = int(round(bar_len * (count+1) / float(total)))
 
     percents = round(100.0 * (count+1) / float(total))
-    bar = '█' * filled_len + '-' * (bar_len - filled_len)
+    bar = u'█' * filled_len + '-' * (bar_len - filled_len)
 
-    print('\r[%s] %s%s ...%s' % (bar, percents, '%', status), end="")
+    print(u'\r[%s] %s%s ...%s' % (bar, percents, '%', status), end="")
     #sys.stdout.write('\r[%s] %s%s ...%s' % (bar, percents, '%', status))
     #sys.stdout.flush()

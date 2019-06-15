@@ -45,10 +45,10 @@ class Concept(object):
         self.threshold = detection_threshold
 
     def __str__(self):
-        return "<{}>".format(self.label)
+        return f"{self.label}"
 
     def __repr__(self):
-        return "<{}>".format(self.label)
+        return f"<{self.label}>"
 
     def my_index(self, list):
         for i, c in enumerate(list):
@@ -189,7 +189,7 @@ class Catalogue():
     # the order of the Concepts in the catalogue matters and determines the order in which these concepts are expected in datasets used for training
     standard_channels = [SMALL_MOLECULE, GENE, PROTEIN, SUBCELLULAR, CELL, TISSUE, ORGANISM, UNDEFINED,
             INTERVENTION, MEASUREMENT, NORMALIZING, REPORTER, EXP_VAR, GENERIC,
-            EXP_ASSAY, ENTITY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD, UNTAGGED]
+            EXP_ASSAY, ENTITY, TIME, PHYSICAL_VAR, DISEASE, PANEL_START, PANEL_STOP, GENEPROD]
 
 
     @staticmethod

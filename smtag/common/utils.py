@@ -74,61 +74,6 @@ def tokenize(s):
 
     return {'token_list':token_list, 'start_index':start_index, 'stop_index':stop_index}
 
-class TokenIter:
-    '''
-    Iterator over token lists that returns next token and either start or stop depending on parameter mode.
-    '''
-
-    def __init__(self, token_list, mode):
-        self.token_list = iter(token_list)
-        self.mode = mode
-    def __iter__(self):
-        return self
-    def __next__(self):
-        if self.mode == 'start':
-           next_token = next(self.token_list)
-           return (next_token.start, next_token.text)
-        elif self.mode == 'stop':
-           next_token = next(self.token_list)
-           return (next_token.stop, next_token.text)
-
-
-class StringIter:
-    '''
-    Iterator over string that returns next character and next position.
-    '''
-    def __init__(self, s):
-        self.s = iter(s)
-        self.range_L = range(len(s))
-    def __iter__(self):
-        return self
-    def __next__(self):
-        next_i = next(self.range_L)
-        next_char = next(self.s)
-        return (next_i, next_char)
-
-class PositionIter:
-    '''
-    Iterates either on a string or, if token are available, on list of token. If it iterates on token, mode allows to select whether it is it start position, stop position or its text that is yielded
-    The idea is to allow to go faster through text by jumping from token to token, provided the text has already been tokenized.
-
-    Args:
-        L (int): makes PositionIter a normal range(L)
-        token (list): if not empty, PositionIter is a TokenIter which returns one field of each token
-        mode ('start'|'stop'|'text'): the field that needs to be yielded at each step
-    '''
-
-    def __init__(self, s='', token=[], mode='start'):
-        if token:
-           self.it = TokenIter(token, mode)
-        else:
-           self.it = StringIter(s)
-    def __iter__(self):
-           return self.it.__iter__()
-    def __next__(self):
-           return next(self.it)
-
-
 @contextmanager
 def cd(newdir):
     '''
@@ -155,6 +100,6 @@ def timer(f):
         output = f(*args, **kwargs)
         end_time = time.time()
         delta_t = end_time - start_time
-        print("Exec time for '{}': {:.3f}s".format(f.__name__, delta_t))
+        print("\nExec time for '{}': {:.3f}s".format(f.__name__, delta_t))
         return output
     return t

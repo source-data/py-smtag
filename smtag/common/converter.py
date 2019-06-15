@@ -4,6 +4,7 @@
 
 import argparse
 import torch
+from functools import lru_cache
 from .utils import timer
 from .. import config
 
@@ -22,14 +23,27 @@ class Converter():
     def decode(self, t: torch.Tensor) -> str:
         raise NotImplementedError
 
-class ConverterNBITS(Converter):
+@lru_cache(maxsize=1024)
+def code2bits(code):
+    bits = torch.Tensor([code >> i & 1 for i in range(NBITS)])
+    return bits
 
+@lru_cache(maxsize=1024)
+def cached_zeroed(L, dtype):
+    t = torch.zeros(1, NBITS, L, dtype=dtype)
+    return t
+
+class ConverterNBITS(Converter):
+    
+    CODE2BITS = [code2bits(code) for code in range(2**NBITS)]
+    
     def __init__(self, dtype:torch.dtype=torch.float):
        super(ConverterNBITS, self).__init__(dtype)
 
+    
     def encode(self, input_string: str) -> torch.Tensor:
         """
-        Static method that encodes an input string into a 3D tensor.
+        Encodes an input string into a 3D tensor.
         Args
             input_string (str): string to convert
         Returns
@@ -39,16 +53,15 @@ class ConverterNBITS(Converter):
         L = len(input_string)
         t = torch.Tensor(0)
         if L > 0:
-            t = torch.zeros(1, NBITS, L, dtype=self.dtype)
+            t = cached_zeroed(L, self.dtype)
             for i in range(L):
                 code = ord(input_string[i])
-                bits = torch.Tensor([code >> i & 1 for i in range(NBITS)]) # the beloved bitwise operation, not faster but not slower: 1.902 sec :-)
-                t[0, : , i] = bits
+                t[0, : , i] = self.CODE2BITS[code]
         return t
 
     def decode(self, t: torch.Tensor) -> str:
         """
-        Static method that decodes a 3D tensor into a unicode string.
+        Decodes a 3D tensor into a unicode string.
         Args:
             t (torch.Tensor): 3D tensor 1xNBITSxL (1 example x NBITS bits x L characters) representing characters as NBITS features
         Returns
@@ -100,7 +113,7 @@ class TString:
         all the remaining methods from torch.Tensor
     '''
 
-    def __init__(self, x:str='', dtype:torch.dtype=torch.float):
+    def __init__(self, x='', dtype:torch.dtype=torch.float):
         #super(TString, self).__init__()
         self.dtype = dtype
         self._t = torch.zeros([], dtype=self.dtype) # empty tensor

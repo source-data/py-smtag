@@ -5,7 +5,7 @@
 import os
 from zipfile import ZipFile
 from copy import deepcopy
-import json
+import pickle
 from datetime import datetime
 import torch
 from .. import config
@@ -28,31 +28,30 @@ def export_model(model, custom_name = '', model_dir = config.model_dir):
         name = custom_name
     else:
         suffixes = []
-        suffixes.append("_".join([f for f in opt['selected_features']]))
-        suffixes.append("_or_".join([f for f in opt['collapsed_features']]))
-        suffixes.append("_and_".join([f for f in opt['overlap_features']]))
+        suffixes.append("_".join([str(f) for f in opt.selected_features]))
         suffixes.append(datetime.now().isoformat("-",timespec='minutes').replace(":", "-"))
         suffix = "_".join(filter(None,suffixes))
-        name = "{}_{}".format(opt['namebase'], suffix)
+        name = "{}_{}".format(opt.namebase, suffix)
     model_path = "{}.sddl".format(name)
     archive_path = "{}.zip".format(name)
-    option_path = "{}.json".format(name)
+    option_path = "{}.pickle".format(name)
     os.makedirs(model_dir, exist_ok=True)
     with cd(model_dir):
         with ZipFile(archive_path, 'w') as myzip:
             torch.save(state_dict, model_path)
             myzip.write(model_path)
             os.remove(model_path)
-            with open(option_path, 'w') as jsonfile:
-                json.dump(opt, jsonfile)
+            with open(option_path, 'wb') as f:
+                pickle.dump(opt, f)
             myzip.write(option_path)
             os.remove(option_path)
         for info in myzip.infolist():
             print("saved {} (size: {})".format(info.filename, info.file_size))
-        return myzip
+    return model_copy
 
 def load_model(archive_filename, model_dir=config.model_dir):
     archive_path = archive_filename # os.path.join(model_dir, archive_filename)
+    print(f"\n\nloading {archive_filename} \nfrom {model_dir}\n\n")
     with cd(model_dir):
         # print("now in {}".format(os.getcwd()))
         with ZipFile(archive_path) as myzip:
@@ -64,12 +63,12 @@ def load_model(archive_filename, model_dir=config.model_dir):
                 if ext == '.sddl':
                     model_path = filename
                     #print("extracted {}".format(model_path))
-                elif ext == '.json':
+                elif ext == '.pickle':
                     option_path = filename
                     #print("extracted {}".format(option_path))
 
-        with open(option_path, 'r') as optionfile:
-            opt = json.load(optionfile)
+        with open(option_path, 'rb') as optionfile:
+            opt = pickle.load(optionfile)
         print("trying to build model with options:")
         print(opt)
         model =  SmtagModel(opt)

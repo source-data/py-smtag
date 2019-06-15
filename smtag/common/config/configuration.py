@@ -32,13 +32,18 @@ class Config():
     ############################################################################
     # VARIABLES
     #
-    _img_grid_size     = 3 # grid size used to encode the location of elements on images
-    _k_pca_components = 10 # number of PCA components to reduce visual context features
-    _fraction_images_pca_model = 0.1 # fraction of the visual context files to use to train the PCA model
-    _nbits             = 32 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
+    _cache_dataset     = 1024 # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
+    _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
+    _allowed_img       = ['.jpg', '.jpeg', '.png']
+    _img_grid_size     = 7 # grid size used to encode the location of elements on images
+    _resized_img_size  = 512 # size of the resized image used for visual context
+    _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
+    _ocr_max_edit_dist = 0.2 # max edit distance per character length between ocr term and matching term in caption
+    _ocr_min_overlap   = 3 # minimum lenght of overlap between ocr term and caption term
+    _nbits             = 17 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _padding_char      = " " # character used to padd strings; would be smarter to use character different from space
-    _min_padding       = 380 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
+    _min_padding       = 100 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
     _min_size          = 380 # input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
     _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
     _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
@@ -46,13 +51,21 @@ class Config():
     ############################################################################
     # MODELS
     #
-    _model_assay = "10X_L400_all_large_padding_no_ocr_assay_2019-02-12-15-18.zip"
-    _model_entity = "10X_L400_all_large_padding_no_ocr_small_molecule_geneprod_subcellular_cell_tissue_organism_2019-02-11-18-08.zip"
-    _model_geneprod_role = "10X_L400_geneprod_anonym_not_reporter_large_padding_no_ocr_intervention_assayed_2019-02-11-23-22.zip"
-    _model_geneprod_reporter = "10X_L400_geneprod_exclusive_padding_no_ocr_reporter_2019-02-12-10-57.zip"
-    _model_molecule_role = "10X_L400_small_molecule_anonym_large_padding_no_ocr_intervention_assayed_2019-02-18-15-32.zip"
-    _model_panel_stop = "10X_L1200_all_large_padding_no_ocr_panel_stop_2019-02-18-17-00.zip"
-    _model_disease = "10X_L1200_NCBI_disease_augmented_large_padding_disease_2019-02-12-17-46.zip"
+    # WITH VISUAL CONTEXT
+    _model_entity_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-01-16-07.zip"
+    _model_geneprod_role_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-20-14-52.zip"
+    _model_molecule_role_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-15-17.zip"
+    # no diseasee model with viz context because no traininset for this
+    # no reporter model with viz because viz does not help
+    # no panel_stop model with viz because viz does not help
+    
+    # WITHOUT VISUAL CONTEXT
+    _model_entity_no_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-02-06-13.zip" # under construction
+    _model_geneprod_reporter_no_viz = "5X_L1200_fig_reporter_2019-05-20-16-12.zip"
+    _model_geneprod_role_no_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-12-16-47.zip" 
+    _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-17-18.zip"
+    _model_disease_no_viz = "10X_L1200_disease-5X_L1200_fig_disease_2019-05-27-16-34.zip"
+    _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-05-11-01-10.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
@@ -128,29 +141,50 @@ class Config():
             os.mkdir(scans_dir)
         return scans_dir
     @property
+    def cache_dataset(self):
+        """
+        Size of the cache used in Dataset
+        """
+        return self._cache_dataset
+    @property
+    def dirignore(self):
+        """
+        List of directory names that should be ignored when scanning for datasets
+        """
+        return self._dirignore
+    @property
+    def allowed_img(self):
+        return self._allowed_img
+    @property
     def img_grid_size(self):
         """
         Grid size used to encode the location of elements on images.
         """
         return self._img_grid_size
     @property
-    def k_pca_components(self):
+    def resized_img_size(self):
         """
-        The number of components of the PCA model used to reduce visual context features.
+        Size of the resized image used for visual context.
         """
-        return self._k_pca_components
+        return self._resized_img_size
     @property
     def viz_cxt_features(self):
         """
-        The number of visual context features used (the number of PCA components * positions on the image grid)
+        The number of visual context features used
         """
-        return self.k_pca_components * (self.img_grid_size ** 2)
+        return self._viz_context_features
     @property
-    def fraction_images_pca_model(self):
+    def ocr_max_edit_dist(self):
         """
-        Fraction of the available visual context files to use to train the PCA model that reduces visual context features.
+        Max edit distance per character length between ocr term and matching term in caption
         """
-        return self._fraction_images_pca_model
+        return self._ocr_max_edit_dist
+    @property
+    def ocr_min_overlap(self):
+        """
+        Minimum length of overlap between ocr term and caption term
+        """
+        return self._ocr_min_overlap
     @property
     def nbits(self):
         """
@@ -194,26 +228,32 @@ class Config():
         """
         return self._fusion_threshold
     @property
-    def model_assay(self):
-        return self._model_assay
+    def model_entity_viz(self):
+        return self._model_entity_viz
     @property
-    def model_entity(self):
-        return self._model_entity
+    def model_entity_no_viz(self):
+        return self._model_entity_no_viz
     @property
-    def model_geneprod_role(self):
-        return self._model_geneprod_role
+    def model_geneprod_role_viz(self):
+        return self._model_geneprod_role_viz
     @property
-    def model_geneprod_reporter(self):
-        return self._model_geneprod_reporter
+    def model_geneprod_role_no_viz(self):
+        return self._model_geneprod_role_no_viz
     @property
-    def model_molecule_role(self):
-        return self._model_molecule_role
+    def model_geneprod_reporter_no_viz(self):
+        return self._model_geneprod_reporter_no_viz
     @property
-    def model_panel_stop(self):
-        return self._model_panel_stop
+    def model_molecule_role_viz(self):
+        return self._model_molecule_role_viz
     @property
-    def model_disease(self):
-        return self._model_disease
+    def model_molecule_role_no_viz(self):
+        return self._model_molecule_role_no_viz
+    @property
+    def model_panel_stop_no_viz(self):
+        return self._model_panel_stop_no_viz
+    @property
+    def model_disease_no_viz(self):
+        return self._model_disease_no_viz
 
     def create_argument_parser_with_defaults(self, description=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
