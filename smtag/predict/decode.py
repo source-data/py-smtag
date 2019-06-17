@@ -100,9 +100,9 @@ class Decoder:
                 fuse = True
                 tagged = 0
                 for group in self.semantic_groups:
-                    if type(concepts[group]) != type(Catalogue.UNTAGGED):
+                    if concepts[group] != Catalogue.UNTAGGED:
                         tagged += 1
-                        fuse = fuse and (type(concepts[group]) == type(next_concepts[group])) and  (scores_spacer[group] > FUSION_THRESHOLD)
+                        fuse = fuse and (concepts[group] == next_concepts[group]) and  (scores_spacer[group] > FUSION_THRESHOLD)
                 if fuse and tagged > 0:
                     for group in self.semantic_groups:
                         self.concepts[group].pop(i+1)
@@ -119,9 +119,9 @@ class Decoder:
     def erase_with_(self, other: 'Decoder', erase_with: Tuple, target: Tuple):
         erase_with_group, erase_with_concept = erase_with
         target_group, target_concept = target
-        untagged_code = Catalogue.UNTAGGED.my_index(self.semantic_groups[target_group]) # finds where the UNTAGGED feature is
+        untagged_code = self.semantic_groups[target_group].index(Catalogue.UNTAGGED) # finds where the UNTAGGED feature is
         for i, (token, other_concept, my_concept) in enumerate(zip(self.token_list, other.concepts[erase_with_group], self.concepts[target_group])):
-            if (type(my_concept) == type(target_concept)) and (type(other_concept) == type(erase_with_concept)): # DOES NOT WORK BUT WORKS IF type() == type() because different instances. Bad implementation ni mapper
+            if (my_concept == target_concept) and (other_concept == erase_with_concept):
                 self.concepts[target_group][i] = Catalogue.UNTAGGED
                 self.scores[target_group][i] = 0
                 self.char_level_concepts[target_group][token.start:token.stop] = [Catalogue.UNTAGGED] * (token.stop - token.start)
