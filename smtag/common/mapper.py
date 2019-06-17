@@ -50,11 +50,11 @@ class Concept(object):
     def __repr__(self):
         return f"<{self.label}>"
 
-    def my_index(self, list):
-        for i, c in enumerate(list):
-            if type(self) == type(c):
-                return i
-        return None
+    def __eq__(self, x):
+        return type(self) == type(x)
+
+    def __hash__(self):
+        return hash(type(self))
 
 class Untagged(Concept):
     def __init__(self, *args):

@@ -84,8 +84,7 @@ class Assembler:
             input = torch.cat((input, ocr_features), 1)
 
         # OUTPUT SELECTION AND COMBINATION OF FEATURES
-        # output = torch.cat([encoded_example.features[ : , concept2index[f], : ] for f in self.opt.selected_features], 0) # use concept2index[type(f)]
-        output = torch.cat([encoded_example.features[ : , f.my_index(Catalogue.standard_channels), : ] for f in self.opt.selected_features], 0)
+        output = torch.cat([encoded_example.features[ : , concept2index[f], : ] for f in self.opt.selected_features], 0)
         output.unsqueeze_(0)
 
         # OUTPUT: add a feature for untagged characters; necessary for softmax classification
