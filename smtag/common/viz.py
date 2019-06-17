@@ -6,7 +6,7 @@ import torch
 from torch.nn import functional as F
 from random import random
 from .converter import TString
-from ..train.evaluator import Accuracy
+# from ..train.evaluator import Accuracy
 from tensorboardX import SummaryWriter
 from .. import config
 
@@ -75,8 +75,8 @@ class Show():
         N = minibatch.input.size(0) # N examples per minibatch
         #select random j-th example in i-th minibatch
         rand_j = math.floor(N * random())
-        input = minibatch.input[[rand_j], : , : ] # rand_j index as list to keep the tensor 4D
-        target = minibatch.output[[rand_j], : , : ]
+        input = minibatch.input[[rand_j]] # rand_j index as list to keep the tensor 3D
+        target = minibatch.output[[rand_j]]
         if minibatch.viz_context.size(0) != 0:
             viz_context = minibatch.viz_context[[rand_j], : ]
         else:
