@@ -51,7 +51,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(x, viz_context) #.float() # prediction is 3D 1 x C x L
-            prediction = torch.sigmoid(prediction) # to get 0..1 positive scores ??? torch.exp(prediction)
+            prediction = torch.exp(prediction) # to get 0..1 positive scores
             self.model.train()
 
         #remove safety padding

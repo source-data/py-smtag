@@ -40,11 +40,11 @@ class Data4th(Dataset):
     def __len__(self):
         return self.N
 
-    @lru_cache(maxsize=config.cache_dataset)
+    #@lru_cache(maxsize=config.cache_dataset)
     def __getitem__(self, i):
         path = self.path_list[i]
         textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename)).float()
-        output = torch.load(os.path.join(path, EncodedExample.features_filename)).float()
+        features = torch.load(os.path.join(path, EncodedExample.features_filename)).float()
         ocr_context = None
         if self.opt.use_ocr_context and os.path.isfile(os.path.join(path, EncodedExample.ocr_context_filename)):
             ocr_context = torch.load(os.path.join(path, EncodedExample.ocr_context_filename)).float()
@@ -56,7 +56,7 @@ class Data4th(Dataset):
             text = f.read()
         with open(os.path.join(path, EncodedExample.provenance_filename), 'r') as f:
             provenance = f.read()
-        encoded_example = EncodedExample(provenance, text, output, textcoded, ocr_context, viz_context)
+        encoded_example = EncodedExample(provenance, text, features, textcoded, ocr_context, viz_context)
         input, output = self.millefeuille.assemble(encoded_example)
         return (provenance, input, output, viz_context)
 
@@ -84,7 +84,8 @@ class Assembler:
             input = torch.cat((input, ocr_features), 1)
 
         # OUTPUT SELECTION AND COMBINATION OF FEATURES
-        output = torch.cat([encoded_example.features[ : , concept2index[f], : ] for f in self.opt.selected_features], 0)
+        # output = torch.cat([encoded_example.features[ : , concept2index[f], : ] for f in self.opt.selected_features], 0) # use concept2index[type(f)]
+        output = torch.cat([encoded_example.features[ : , f.my_index(Catalogue.standard_channels), : ] for f in self.opt.selected_features], 0)
         output.unsqueeze_(0)
 
         # OUTPUT: add a feature for untagged characters; necessary for softmax classification

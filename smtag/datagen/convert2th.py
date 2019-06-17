@@ -46,6 +46,23 @@ class EncodedExample:
         self.ocr_context = ocr_context
         self.viz_context = viz_context
 
+    def clone(self):
+        cloned_features = self.features.clone()
+        if self.textcoded is not None:
+            cloned_textcoded = self.textcoded.clone()
+        else:
+            cloned_textcoded = None
+        if self.ocr_context is not None:
+            cloned_ocr_context = self.ocr_context.clone()
+        else:
+            cloned_ocr_context = None
+        if self.viz_context is not None:
+            cloned_viz_context = self.viz_context.clone()
+        else:
+            cloned_viz_context = None
+        cloned_self = EncodedExample(self.provenance, self.text, cloned_features, cloned_textcoded, cloned_ocr_context, cloned_viz_context)
+        return cloned_self
+
 class Sampler():
 
     @staticmethod
@@ -144,6 +161,7 @@ class Augment():
             # it is randomly shifted and padded to fit the desired length
             padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
             textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
+            assert str(TString(textcoded4th)) == padded_frag, f"{str(TString(textcoded4th))} different from original {padded_frag}"
             # the encoded features of the fragment are selected and padded
             features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
             # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
@@ -156,7 +174,7 @@ class Augment():
             viz_context4th = encoded_example.viz_context
             #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
             processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
-            self.save(path_to_encoded, j, processed_example)
+            self.save(path_to_encoded, j, processed_example) # tried to use .clone() does not alleviate threading problems...
             if self.verbose:
                 Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
         
@@ -168,17 +186,20 @@ class Augment():
         # randomly sampling each example
         adaptive_iterations = int(max(1.0, L / self.length) * iterations)
         for j in range(adaptive_iterations): # j is index of sampling iteration
-            # sample(j, encoded_example) # for debugging, comment out the multi-thread try/except block
-            try:
-                threading.Thread(target=sample, args=(j, encoded_example)).start() 
-            except RuntimeError as e: # problem if number of threads to high
-                print(e)
-                while threading.active_count() > 1: 
-                    print(f"waiting that {threading.active_count()} threads resume", end='\r')
-                    time.sleep(1)
-                print()
-                # try again
-                threading.Thread(target=sample, args=(j, encoded_example)).start()
+            # if self.verbose:
+                sample(j, encoded_example) # no multi-threading when verbose mode other all display is messed up
+            # MULTI THREADING MIXES FILES....
+            # else:
+            #     try:
+            #         threading.Thread(target=sample, args=(j, encoded_example)).start() # # tried to use .clone() does not alleviate threading problems...
+            #     except RuntimeError as e: # problem if number of threads to high
+            #         print(e)
+            #         while threading.active_count() > 1: 
+            #             print(f"waiting that {threading.active_count()} threads resume", end='\r')
+            #             time.sleep(1)
+            #         print()
+            #         # try again
+            #         threading.Thread(target=sample, args=(j, encoded_example)).start()
                 
 
 
@@ -214,12 +235,12 @@ class Augment():
             feature = str(index2concept[j])
             track = [int(tensor4th[0, j, k]) for k in range(L)]
             print(''.join([['-','+'][x] for x in track]), feature)
-        if ocr_context4th:
+        if ocr_context4th is not None:
             for j in range(ocr_context4th.size(1)):
                 feature = 'ocr_' + str(j)
                 track = [int(ocr_context4th[0, j, k]) for k in range(L)]
                 print(''.join([['-','+'][ceil(x)] for x in track]), feature)
-        if viz_context4th:
+        if viz_context4th is not None:
             feature = 'viz_' + str(j)
             track = [int(x) for x in viz_context4th]
             print(''.join([str(x) for x in track]), feature)
