@@ -46,23 +46,6 @@ class EncodedExample:
         self.ocr_context = ocr_context
         self.viz_context = viz_context
 
-    def clone(self):
-        cloned_features = self.features.clone()
-        if self.textcoded is not None:
-            cloned_textcoded = self.textcoded.clone()
-        else:
-            cloned_textcoded = None
-        if self.ocr_context is not None:
-            cloned_ocr_context = self.ocr_context.clone()
-        else:
-            cloned_ocr_context = None
-        if self.viz_context is not None:
-            cloned_viz_context = self.viz_context.clone()
-        else:
-            cloned_viz_context = None
-        cloned_self = EncodedExample(self.provenance, self.text, cloned_features, cloned_textcoded, cloned_ocr_context, cloned_viz_context)
-        return cloned_self
-
 class Sampler():
 
     @staticmethod
