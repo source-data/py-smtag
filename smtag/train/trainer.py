@@ -104,7 +104,7 @@ class Trainer:
                 self.optimizer.zero_grad()
                 x, y, y_hat, loss = predict_fn(self.model, batch)
                 loss.backward()
-                avg_train_loss += loss.cpu().data # important otherwise not freed from the graph
+                avg_train_loss += loss.cpu().item() # important otherwise not freed from the graph
                 self.optimizer.step()
 
             # Logging/plotting
