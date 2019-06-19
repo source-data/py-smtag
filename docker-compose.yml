@@ -3,7 +3,7 @@ version: '2.3'
 services:
   neo4j:
     image: neo4j:3.1
-    #ports:
+    # ports:
     #  - 6006:6006
     #  - 7474:7474
     #  - 7687:7687
@@ -12,10 +12,33 @@ services:
     networks:
       - default
   smtag:
-    image: embo/py-smtag:dev-tldev
+    image: embo/py-smtag:tldev
     # build: .
+
+
+    ################################################################################################
+    # https://stackoverflow.com/a/52063921
+    # https://devblogs.nvidia.com/gpu-containers-runtime/
+    # Needed to make use of the NVIDIA docker feautres
+    #
     runtime: nvidia
+
+    ################################################################################################
+    # https://docs.nvidia.com/deeplearning/frameworks/user-guide/index.html#setincshmem
+    # Certain applications, such as PyTorch use shared memory buffers to communicate between
+    # processes. By default, Docker containers are allotted 64MB of shared memory. This can be
+    # insufficient, particularly when using all 8 GPUs. To increase the shared memory limit to a
+    # specified size, for example 1GB, include the --shm-size=1g flag in your docker run command.
+    #
+    # Alternatively, you can specify the --ipc=host flag to re-use the host’s shared memory space
+    # inside the container. Though this latter approach has security implications as any data in
+    # shared memory buffers could be visible to other containers.
     ipc: host
+
+    ################################################################################################
+    # Define the working directory of the docker container. This is like defining
+    # from which directory do you want your commands to be executed
+    #
     working_dir: /workspace/py-smtag
     volumes:
       - .:/workspace/py-smtag
