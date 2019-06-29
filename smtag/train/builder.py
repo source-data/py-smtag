@@ -187,3 +187,58 @@ class Unet2(nn.Module):
             # y = x + y # this would be the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
 
         return y
+
+
+
+class Hyperparameters():
+    base = 2
+    N_layers = 9
+    kernel = 7
+    padding = 3
+    stride = 1
+    dropout_rate = 0.2 
+
+    def __str__(self):
+        return f"base={self.base}, N_layer={self.N_layers}, kernel={self.kernel}, padding={self.padding}, stride={self.stride}, dropout_rate={self.dropout_rate}"
+
+class MultiConv(nn.Module):
+    hp = Hyperparameters()
+
+    def __init__(self, in_channels: int) -> torch.Tensor:
+        super(MultiConv, self).__init__()
+        self.in_channels = in_channels
+        self.blocks = nn.ModuleList()
+        self.attn = nn.ModuleList()
+        self.adapters = nn.ModuleList()
+        cumul_channels = self.in_channels # features of original input included
+        for i in range(self.hp.N_layers):
+            out_channels = self.hp.base*in_channels
+            cumul_channels += out_channels
+            block = nn.Sequential(
+                nn.BatchNorm1d(in_channels+context_channels)
+                nn.Dropout(self.hp.dropout_rate),
+                nn.Conv1d(in_channels, out_channels, self.hp.kernel, self.hp.stride, self.hp.padding),
+                nn.ReLU(inplace=True),
+                nn.BatchNorm1d(out_channels)
+            )
+            self.blocks.append(block)
+            in_channels = out_channels
+        if config.SOFTMAX:
+            self.reduce = nn.Conv1d(cumul_channels, config.nalpha, 1, 1)
+        else:
+            self.reduce = nn.Conv1d(cumul_channels, config.nbits, 1, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        x_list = [x.clone()]
+        for i in range(self.hp.N_layers):
+            if context_list: # skipped if no context_list empty in which case nf_context is also 0
+                viz_context = context_list[i]
+                viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
+                x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
+                x = self.BN_pre[i](x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
+            x = self.blocks[i](x)
+            x_list.append(x.clone())
+        y = torch.cat(x_list, 1)
+        y = self.reduce(F.relu(y))
+        return y
