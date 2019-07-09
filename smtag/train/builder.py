@@ -25,14 +25,14 @@ class SmtagModel(nn.Module):
         nf_output = opt.nf_output
         nf_table = deepcopy(opt.nf_table) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
         kernel_table = deepcopy(opt.kernel_table) # need to deep copy/clone
+        padding_table = deepcopy(opt.padding_table)
         context_table = deepcopy(opt.viz_context_table)  # need to deep copy/clone
         context_in = PRETRAINED(torch.Tensor(1, 3, config.resized_img_size, config.resized_img_size)).numel()
         dropout = opt.dropout
-        skip = opt.skip
 
         self.viz_ctxt = Context(context_in, context_table)
         self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
-        self.unet = MultiConv(nf_input, nf_table, kernel_table, context_table, dropout)
+        self.unet = CatStack(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
@@ -68,14 +68,15 @@ class Context(nn.Module):
         return embedding_list
 
  
-class MultiConv(nn.Module):
+class CatStack(nn.Module):
     
-    def __init__(self, nf_input, nf_table, kernel_table, context_table, dropout) -> torch.Tensor:
-        super(MultiConv, self).__init__()
+    def __init__(self, nf_input, nf_table, kernel_table, padding_table, context_table, dropout) -> torch.Tensor:
+        super(CatStack, self).__init__()
         self.nf_input = nf_input
         self.N_layers = len(nf_table)
         self.nf_table = nf_table
         self.kernel_table = kernel_table
+        self.padding_table = padding_table
         self.context_table = context_table
         self.dropout_rate = dropout
         self.blocks = nn.ModuleList()
@@ -92,7 +93,7 @@ class MultiConv(nn.Module):
             self.BN_pre.append(nn.BatchNorm1d(in_channels+context_channels))
             block = nn.Sequential(
                 nn.Dropout(self.dropout_rate),
-                nn.Conv1d(in_channels+context_channels, out_channels, self.kernel_table[i], 1, 3),
+                nn.Conv1d(in_channels+context_channels, out_channels, self.kernel_table[i], 1, self.padding_table[i]),
                 nn.ReLU(inplace=True),
                 nn.BatchNorm1d(out_channels)
             )
