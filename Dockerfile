@@ -1,3 +1,5 @@
+# docker build -t tl/smtag:multiconv .
+# nvidia-docker run --shm-size 8G --rm -it -v /raid/lemberge/py-smtag:/workspace/py-smtag -p12346:6005 tl/smtag:multiconv
 FROM nvcr.io/nvidia/pytorch:19.05-py3
 COPY . /workspace/py-smtag
 RUN pip install --upgrade pip setuptools && \
