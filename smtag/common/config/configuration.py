@@ -2,10 +2,20 @@
 #T. Lemberger, 2018
 import os
 import argparse
-from .working_directory import WorkingDirectoryNotSetError
-from .working_directory import fetch_working_directory, validated_working_directory
-from .working_directory import WORKING_DIRECTORY_CLI_FLAG_NAME, WORKING_DIRECTORY_CLI_FLAG_SHORTNAME
-from .errors import ProdDirNotFoundError
+from .working_directory import (
+    WorkingDirectoryNotSetError,
+    fetch_working_directory,
+    validated_working_directory,
+    WORKING_DIRECTORY_CLI_FLAG_NAME,
+    WORKING_DIRECTORY_CLI_FLAG_SHORTNAME,
+)
+from .production_directory import (
+    ProductionDirectoryNotSetError,
+    fetch_production_directory,
+    validated_production_directory,
+    PRODUCTION_DIRECTORY_CLI_FLAG_NAME,
+    PRODUCTION_DIRECTORY_CLI_FLAG_SHORTNAME,
+)
 
 class Config():
     """
@@ -58,17 +68,28 @@ class Config():
     # no diseasee model with viz context because no traininset for this
     # no reporter model with viz because viz does not help
     # no panel_stop model with viz because viz does not help
-    
+
     # WITHOUT VISUAL CONTEXT
     _model_entity_no_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-02-06-13.zip" # under construction
     _model_geneprod_reporter_no_viz = "5X_L1200_fig_reporter_2019-05-20-16-12.zip"
-    _model_geneprod_role_no_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-12-16-47.zip" 
+    _model_geneprod_role_no_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-12-16-47.zip"
     _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-17-18.zip"
     _model_disease_no_viz = "10X_L1200_disease-5X_L1200_fig_disease_2019-05-27-16-34.zip"
     _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-05-11-01-10.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
+        self.prod_dir = fetch_production_directory()
+
+    @property
+    def prod_dir(self):
+        if self.__production_directory is None:
+            raise ProductionDirectoryNotSetError
+        return self.__production_directory
+
+    @prod_dir.setter
+    def prod_dir(self, new_production_directory):
+        self.__production_directory = validated_production_directory(new_production_directory)
 
     @property
     def working_directory(self):
@@ -110,15 +131,7 @@ class Config():
         if not os.path.exists(model_dir):
             os.mkdir(model_dir)
         return model_dir
-    @property
-    def prod_dir(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        root_path = os.path.join(dir_path, "..", "..", "..")
-        prod_dir = os.path.join(root_path, self._prod_dir_name)
-        prod_dir = os.path.abspath(prod_dir)
-        if not os.path.exists(prod_dir):
-            raise ProdDirNotFoundError(prod_dir)
-        return prod_dir
+
     @property
     def runs_log_dir(self):
         runs_log_dir = os.path.join(self.working_directory, self._runs_log_dir_name)
@@ -263,6 +276,11 @@ class Config():
         # .common.config.working_directory is dealing with this argument, and it uses sys.argv to do that, however it is
         # important that we define it as an available parameter here, otherwise argparse will complain if it ever gets used
         #
-        parser.add_argument(WORKING_DIRECTORY_CLI_FLAG_SHORTNAME, WORKING_DIRECTORY_CLI_FLAG_NAME, help='Specify the working directory where to find special directories such as rack, prod, data4th etc')
+        parser.add_argument(WORKING_DIRECTORY_CLI_FLAG_SHORTNAME, WORKING_DIRECTORY_CLI_FLAG_NAME, help='Specify the working directory where to find special directories such as prod, data4th etc')
+
+        # TODO: move to smtag.precit.engine
+        # this parser argument should not be global, it is specific of the prediction packade and it should be moved there
+        # this would require removing `docopt` and converting it to the standard `argparse`
+        parser.add_argument(PRODUCTION_DIRECTORY_CLI_FLAG_SHORTNAME, PRODUCTION_DIRECTORY_CLI_FLAG_NAME, help='Specify the production directory (a.k.a. the `rack` folder) where the trained models to be used for inference are stored')
 
         return parser
