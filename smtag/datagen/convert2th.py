@@ -23,6 +23,7 @@ from ..common.mapper import Catalogue, index2concept, concept2index, NUMBER_OF_E
 from ..common.converter import TString
 from ..common.utils import cd, timer
 from ..common.progress import progress
+from ..common.embeddings import EMBEDDINGS
 from .encoder import XMLEncoder, BratEncoder
 from .ocr import OCREncoder
 from .brat import BratImport
@@ -145,6 +146,8 @@ class Augment():
             padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
             textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
             assert str(TString(textcoded4th)) == padded_frag, f"{str(TString(textcoded4th))} different from original {padded_frag}"
+            # use context-aware embeddings
+            textcoded4th = EMBEDDINGS(textcoded4th)
             # the encoded features of the fragment are selected and padded
             features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
             # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres

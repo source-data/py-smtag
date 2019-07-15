@@ -9,7 +9,6 @@ import torch.nn.functional as F
 from copy import deepcopy
 from math import sqrt
 from ..common.mapper import Concept, Catalogue
-from ..common.embeddings import EMBEDDINGS
 from ..datagen.context import PRETRAINED
 from .. import config
 
@@ -32,7 +31,7 @@ class SmtagModel(nn.Module):
         dropout = opt.dropout
 
         self.viz_ctxt = Context(context_in, context_table)
-        self.pre = EMBEDDINGS # nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
+        self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
         self.unet = CatStack(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)

@@ -1,4 +1,5 @@
 from .mapper import Catalogue, concept2index
+from .embeddings import EMBEDDINGS
 from .. import config
 
 
@@ -22,7 +23,7 @@ class Options():
         self.selected_features = Catalogue.from_list(opt['selected_features'])
         self.use_ocr_context = opt['use_ocr_context']
         self.viz_context_table = opt['viz_context_table'] 
-        self.nf_input = config.nbits
+        self.nf_input = EMBEDDINGS.out_channels
         if self.use_ocr_context == 'ocr1':
             self.nf_ocr_context = 1 # fusing horizontal and vertial into single detected-on-image feature
         elif self.use_ocr_context == 'ocr2':
