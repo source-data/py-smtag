@@ -12,29 +12,24 @@ from ..common.mapper import Concept, Catalogue
 from ..datagen.context import PRETRAINED
 from .. import config
 
-BNTRACK = True
-AFFINE = True
-BIAS =  True
-
-
 class SmtagModel(nn.Module):
 
     def __init__(self, opt):
         super(SmtagModel, self).__init__()
         nf_input = opt.nf_input
         nf_output = opt.nf_output
-        nf_table = deepcopy(opt.nf_table) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
-        kernel_table = deepcopy(opt.kernel_table) # need to deep copy/clone
+        nf_table = deepcopy(opt.nf_table)
+        kernel_table = deepcopy(opt.kernel_table)
         padding_table = deepcopy(opt.padding_table)
-        context_table = deepcopy(opt.viz_context_table)  # need to deep copy/clone
+        context_table = deepcopy(opt.viz_context_table)
         context_in = PRETRAINED(torch.Tensor(1, 3, config.resized_img_size, config.resized_img_size)).numel()
         dropout = opt.dropout
 
         self.viz_ctxt = Context(context_in, context_table)
-        self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
-        self.unet = CatStack(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
-        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
-        self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)
+        self.pre = nn.BatchNorm1d(nf_input)
+        self.net = CatStack(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
+        self.adapter = nn.Conv1d(self.net.out_channels, nf_output, 1, 1) # reduce output features of model to final desired number of output features
+        self.BN = nn.BatchNorm1d(nf_output)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
         self.output_semantics.append(Catalogue.UNTAGGED)
         self.opt = opt
@@ -42,7 +37,7 @@ class SmtagModel(nn.Module):
     def forward(self, x, viz_context):
         context_list = self.viz_ctxt(viz_context)
         x = self.pre(x)
-        x = self.unet(x, context_list)
+        x = self.net(x, context_list)
         x = self.adapter(x)
         x = self.BN(x)
         x = F.log_softmax(x, 1)
@@ -99,7 +94,7 @@ class CatStack(nn.Module):
             )
             self.blocks.append(block)
             in_channels = out_channels
-        self.reduce = nn.Conv1d(cumul_channels, config.nbits, 1, 1)
+        self.out_channels = cumul_channels
 
     def forward(self, x: torch.Tensor, context_list) -> torch.Tensor:
 
@@ -113,5 +108,4 @@ class CatStack(nn.Module):
             x = self.blocks[i](x)
             x_list.append(x.clone())
         y = torch.cat(x_list, 1)
-        y = self.reduce(F.relu(y))
         return y
