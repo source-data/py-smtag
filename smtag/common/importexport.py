@@ -6,11 +6,13 @@ import os
 from zipfile import ZipFile
 from copy import deepcopy
 import pickle
+import json
 from datetime import datetime
 import torch
 from .. import config
 from ..train.builder import SmtagModel
 from .utils import cd, timer
+from .options import Options
 
 @timer
 def export_model(model, custom_name = '', model_dir = config.model_dir):
@@ -49,7 +51,7 @@ def export_model(model, custom_name = '', model_dir = config.model_dir):
             print("saved {} (size: {})".format(info.filename, info.file_size))
     return model_copy
 
-def load_model(archive_filename, model_dir=config.model_dir):
+def load_model(archive_filename, model_dir=config.model_dir, model_class=SmtagModel):
     archive_path = archive_filename # os.path.join(model_dir, archive_filename)
     print(f"\n\nloading {archive_filename} \nfrom {model_dir}\n\n")
     with cd(model_dir):
@@ -62,19 +64,15 @@ def load_model(archive_filename, model_dir=config.model_dir):
                 _, ext = os.path.splitext(filename)
                 if ext == '.sddl':
                     model_path = filename
-                    #print("extracted {}".format(model_path))
                 elif ext == '.pickle':
                     option_path = filename
-                    #print("extracted {}".format(option_path))
 
         with open(option_path, 'rb') as optionfile:
             opt = pickle.load(optionfile)
         print("trying to build model with options:")
         print(opt)
-        model =  SmtagModel(opt)
+        model =  model_class(opt)
         model.load_state_dict(torch.load(model_path))
-        #print("removing {}".format(model_path))
         os.remove(model_path)
-        #print("removing {}".format(option_path))
         os.remove(option_path)
     return model

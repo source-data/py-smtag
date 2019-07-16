@@ -1,5 +1,5 @@
 from .importexport import load_model
+from vsearch.net import CatStack
 from .. import config
 
-autoencoder = load_model(config.embeddings_model, config.embeddings_dir)
-EMBEDDINGS = autoencoder.embed
+EMBEDDINGS = load_model(config.embeddings_model, config.embeddings_dir, CatStack)

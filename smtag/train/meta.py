@@ -23,6 +23,7 @@ from .builder import SmtagModel
 from ..common.utils import cd
 from ..common.importexport import export_model, load_model
 from ..common.options import Options
+from ..common.embeddings import EMBEDDINGS
 from .. import config
 
 
@@ -119,8 +120,9 @@ def main():
         opt['use_ocr_context'] = 'ocr2'
     else:
         opt['use_ocr_context'] = ''
+    opt['nf_input'] = EMBEDDINGS.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
     options = Options(opt)
-    # print(options)
+    # print(options)c
 
     metatrainer = Meta(options)
     if not hyperparams:

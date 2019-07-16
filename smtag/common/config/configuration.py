@@ -29,7 +29,6 @@ class Config():
     _runs_log_dir_name   = "runs" # dir for tensorboard logs
     _scans_dir_name      = "scans" # results of hyperparameter scans
     _embeddings_dir_name = "embeddings" # pretrained networks generating context-aware character-level embeddings
-    _embeddings_model    = "emboj_caption_sentences_multihead_verbs.zip"
 
     ############################################################################
     # VARIABLES
@@ -68,6 +67,7 @@ class Config():
     _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-17-18.zip"
     _model_disease_no_viz = "10X_L1200_disease-5X_L1200_fig_disease_2019-05-27-16-34.zip"
     _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-05-11-01-10.zip"
+    _embeddings_model    = "test_embeddings.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()

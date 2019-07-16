@@ -18,7 +18,7 @@ from ..common.progress import progress
 from .. import config
 
 
-Minibatch = namedtuple('Minibatch', ['input', 'output', 'viz_context', 'provenance'])
+Minibatch = namedtuple('Minibatch', ['text', 'input', 'output', 'viz_context', 'provenance'])
 
 def predict_fn(model, batch, eval=False):
     x = batch.input
@@ -40,12 +40,13 @@ def predict_fn(model, batch, eval=False):
     return x, y, y_hat, loss
 
 def collate_fn(example_list):
-    provenance, input, output, viz_context = zip(*example_list)
+    text, provenance, input, output, viz_context = zip(*example_list)
     minibatch = Minibatch(
         input = torch.cat(input, 0),
         output = torch.cat(output, 0),
         viz_context = torch.cat(viz_context, 0), 
-        provenance = provenance
+        provenance = provenance,
+        text = text
     )
     return minibatch
 

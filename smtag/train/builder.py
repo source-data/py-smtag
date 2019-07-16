@@ -25,9 +25,9 @@ class SmtagModel(nn.Module):
         context_in = PRETRAINED(torch.Tensor(1, 3, config.resized_img_size, config.resized_img_size)).numel()
         dropout = opt.dropout
 
-        self.viz_ctxt = Context(context_in, context_table)
+        self.viz_ctxt = VizContext(context_in, context_table)
         self.pre = nn.BatchNorm1d(nf_input)
-        self.net = CatStack(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
+        self.net = CatStackWithVizContext(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
         self.adapter = nn.Conv1d(self.net.out_channels, nf_output, 1, 1) # reduce output features of model to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
@@ -44,9 +44,9 @@ class SmtagModel(nn.Module):
         # x = F.sigmoid(x)
         return x
 
-class Context(nn.Module):
+class VizContext(nn.Module):
     def __init__(self, in_channels, context_table):
-        super(Context, self).__init__()
+        super(VizContext, self).__init__()
         self.in_channels = in_channels
         self.context_table = context_table
         # in context_table is empty, self.linears is empty too
@@ -63,10 +63,10 @@ class Context(nn.Module):
         return embedding_list
 
  
-class CatStack(nn.Module):
+class CatStackWithVizContext(nn.Module):
     
     def __init__(self, nf_input, nf_table, kernel_table, padding_table, context_table, dropout) -> torch.Tensor:
-        super(CatStack, self).__init__()
+        super(CatStackWithVizContext, self).__init__()
         self.nf_input = nf_input
         self.N_layers = len(nf_table)
         self.nf_table = nf_table
