@@ -26,3 +26,4 @@ RUN pip install tensorboardX==1.6
 RUN smtag-meta --help -w /workspace/py-smtag/resources
     # smtag-predict --help -w /workspace/py-smtag/resources && \
 RUN rm -Rf /workspace/py-smtag
+RUN rm -Rf /workspace/vsearch
