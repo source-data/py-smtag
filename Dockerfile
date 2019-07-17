@@ -6,7 +6,7 @@ RUN pip install --upgrade pip setuptools && \
     pip install -e /workspace/py-smtag && \
     pip install tensorflow==1.8 && \
     pip install tensorboardX && \
-    pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
+    pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch && \
     mkdir -p /workspace/py-smtag/resources && \
     smtag-meta --help -w /workspace/py-smtag/resources \
     # smtag-predict --help -w /workspace/py-smtag/resources && \
