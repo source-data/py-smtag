@@ -8,7 +8,6 @@ COPY . /workspace/py-smtag
 # http://blog.oddbit.com/post/2019-02-24-docker-build-learns-about-secr/
 # This is necessary to prevent the "git clone" operation from failing
 # with an "unknown host key" error.
-RUN apk add --update git openssh
 RUN mkdir -m 700 /root/.ssh; \
   touch -m 600 /root/.ssh/known_hosts; \
   ssh-keyscan github.com > /root/.ssh/known_hosts
