@@ -14,14 +14,15 @@ RUN mkdir -m 700 /root/.ssh; \
 
 # This command will have access to the forwarded agent (if one is
 # available)
-RUN --mount=type=ssh git clone --branch multihead git@github.com:source-data/vsearch
-
+# RUN --mount=type=ssh git clone --branch multihead git@github.com:source-data/vsearch
+RUN --mount=type=ssh pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
 RUN pip install --upgrade pip setuptools && \
     pip install -e /workspace/py-smtag && \
     pip install tensorflow==1.8 && \
     pip install tensorboardX==1.6 && \
-    pip install -e vsearch && \
     # pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch && \
+    
+    vs && \
     # mkdir -p /workspace/py-smtag/resources && \
     smtag-meta --help -w /workspace/py-smtag/resources \
     # smtag-predict --help -w /workspace/py-smtag/resources && \
