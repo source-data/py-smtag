@@ -1,15 +1,14 @@
+# syntax=docker/dockerfile:1.0.0-experimental
+# export DOCKER_BUILDKIT=1
 # docker build -t tl/smtag:multiconv .
 # nvidia-docker run --shm-size 8G --rm -it -v /raid/lemberge/py-smtag:/workspace/py-smtag -p12346:6005 tl/smtag:multiconv
 FROM nvcr.io/nvidia/pytorch:19.05-py3
-COPY ./py-smtag /workspace/py-smtag
-COPY ./vsearch-github-clone /workspace/vsearch
+COPY . /workspace/py-smtag
 RUN pip install --upgrade pip setuptools && \
-    #pip install -e /workspace/py-smtag && \
-    #pip install tensorflow==1.8 && \
-    #pip install tensorboardX && \
-    ls -la /workspace/vsearch &&\
-    pip install -e /workspace/vsearch && \ 
-    # pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch && \
+    pip install -e /workspace/py-smtag && \
+    pip install tensorflow==1.8 && \
+    pip install tensorboardX && \
+    pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch && \
     mkdir -p /workspace/py-smtag/resources && \
     smtag-meta --help -w /workspace/py-smtag/resources \
     # smtag-predict --help -w /workspace/py-smtag/resources && \
