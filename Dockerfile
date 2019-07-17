@@ -14,7 +14,7 @@ RUN mkdir -m 700 /root/.ssh; \
 
 # This command will have access to the forwarded agent (if one is
 # available)
-RUN --mount=type=ssh git clone git@github.com:source-data/vsearch.git@multihead
+RUN --mount=type=ssh git clone git@github.com:source-data/vsearch@multihead
 
 RUN pip install --upgrade pip setuptools && \
     pip install -e /workspace/py-smtag && \
