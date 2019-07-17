@@ -20,7 +20,7 @@ RUN pip install --upgrade pip setuptools
 RUN --mount=type=ssh git clone --branch multihead git@github.com:source-data/vsearch
 RUN pip install -e /workspace/vsearch
 RUN pip install -r /workspace/py-smtag/smtag/requirements.txt
-RUN vs
+#RUN vs
 RUN pip install -e /workspace/py-smtag
 RUN pip install tensorflow==1.8
 RUN pip install tensorboardX==1.6
