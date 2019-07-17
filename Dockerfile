@@ -4,6 +4,7 @@
 # nvidia-docker run --shm-size 8G --rm -it -v /raid/lemberge/py-smtag:/workspace/py-smtag -p12346:6005 tl/smtag:multiconv
 FROM nvcr.io/nvidia/pytorch:19.05-py3
 COPY . /workspace/py-smtag
+COPY ./resources/embeddings/test_embeddings.zip /workspace/py-smtag/resources/embeddings/test_embeddings.zip
 
 # http://blog.oddbit.com/post/2019-02-24-docker-build-learns-about-secr/
 # This is necessary to prevent the "git clone" operation from failing
