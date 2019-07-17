@@ -22,7 +22,7 @@ RUN pip install --upgrade pip setuptools && \
     pip install tensorboardX==1.6 && \
     pip install -e vsearch && \
     # pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch && \
-    mkdir -p /workspace/py-smtag/resources && \
+    # mkdir -p /workspace/py-smtag/resources && \
     smtag-meta --help -w /workspace/py-smtag/resources \
     # smtag-predict --help -w /workspace/py-smtag/resources && \
     rm -Rf /workspace/py-smtag &&\
