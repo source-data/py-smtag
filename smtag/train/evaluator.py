@@ -24,7 +24,7 @@ class Accuracy(object):
         self.model = model
         self.minibatches = minibatches
         self.N = len(self.minibatches) * self.minibatches.batch_size
-        self.nf = next(iter(self.minibatches)).output.size(1)
+        self.nf = next(iter(self.minibatches)).output.detach().size(1)
         self.tokenize  = tokenize
         # self.target_concepts = []
         # if torch.cuda.is_available(): # or torch.cuda.is_available() ?
