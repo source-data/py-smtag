@@ -151,7 +151,9 @@ class Augment():
                 textcoded4th = TString(padded_frag).toTensor()
                 # assert str(TString(textcoded4th)) == padded_frag, f"{str(TString(textcoded4th))} different from original {padded_frag}"
                 # use context-aware embeddings
-                textcoded4th = EMBEDDINGS(textcoded4th)
+                with torch.no_grad(): # to avoid having grad tensors sticking with this and making problems later at uploadg
+                    EMBEDDING.eval()
+                    textcoded4th = EMBEDDINGS(textcoded4th)
                 # the encoded features of the fragment are selected and padded
                 features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
                 # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
