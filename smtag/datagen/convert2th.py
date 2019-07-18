@@ -442,7 +442,7 @@ def main():
     parser.add_argument('-L', '--length', default=150, type=int, help='length of the text snippets used as example')
     parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
     parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
-    parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
+    parser.add_argument('-g', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be processed. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-e', '--exclusive', default='', help='Xpath expressions to keep only specific tags. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
