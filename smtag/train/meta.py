@@ -82,7 +82,7 @@ def main():
     parser.add_argument('-n', '--nf_table', default="8,8,8", help='Number of features in each hidden super-layer.')
     parser.add_argument('-k', '--kernel_table', default="7,7,7", help='Convolution kernel for each hidden layer.')
     # parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
-    parser.add_argument('-p', '--padding_table',  default="3,3,3", help='Padding for each hidden layer (use quotes if comma+space delimited).')
+    parser.add_argument('-g', '--padding_table',  default="3,3,3", help='Padding for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
     parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('-m', '--model', default='', help='Load pre-trained model and continue training.')
