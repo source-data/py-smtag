@@ -20,11 +20,11 @@ DEFAULT_THRESHOLD = config.default_threshold
 
 class Accuracy(object):
 
-    def __init__(self, model, minibatches, tokenize=False):
+    def __init__(self, model, minibatches, nf_output, tokenize=False):
         self.model = model
         self.minibatches = minibatches
         self.N = len(self.minibatches) * self.minibatches.batch_size
-        self.nf = next(iter(self.minibatches)).output.size(1)
+        self.nf = nf_output
         self.tokenize  = tokenize
         # self.target_concepts = []
         # if torch.cuda.is_available(): # or torch.cuda.is_available() ?

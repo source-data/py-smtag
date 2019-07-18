@@ -88,7 +88,7 @@ class Trainer:
         self.validation = validation
         self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=self.num_workers, drop_last=True, timeout=60)
         self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=self.num_workers, drop_last=True, timeout=60)
-        self.evaluator = Accuracy(self.model, self.validation_minibatches, tokenize=False)
+        self.evaluator = Accuracy(self.model, self.validation_minibatches, self.opt.nf_output, tokenize=False)
         self.console = Show('console')
 
     def train(self):
