@@ -5,7 +5,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 
 setuptools.setup(
     name="smtag",
-    version="2.0.1",
+    version="2.0.2",
     python_requires='>=3.6',
     author="Source Data",
     author_email="source_data@embo.org",
@@ -19,7 +19,7 @@ setuptools.setup(
     py_modules=['smtag.command_line'],
     install_requires=[
         #'tensorflow==1.4', # needed for tensorboardX visualization
-        'tensorboardX==1.4',
+        'tensorboardX==1.6',
         'docopt==0.6.2',
         'numpy==1.15',
         'Pillow==4.3.0', #5.1.0 requires Mac OS 10.12; torchvision require at least 4.1.1; GPU EC2 AMI needs >4.3.0
@@ -35,7 +35,6 @@ setuptools.setup(
         'opencv-python==3.4.1.15',
         'scikit-learn == 0.20.1',
         'python-dotenv==0.10.1',
-        'scikit-learn',
         'google-cloud-vision==0.34',
     ],
     include_package_data=True,

@@ -84,7 +84,7 @@ class Show():
             if torch.cuda.is_available():
                 viz_context = viz_context.cuda()
 
-        # original_text =  minibatches[rand_i].text[rand_j]
+        original_text =  minibatch.text[rand_j]
         provenance = minibatch.provenance[rand_j]
         nf_input = input.size(1)
         if model is not None:
@@ -93,10 +93,11 @@ class Show():
                 prediction = model(input, viz_context)
             model.train()
 
-        text = str(TString(input[[0], 0:config.nbits, : ])) #sometimes input has more than NBITS features if feature2input option was chosen
-        if nf_input > config.nbits:
-            out += "\nAdditional input features:"+self.nl+self.nl
-            out += "    "+self.print_pretty(input[[0], NBITS:nf_input, : ]) + self.nl + self.nl
+        text = original_text
+        # text = str(TString(input[[0], 0:config.nbits, : ])) #sometimes input has more than NBITS features if feature2input option was chosen
+        # if nf_input > config.nbits:
+        #     out += "\nAdditional input features:"+self.nl+self.nl
+        #     out += "    "+self.print_pretty(input[[0], NBITS:nf_input, : ]) + self.nl + self.nl
 
         out+= "\n__Expected:__" + "({})".format(provenance.strip()) + self.nl + self.nl
         # out += self.print_pretty_color(target, original_text) + self.nl + self.nl# visualize anonymized characters with a symbol

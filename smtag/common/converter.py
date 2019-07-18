@@ -56,7 +56,10 @@ class ConverterNBITS(Converter):
             t = cached_zeroed(L, self.dtype)
             for i in range(L):
                 code = ord(input_string[i])
+            try:
                 t[0, : , i] = self.CODE2BITS[code]
+            except IndexError:
+                t[0, : , i] = self.CODE2BITS[ord('?')]
         return t
 
     def decode(self, t: torch.Tensor) -> str:

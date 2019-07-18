@@ -12,69 +12,41 @@ from ..common.mapper import Concept, Catalogue
 from ..datagen.context import PRETRAINED
 from .. import config
 
-BNTRACK = True
-AFFINE = True
-BIAS =  True
-
-# class BNL(nn.Module):
-#     def __init__(self, channels, p=1, affine=AFFINE):
-#         super(BNL, self).__init__()
-#         self.channels = channels
-#         self.eps = torch.Tensor(1, channels, 1).fill_(1E-05)
-#         if affine:
-#             self.gamma = nn.Parameter(torch.Tensor(1, channels, 1).uniform_(0,1))
-#             self.beta = nn.Parameter(torch.zeros(1, channels, 1))
-#         else:
-#             self.gamma = 1.
-#             self.beta = 0.
-#         self.p = p
-
-#     def forward(self, x):
-#         mu = x.mean(2, keepdim=True).mean(0, keepdim=True)
-#         y = x - mu
-#         L_p = y.norm(p=self.p, dim=2, keepdim=True).mean(0, keepdim=True)
-#         # L_p = y.std(2, keepdim = True).mean(0, keepdim=True)
-#         y = y / (L_p + self.eps)
-#         y = self.gamma * x + self.beta
-#         return y
-
-
 class SmtagModel(nn.Module):
 
     def __init__(self, opt):
         super(SmtagModel, self).__init__()
         nf_input = opt.nf_input
         nf_output = opt.nf_output
-        nf_table = deepcopy(opt.nf_table) # need to deep copy/clone because of the pop() steps when building recursivelyl the model
-        kernel_table = deepcopy(opt.kernel_table) # need to deep copy/clone
-        pool_table = deepcopy(opt.pool_table) # need to deep copy/clone
-        context_table = deepcopy(opt.viz_context_table)  # need to deep copy/clone
+        nf_table = deepcopy(opt.nf_table)
+        kernel_table = deepcopy(opt.kernel_table)
+        padding_table = deepcopy(opt.padding_table)
+        context_table = deepcopy(opt.viz_context_table)
         context_in = PRETRAINED(torch.Tensor(1, 3, config.resized_img_size, config.resized_img_size)).numel()
         dropout = opt.dropout
-        skip = opt.skip
 
-        self.viz_ctxt = Context(context_in, context_table)
-        self.pre = nn.BatchNorm1d(nf_input, track_running_stats=BNTRACK, affine=AFFINE)
-        self.unet = Unet2(nf_input, nf_table, kernel_table, pool_table, context_table, dropout, skip)
-        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1, bias=BIAS) # reduce output features of unet to final desired number of output features
-        self.BN = nn.BatchNorm1d(nf_output, track_running_stats=BNTRACK, affine=AFFINE)
+        self.viz_ctxt = VizContext(context_in, context_table)
+        self.pre = nn.BatchNorm1d(nf_input)
+        self.net = CatStackWithVizContext(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
+        self.adapter = nn.Conv1d(self.net.out_channels, nf_output, 1, 1) # reduce output features of model to final desired number of output features
+        self.BN = nn.BatchNorm1d(nf_output)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
         self.output_semantics.append(Catalogue.UNTAGGED)
         self.opt = opt
 
     def forward(self, x, viz_context):
         context_list = self.viz_ctxt(viz_context)
-        # x = self.pre(x) # not sure about this
-        x = self.unet(x, context_list)
+        x = self.pre(x)
+        x = self.net(x, context_list)
         x = self.adapter(x)
         x = self.BN(x)
         x = F.log_softmax(x, 1)
         # x = F.sigmoid(x)
         return x
 
-class Context(nn.Module):
+class VizContext(nn.Module):
     def __init__(self, in_channels, context_table):
-        super(Context, self).__init__()
+        super(VizContext, self).__init__()
         self.in_channels = in_channels
         self.context_table = context_table
         # in context_table is empty, self.linears is empty too
@@ -90,100 +62,50 @@ class Context(nn.Module):
                 embedding_list.append(ctx)
         return embedding_list
 
-class OCR_attn(nn.Module):
-    def __init__(self, nf_input, nf_table, kernel_table, pool_table, dropout_rate):
-        super(OCR_attn, self).__init__()
+ 
+class CatStackWithVizContext(nn.Module):
+    
+    def __init__(self, nf_input, nf_table, kernel_table, padding_table, context_table, dropout) -> torch.Tensor:
+        super(CatStackWithVizContext, self).__init__()
         self.nf_input = nf_input
+        self.N_layers = len(nf_table)
         self.nf_table = nf_table
-        self.nf_output = nf_table.pop(0)
-        self.pool_table = pool_table
-        self.pool = pool_table.pop(0)
         self.kernel_table = kernel_table
-        self.kernel = kernel_table.pop(0)
-        self.padding = 0 
-        self.stride = 1
-        self.dropout_rate = dropout_rate
-        self.conv_down_A = nn.Conv1d(self.nf_input, self.nf_input, self.kernel, self.stride, self.padding, bias=BIAS)
-        self.BN_down_A = nn.BatchNorm1d(self.nf_input, track_running_stats=BNTRACK, affine=AFFINE)
-
-
-class Unet2(nn.Module):
-    def __init__(self, nf_input, nf_table, kernel_table, pool_table, context_table, dropout_rate, skip=True):
-        super(Unet2, self).__init__()
+        self.padding_table = padding_table
         self.context_table = context_table
-        self.nf_input = nf_input
-        self.nf_context = 0
-        if self.context_table:
-            self.nf_context = context_table.pop(0)
-        self.nf_table = nf_table
-        self.nf_output = nf_table.pop(0)
-        self.pool_table = pool_table
-        self.pool = pool_table.pop(0)
-        self.kernel_table = kernel_table
-        self.kernel = kernel_table.pop(0)
-        # if self.kernel % 2 == 0:
-        #    self.padding = int(self.kernel/2)
-        # else:
-        #    self.padding = floor((self.kernel-1)/2) # TRY WITHOUT ANY PADDING
-        self.padding = 0 
-        self.stride = 1
-        self.dropout_rate = dropout_rate
-        self.skip = skip
-        self.dropout = nn.Dropout(self.dropout_rate)
-        self.BN_pre = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
-        self.conv_down_A = nn.Conv1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding, bias=BIAS)
-        self.BN_down_A = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
+        self.dropout_rate = dropout
+        self.blocks = nn.ModuleList()
+        self.BN_pre = nn.ModuleList()
+        in_channels = self.nf_input
+        cumul_channels = in_channels # features of original input included
+        for i in range(self.N_layers):
+            out_channels = self.nf_table[i]
+            if self.context_table:
+                context_channels = self.context_table[i]
+            else:
+                context_channels = 0
+            cumul_channels += out_channels
+            self.BN_pre.append(nn.BatchNorm1d(in_channels+context_channels))
+            block = nn.Sequential(
+                nn.Dropout(self.dropout_rate),
+                nn.Conv1d(in_channels+context_channels, out_channels, self.kernel_table[i], 1, self.padding_table[i]),
+                nn.ReLU(inplace=True),
+                nn.BatchNorm1d(out_channels)
+            )
+            self.blocks.append(block)
+            in_channels = out_channels
+        self.out_channels = cumul_channels
 
-        self.conv_down_B = nn.Conv1d(self.nf_input+self.nf_context, self.nf_output, self.kernel, self.stride, self.padding, bias=BIAS)
-        self.BN_down_B = nn.BatchNorm1d(self.nf_output, track_running_stats=BNTRACK, affine=AFFINE)
+    def forward(self, x: torch.Tensor, context_list) -> torch.Tensor:
 
-        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding, bias=BIAS)
-        self.BN_up_B = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
-
-        self.conv_up_A = nn.ConvTranspose1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding, bias=BIAS)
-        self.BN_up_A = nn.BatchNorm1d(self.nf_input+self.nf_context, track_running_stats=BNTRACK, affine=AFFINE)
-
-        if len(self.nf_table) > 0:
-            self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, context_table, self.dropout_rate, self.skip)
-            self.BN_middle = nn.BatchNorm1d(self.nf_output, track_running_stats=BNTRACK, affine=AFFINE)
-        else:
-            self.unet2 = None
-
-        if self.skip:
-            self.reduce = nn.Conv1d(2*(self.nf_input+self.nf_context), self.nf_input, 1, 1)
-
-    def forward(self, x, context_list):
-        if context_list: # skipped if no context_list empty in which case nf_context is also 0
-            viz_context = context_list[0]
-            viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
-            x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
-            # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
-            context_list = context_list[1:]
-        x = self.BN_pre(x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
-        y = self.dropout(x)
-        y = self.conv_down_A(y)
-        y = F.relu(self.BN_down_A(y), inplace=True)
-        y_size_1 = list(y.size())
-        y, pool_1_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
-        y = self.conv_down_B(y)
-        y = F.relu(self.BN_down_B(y), inplace=True)
-
-        if self.unet2 is not None:
-            y_size_2 = list(y.size())
-            y, pool_2_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
-            y = self.unet2(y, context_list)
-            y = F.relu(self.BN_middle(y), inplace=True)
-            y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_2_indices, y_size_2) # problem on 1.0.1 ses issue #16486
-        y = self.dropout(y)
-        y = self.conv_up_B(y)
-        y = F.relu(self.BN_up_B(y), inplace=True)
-        y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_1_indices, y_size_1)
-        y = self.conv_up_A(y)
-        y = F.relu(self.BN_up_A(y), inplace=True)
-
-        if self.skip:
-            y = torch.cat((x, y), 1) # merge via concatanation of output layers 
-            y = self.reduce(y) # reducing from 2*nf_output to nf_output
-            # y = x + y # this would be the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
-
+        x_list = [x.clone()]
+        for i in range(self.N_layers):
+            if context_list: # skipped if no context_list empty in which case nf_context is also 0
+                viz_context = context_list[i]
+                viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
+                x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
+                x = self.BN_pre[i](x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
+            x = self.blocks[i](x)
+            x_list.append(x.clone())
+        y = torch.cat(x_list, 1)
         return y

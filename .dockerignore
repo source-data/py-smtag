@@ -1,3 +1,7 @@
-resources
+resources/data
+resources/data4th
+resources/img
+resources/log
+resources/models
 runs
 .git

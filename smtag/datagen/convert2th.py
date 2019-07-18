@@ -23,6 +23,7 @@ from ..common.mapper import Catalogue, index2concept, concept2index, NUMBER_OF_E
 from ..common.converter import TString
 from ..common.utils import cd, timer
 from ..common.progress import progress
+from ..common.embeddings import EMBEDDINGS
 from .encoder import XMLEncoder, BratEncoder
 from .ocr import OCREncoder
 from .brat import BratImport
@@ -138,29 +139,35 @@ class Augment():
         """
 
         def sample(j, encoded_example):
-            # print("{:3d}/{:3d} samples      ".format(j+1, adaptive_iterations), end='\r')
-            # a text fragment is picked randomly from the text example
-            fragment, start, stop = Sampler.pick_fragment(encoded_example.text, self.length, self.mode)
-            # it is randomly shifted and padded to fit the desired length
-            padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
-            textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
-            assert str(TString(textcoded4th)) == padded_frag, f"{str(TString(textcoded4th))} different from original {padded_frag}"
-            # the encoded features of the fragment are selected and padded
-            features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
-            # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
-            features4th[ : , concept2index[Catalogue.GENEPROD],  : ] = features4th[ : , concept2index[Catalogue.GENE],  : ] + features4th[ : ,  concept2index[Catalogue.PROTEIN], : ]
-            # the encoded ocr context features is formatted the same way to stay in register
-            ocr_context4th = None
-            if encoded_example.ocr_context is not None:
-                ocr_context4th = Sampler.slice_and_pad(self.length, encoded_example.ocr_context, start, stop, self.min_padding, left_padding, right_padding)
-            # the visual context features are independent of the position of the text fragment
-            viz_context4th = encoded_example.viz_context
-            #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
-            processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
-            self.save(path_to_encoded, j, processed_example) # tried to use .clone() does not alleviate threading problems...
-            if self.verbose:
-                Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
-        
+            full_path = path_to_encoded + "_" + str(j)
+            if os.path.exists(full_path):
+                print(f"skipping {full_path}: already exists!")
+            else:
+                # print("{:3d}/{:3d} samples      ".format(j+1, adaptive_iterations), end='\r')
+                # a text fragment is picked randomly from the text example
+                fragment, start, stop = Sampler.pick_fragment(encoded_example.text, self.length, self.mode)
+                # it is randomly shifted and padded to fit the desired length
+                padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
+                textcoded4th = TString(padded_frag).toTensor()
+                # assert str(TString(textcoded4th)) == padded_frag, f"{str(TString(textcoded4th))} different from original {padded_frag}"
+                # use context-aware embeddings
+                textcoded4th = EMBEDDINGS(textcoded4th)
+                # the encoded features of the fragment are selected and padded
+                features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
+                # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
+                features4th[ : , concept2index[Catalogue.GENEPROD],  : ] = features4th[ : , concept2index[Catalogue.GENE],  : ] + features4th[ : ,  concept2index[Catalogue.PROTEIN], : ]
+                # the encoded ocr context features is formatted the same way to stay in register
+                ocr_context4th = None
+                if encoded_example.ocr_context is not None:
+                    ocr_context4th = Sampler.slice_and_pad(self.length, encoded_example.ocr_context, start, stop, self.min_padding, left_padding, right_padding)
+                # the visual context features are independent of the position of the text fragment
+                viz_context4th = encoded_example.viz_context
+                #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
+                processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
+                self.save(full_path, processed_example) # tried to use .clone() does not alleviate threading problems...
+                if self.verbose:
+                    Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
+
         L = len(encoded_example.text)
         # if L < 0.3 * self.length: # skip examples that are too short
         #     print("\nskipping example of size {} < 30% of desired length {}".format(L, self.length))
@@ -186,8 +193,7 @@ class Augment():
                 
 
 
-    def save(self, path:str, j_th_iteration:int, encoded_example:EncodedExample):
-        full_path = path + "_" + str(j_th_iteration)
+    def save(self, full_path, encoded_example:EncodedExample):
         if os.path.exists(full_path):
             print(f"skipping {full_path}: already exists!")
         else:

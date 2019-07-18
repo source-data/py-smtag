@@ -58,7 +58,7 @@ class Data4th(Dataset):
             provenance = f.read()
         encoded_example = EncodedExample(provenance, text, features, textcoded, ocr_context, viz_context)
         input, output = self.millefeuille.assemble(encoded_example)
-        return (provenance, input, output, viz_context)
+        return (text, provenance, input, output, viz_context)
 
 
 class Assembler:
