@@ -29,18 +29,20 @@ Use `-V 500` to include 500 features from visual context.
 
 ## Multi-entities with exp assays and viz:
 
-    smtag-meta -f 5X_L1200_fig -E60 -Z64 -R0.0001 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 6,6,6 -n 32,64,128 -p 2,2,2 -V 500 -w /ebs/smtag
+    smtag-meta -f 5X_L1200_fig -E120 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -p 3,3,3,3,3,3,3,3,3,3 -V500,0,0,0,0,0,0,0,0,0
     
 <img src="figures/.png" width="50%">
 __Model: `...`__
 
+
 # Roles geneprod with viz:
 
-    smtag-meta -f 5X_L1200_geneprod_anonym_not_reporter_fig -E60 -Z64 -R0.0001 -D0.2 -o intervention,assayed -k 6,6,6 -n 32,64,128 -p 2,2,2 -V 500 -w /ebs/smtag
+    smtag-meta -f 5X_L1200_geneprod_anonym_not_reporter_fig -E120 -Z32 -R0.005 -D0.2 -o intervention,assayed -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -p 3,3,3,3,3,3,3,3,3,3 -V500,0,0,0,0,0,0,0,0,0
  
 <img alt="plots" src="figures/.png" width="500">
 __Model: `...`__
-    
+
+
 # Role for small molecule with viz:
 
     smtag-meta -f 5X_L1200_molecule_anonym_fig -E60 -Z64 -R0.0001 -D0.2 -o intervention,assayed -k 6,6,6 -n 32,64,128 -p 2,2,2 -V 500 -w /ebs/smtag
@@ -55,17 +57,19 @@ No `-V` option.
 
 ## Multi entities with exp assays and __without__ viz context:
 
-    smtag-meta -f 5X_L1200_fig -E60 -Z64 -R0.001 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 6,6,6 -n 32,64,128 -p 2,2,2 -w /ebs/smtag
+    smtag-meta -f 5X_L1200_fig -E120 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -p 3,3,3,3,3,3,3,3,3,3
     
 <img src="figures/.png" width="50%">
 __Model: `...`__
 
+
 ## Geneprod roles __without__ viz:
 
-    smtag-meta -f 5X_L1200_geneprod_anonym_not_reporter_fig -E60 -Z64 -R0.0001 -D0.2 -o intervention,assayed -k 6,6,6 -n 32,64,128 -p 2,2,2 -w /ebs/smtag
+    smtag-meta -f 5X_L1200_geneprod_anonym_not_reporter_fig -E120 -Z32 -R0.005 -D0.2 -o intervention,assayed -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -p 3,3,3,3,3,3,3,3,3,3
     
 <img src="figures/.png" width="500px">
 __Model: `...`__
+
 
 ## Role for small molecule __without__ viz context (faster learning rate):
 
@@ -82,12 +86,14 @@ __Model: `...`__
 <img src="figures/.png" width="500px">
 Model: __`..`__
 
+
 ## Disease __without__ viz context:
 
-    smtag-meta -f 10X_L1200_disease,5X_L1200_fig -E120 -Z64 -R0.0001 -D0.2 -o disease -k 6,6,6 -n 32,64,128 -p 2,2,2 -w /ebs/smtag
+    smtag-meta -f 10X_L1200_disease,5X_L1200_fig -E120 -Z32 -R0.005 -D0.2 -o disease -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -p 3,3,3,3,3,3,3,3,3,3
         
 <img src="figures/.png" width="50%">
 __Model: `...`__
+
 
 ## Panels on emboj only:
 
