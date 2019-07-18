@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.0.0-experimental
 # export DOCKER_BUILDKIT=1
-# docker build -t tl/smtag:multiconv .
+# docker build --ssh default -t tl/smtag:multiconv .
 # nvidia-docker run --shm-size 8G --rm -it -v /raid/lemberge/py-smtag:/workspace/py-smtag -p12346:6005 tl/smtag:multiconv
 FROM nvcr.io/nvidia/pytorch:19.05-py3
 COPY . /workspace/py-smtag
