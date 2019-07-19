@@ -43,7 +43,7 @@ class Data4th(Dataset):
     #@lru_cache(maxsize=config.cache_dataset)
     def __getitem__(self, i):
         path = self.path_list[i]
-        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename)).detach().float()
+        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename)).float()
         features = torch.load(os.path.join(path, EncodedExample.features_filename)).float()
         ocr_context = None
         if self.opt.use_ocr_context and os.path.isfile(os.path.join(path, EncodedExample.ocr_context_filename)):
