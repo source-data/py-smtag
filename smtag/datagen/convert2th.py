@@ -151,7 +151,9 @@ class Augment():
                 textcoded4th = TString(padded_frag).toTensor()
                 # assert str(TString(textcoded4th)) == padded_frag, f"{str(TString(textcoded4th))} different from original {padded_frag}"
                 # use context-aware embeddings
-                textcoded4th = EMBEDDINGS(textcoded4th)
+                with torch.no_grad(): # to avoid having grad tensors sticking with this and making problems later at uploadg
+                    EMBEDDINGS.eval()
+                    textcoded4th = EMBEDDINGS(textcoded4th)
                 # the encoded features of the fragment are selected and padded
                 features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
                 # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
@@ -440,7 +442,7 @@ def main():
     parser.add_argument('-L', '--length', default=150, type=int, help='length of the text snippets used as example')
     parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
     parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
-    parser.add_argument('-p', '--padding', default=config.min_padding, help='minimum padding added to text')
+    parser.add_argument('-g', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be processed. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-e', '--exclusive', default='', help='Xpath expressions to keep only specific tags. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
