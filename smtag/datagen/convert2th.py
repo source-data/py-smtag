@@ -148,12 +148,15 @@ class Augment():
                 fragment, start, stop = Sampler.pick_fragment(encoded_example.text, self.length, self.mode)
                 # it is randomly shifted and padded to fit the desired length
                 padded_frag, left_padding, right_padding = Sampler.pad_and_shift(fragment, self.length, self.random_shifting, self.min_padding)
-                textcoded4th = TString(padded_frag).toTensor()
-                # assert str(TString(textcoded4th)) == padded_frag, f"{str(TString(textcoded4th))} different from original {padded_frag}"
                 # use context-aware embeddings
-                with torch.no_grad(): # to avoid having grad tensors sticking with this and making problems later at uploadg
-                    EMBEDDINGS.eval()
-                    textcoded4th = EMBEDDINGS(textcoded4th)
+                if config.embeddings_model:
+                    textcoded4th = TString(padded_frag).toTensor()
+                    with torch.no_grad(): # to avoid having grad tensors sticking with this and making problems later at upload
+                        EMBEDDINGS.eval()
+                        textcoded4th = EMBEDDINGS(textcoded4th)
+                else:
+                    textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
+                    #assert str(TString(textcoded4th)) == padded_frag, f"\n'{str(TString(textcoded4th))}'\n is different from original \n'{padded_frag}'"
                 # the encoded features of the fragment are selected and padded
                 features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
                 # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres

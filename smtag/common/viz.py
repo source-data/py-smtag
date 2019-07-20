@@ -93,11 +93,13 @@ class Show():
                 prediction = model(input, viz_context)
             model.train()
 
-        text = original_text
-        # text = str(TString(input[[0], 0:config.nbits, : ])) #sometimes input has more than NBITS features if feature2input option was chosen
-        # if nf_input > config.nbits:
-        #     out += "\nAdditional input features:"+self.nl+self.nl
-        #     out += "    "+self.print_pretty(input[[0], NBITS:nf_input, : ]) + self.nl + self.nl
+        if config.embeddings_model:
+            text = original_text
+        else:
+            text = str(TString(input[[0], 0:config.nbits, : ])) #sometimes input has more than NBITS features if feature2input option was chosen
+            if nf_input > config.nbits:
+                out += "\nAdditional input features:"+self.nl+self.nl
+                out += "    "+self.print_pretty(input[[0], NBITS:nf_input, : ]) + self.nl + self.nl
 
         out+= "\n__Expected:__" + "({})".format(provenance.strip()) + self.nl + self.nl
         # out += self.print_pretty_color(target, original_text) + self.nl + self.nl# visualize anonymized characters with a symbol

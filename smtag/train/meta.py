@@ -79,7 +79,7 @@ def main():
     parser.add_argument('-D', '--dropout_rate', default=0.1, type=float, help='Dropout rate.')
     parser.add_argument('-S', '--no_skip', action='store_true', help="Use this option to __deactivate__ skip links in unet2 model.")
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
-    parser.add_argument('-n', '--nf_table', default="8,8,8", help='Number of features in each hidden super-layer.')
+    parser.add_argument('-n', '--nf_table', default="32,32,32", help='Number of features in each hidden super-layer.')
     parser.add_argument('-k', '--kernel_table', default="7,7,7", help='Convolution kernel for each hidden layer.')
     # parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-g', '--padding_table',  default="3,3,3", help='Padding for each hidden layer (use quotes if comma+space delimited).')
@@ -120,7 +120,10 @@ def main():
         opt['use_ocr_context'] = 'ocr2'
     else:
         opt['use_ocr_context'] = ''
-    opt['nf_input'] = EMBEDDINGS.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
+    if config.embeddings_model:
+        opt['nf_input'] = EMBEDDINGS.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
+    else:
+        opt['nf_input'] = config.nbits
     options = Options(opt)
     # print(options)c
 
