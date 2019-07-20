@@ -26,7 +26,7 @@ class SmtagModel(nn.Module):
         dropout = opt.dropout
 
         self.viz_ctxt = VizContext(context_in, context_table)
-        self.pre = nn.BatchNorm1d(nf_input)
+        # self.pre = nn.BatchNorm1d(nf_input)
         self.net = CatStackWithVizContext(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
         self.adapter = nn.Conv1d(self.net.out_channels, nf_output, 1, 1) # reduce output features of model to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output)
@@ -36,7 +36,7 @@ class SmtagModel(nn.Module):
 
     def forward(self, x, viz_context):
         context_list = self.viz_ctxt(viz_context)
-        x = self.pre(x)
+        # x = self.pre(x) # should be in embeddings
         x = self.net(x, context_list)
         x = self.adapter(x)
         x = self.BN(x)
