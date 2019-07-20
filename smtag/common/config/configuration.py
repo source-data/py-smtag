@@ -51,7 +51,7 @@ class Config():
     _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
     _ocr_max_edit_dist = 0.2 # max edit distance per character length between ocr term and matching term in caption
     _ocr_min_overlap   = 3 # minimum lenght of overlap between ocr term and caption term
-    _nbits             = 8 # 17 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
+    _nbits             = 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII
     _marking_char      = '_' #u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _padding_char      = '`' # " " # character used to padd strings; would be smarter to use character different from space
     _min_padding       = 100 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
@@ -77,7 +77,7 @@ class Config():
     _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-17-18.zip"
     _model_disease_no_viz = "10X_L1200_disease-5X_L1200_fig_disease_2019-05-27-16-34.zip"
     _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-05-11-01-10.zip"
-    _embeddings_model    = "190719_embeddings_test.zip" # test_embeddings.zip"
+    _embeddings_model    = "trivial.zip" # trivial.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
