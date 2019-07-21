@@ -13,17 +13,14 @@ COPY . /workspace/py-smtag
 
 # This command will have access to the forwarded agent (if one is
 # available)
-RUN pip install --upgrade pip setuptools && \
-# RUN --mount=type=ssh pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
-# RUN --mount=type=ssh git clone --branch multihead git@github.com:source-data/vsearch
-    pip install -e /workspace/py-smtag && \
+#RUN pip install --upgrade pip setuptools && \
+    # --mount=type=ssh git clone --branch multihead git@github.com:source-data/vsearch
+RUN pip install -e /workspace/py-smtag && \
     pip install -r /workspace/py-smtag/smtag/requirements.txt && \
-# RUN pip install -e /workspace/vsearch
+    # pip install -e /workspace/vsearch && \
     pip install tensorflow==1.14.0 && \
     pip install tensorboardX==1.6 && \
     smtag-meta --help -w /workspace/py-smtag/resources && \
-# RUN vs-extract
-# RUN  smtag-predict --help -w /workspace/py-smtag/resources && \
     rm -Rf /workspace/py-smtag && \
     rm -Rf /workspace/vsearch
 
