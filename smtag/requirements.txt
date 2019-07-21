@@ -7,7 +7,7 @@ torch==1.0.1 # 0.4.0
 torchvision==0.2.2.post3
 neo4jrestclient==2.1.1
 nltk
-#tensorflow==1.4 #does not work on mac?!
+tensorflow==1.14.0 #does not work on mac?!
 #install manually tensorflow with pip3 install --upgrade
 tensorboardX==1.6
 #jupyter==1.0.0
@@ -15,7 +15,7 @@ tensorboardX==1.6
 #IPython==6.5
 google-cloud-vision==0.34
 google-auth==1.5.1
-opencv-python==3.4.1.15
+opencv-python==3.4.2.16
 scikit-learn == 0.20.1
 python-dotenv==0.10.1 # to load .env file
 #-e vsearch
