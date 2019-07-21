@@ -21,7 +21,7 @@ MARKING_CHAR = config.marking_char
 class Show():
     COLORS = {
         "console": [
-            "\033[30;1m", #grey
+            "\033[48;1m", #grey
             "\033[34;1m", #blue first since often assayed
             "\033[31;1m", #red
             "\033[33;1m", #yellow
