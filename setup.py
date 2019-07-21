@@ -20,20 +20,16 @@ setuptools.setup(
     install_requires=[
         'tensorflow', # needed for tensorboardX visualization
         'tensorboardX',
-        'docopt==0.6.2',
-        'numpy==1.16.3',
-        #'Pillow==4.3.0', #5.1.0 requires Mac OS 10.12; torchvision require at least 4.1.1; GPU EC2 AMI needs >4.3.0
+        'docopt,
+        # 'numpy==1.16.3',
         'torch==1.0.1',
         'torchvision==0.2.2.post3',
-        #'PyYAML==5.1',
-        #'six==1.10.0', # GPU EC2 AMI need 1.10
-        #'six==1.11.0', # Alex fixing build issue
         'neo4jrestclient==2.1.1',
         'nltk',
         'google-cloud-vision==0.34',
         'google-auth==1.5.1',
         'opencv-python',
-        'scikit-learn == 0.20.1',
+        'scikit-learn',
         'python-dotenv==0.10.1',
         'google-cloud-vision==0.34',
     ],
