@@ -1,4 +1,4 @@
-tensorflow==1.14.0
+tensorflow
 #docopt==0.6.2
 # numpy==1.16.3
 #torch==1.0.1 # 0.4.0

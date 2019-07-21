@@ -18,7 +18,7 @@ setuptools.setup(
     ]),
     py_modules=['smtag.command_line'],
     install_requires=[
-        'tensorflow==1.14.0', # needed for tensorboardX visualization
+        'tensorflow', # needed for tensorboardX visualization
         # 'tensorboardX',
         # 'docopt',
         # # 'numpy==1.16.3',
