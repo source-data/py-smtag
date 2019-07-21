@@ -21,7 +21,7 @@ setuptools.setup(
         'tensorflow', # needed for tensorboardX visualization
         'tensorboardX',
         'docopt==0.6.2',
-        'numpy==1.15',
+        'numpy==1.16.3',
         #'Pillow==4.3.0', #5.1.0 requires Mac OS 10.12; torchvision require at least 4.1.1; GPU EC2 AMI needs >4.3.0
         'torch==1.0.1',
         'torchvision==0.2.2.post3',
