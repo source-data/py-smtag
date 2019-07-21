@@ -18,5 +18,5 @@ google-auth==1.5.1
 opencv-python==3.4.2.16
 scikit-learn == 0.20.1
 python-dotenv==0.10.1 # to load .env file
-#-e vsearch
--e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
+-e vsearch
+#-e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
