@@ -20,7 +20,7 @@ setuptools.setup(
     install_requires=[
         'tensorflow', # needed for tensorboardX visualization
         'tensorboardX',
-        'docopt,
+        'docopt',
         # 'numpy==1.16.3',
         'torch==1.0.1',
         'torchvision==0.2.2.post3',
