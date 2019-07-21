@@ -16,10 +16,10 @@ RUN mkdir -m 700 /root/.ssh; \
 # available)
 RUN pip install --upgrade pip setuptools
 # RUN --mount=type=ssh pip install -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
-RUN --mount=type=ssh git clone --branch multihead git@github.com:source-data/vsearch
+RUN git clone --branch multihead git@github.com:source-data/vsearch
 RUN pip install -e /workspace/py-smtag
 # RUN pip install -e /workspace/vsearch
-RUN --mount=type=ssh pip install -r /workspace/py-smtag/smtag/requirements.txt
+RUN pip install -r /workspace/py-smtag/smtag/requirements.txt
 RUN pip install tensorflow==1.8
 RUN pip install tensorboardX==1.6
 RUN smtag-meta --help -w /workspace/py-smtag/resources
