@@ -1,7 +1,7 @@
-tensorflow
-#docopt==0.6.2
+tensorflow==1.8.0
+# docopt==0.6.2
 # numpy==1.16.3
-#torch==1.0.1 # 0.4.0
+# torch==1.0.1
 # torchvision==0.2.2.post3
 # neo4jrestclient==2.1.1
 # nltk == 3.4.1
@@ -10,15 +10,15 @@ tensorflow
 # google-auth==1.5.1
 # opencv-python==3.4.2.16
 # scikit-learn == 0.20.1
-#python-dotenv==0.10.1 # to load .env file
-#vsearch
+# python-dotenv==0.10.1 # to load .env file
+# vsearch
 #-e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
 
 
 # torch==1.0.1
 # torchvision==0.2.2.post3
 # nltk==3.4.1
-# tensorflow==1.14.0 #1.4.0 # does not work!
+# tensorflow==1.8.0
 # #install manually tensorflow with pip3 install --upgrade https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-1.8.0-py3-none-any.whl
 # tensorboardX==1.6
 # mypy==0.650
