@@ -17,7 +17,8 @@ Processing of images:
     
 # Preparation of ready-to-train datasets
 
-    smtag-convert2th -c 190414 -f 5X_L1200_fig -X5 -L1200 -E ".//fig/caption" -w /ebs/smtag
+    smtag-convert2th -c 190414 -f 5X_L1200_embeddings -X5 -L1200 -E ".//fig/caption"
+
     smtag-convert2th -c 190414 -L1200 -X5 -E ".//fig/caption" -y ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -e ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']",".//sd-tag[@role='normalizing']",".//sd-tag[@role='experiment']",".//sd-tag[@role='component']" -f 5X_L1200_geneprod_anonym_not_reporter_fig -w /ebs/smtag
     smtag-convert2th -c 190414 -L1200 -X5 -E ".//fig/caption" -e ".//sd-tag[@type='molecule']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']" -f 5X_L1200_molecule_anonym_fig -w /ebs/smtag
     smtag-convert2th -c NCBI_disease -b -L1200 -X10 -f 10X_L1200_disease -w /ebs/smtag
@@ -57,7 +58,7 @@ No `-V` option.
 
 ## Multi entities with exp assays and __without__ viz context:
 
-    smtag-meta -f 5X_L1200_fig -E120 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -p 3,3,3,3,3,3,3,3,3,3
+    smtag-meta -f 5X_L1200_embeddings -E120 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -g 3,3,3,3,3,3,3,3,3,3
     
 <img src="figures/.png" width="50%">
 __Model: `...`__
