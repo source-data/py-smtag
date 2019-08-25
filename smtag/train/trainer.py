@@ -124,8 +124,7 @@ class Trainer:
             # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
             if f1.mean() > f1_max:
                 f1_max = f1.mean()
-                export_model(self.model, custom_name = self.opt.namebase+'_best_so_far')
-            
+                export_model(self.model, custom_name = self.opt.namebase+f'_epoch_{e}')
         self.plot.close()
         print("\n")
         return avg_train_loss, avg_validation_loss, precision, recall, f1
