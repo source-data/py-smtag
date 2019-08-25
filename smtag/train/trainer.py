@@ -20,7 +20,7 @@ from .. import config
 
 Minibatch = namedtuple('Minibatch', ['text', 'input', 'output', 'viz_context', 'provenance'])
 
-def predict_fn(model, batch, eval=False):
+def predict_fn(model, batch, eval=False): # embeddings
     x = batch.input
     y = batch.output
     viz_context = batch.viz_context
@@ -28,6 +28,7 @@ def predict_fn(model, batch, eval=False):
         x = x.cuda()
         y = y.cuda()
         viz_context = viz_context.cuda()
+    # x = embedding(x)
     if eval:
         with torch.no_grad():
             model.eval()
@@ -55,8 +56,9 @@ from .evaluator import Accuracy # Accuracy needs predict_fn and collate_fn as we
 
 class Trainer:
 
-    def __init__(self, trainset, validation, model):
+    def __init__(self, trainset, validation, model): # , embeddings
         self.model = model
+        #self.embeddings = embeddings
         # we copy the options opt and output_semantics to the trainer itself
         # in case we will need them during accuracy monitoring (for example to binarize output with feature-specific thresholds)
         # on a GPU machine, the model is wrapped into a nn.DataParallel object and the opt and output_semantics attributes would not be directly accessible
@@ -97,6 +99,7 @@ class Trainer:
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
         self.plot.add_text('parameters', str(self.opt))
         N = len(self.trainset) // self.batch_size
+        f1_max = 0
         for e in range(self.epochs):
             avg_train_loss = 0 # loss averaged over all minibatches
 
@@ -110,7 +113,6 @@ class Trainer:
 
             # Logging/plotting
             print("\n")
-            export_model(self.model, custom_name = self.opt.namebase+'_last_saved')
             avg_train_loss = avg_train_loss / N
             precision, recall, f1, avg_validation_loss = self.evaluator.run(predict_fn)
             self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
@@ -120,6 +122,9 @@ class Trainer:
             self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
             print(self.console.example(self.validation_minibatches, self.model))
             # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
+            if f1.mean() > f1_max:
+                f1_max = f1.mean()
+                export_model(self.model, custom_name = self.opt.namebase+'_best_so_far')
             
         self.plot.close()
         print("\n")
