@@ -108,5 +108,4 @@ class CatStackWithVizContext(nn.Module):
             x = self.blocks[i](x)
             x_list.append(x.clone())
         y = torch.cat(x_list, 1)
-        y = self.BN_out(F.relu(y))
         return y
