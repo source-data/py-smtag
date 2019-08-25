@@ -43,7 +43,7 @@ class Meta():
         else:
             model = SmtagModel(opt)
             print(model)
-        train_loss, valid_loss, precision, recall, f1 = Trainer(trainset, validation, model).train()
+        train_loss, valid_loss, precision, recall, f1 = Trainer(trainset, validation, model).train() #, EMBEDDINGS
         return model, {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
 
     def _save(self, model):
@@ -125,7 +125,7 @@ def main():
     else:
         opt['nf_input'] = config.nbits
     options = Options(opt)
-    # print(options)c
+    # print(options)
 
     metatrainer = Meta(options)
     if not hyperparams:

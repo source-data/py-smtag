@@ -143,7 +143,6 @@ class Augment():
             if os.path.exists(full_path):
                 print(f"skipping {full_path}: already exists!")
             else:
-                # print("{:3d}/{:3d} samples      ".format(j+1, adaptive_iterations), end='\r')
                 # a text fragment is picked randomly from the text example
                 fragment, start, stop = Sampler.pick_fragment(encoded_example.text, self.length, self.mode)
                 # it is randomly shifted and padded to fit the desired length
@@ -174,27 +173,9 @@ class Augment():
                     Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
 
         L = len(encoded_example.text)
-        # if L < 0.3 * self.length: # skip examples that are too short
-        #     print("\nskipping example of size {} < 30% of desired length {}".format(L, self.length))
-        #     skipped_examples += 1
-        # else:
-        # randomly sampling each example
         adaptive_iterations = int(max(1.0, L / self.length) * iterations)
         for j in range(adaptive_iterations): # j is index of sampling iteration
-            # if self.verbose:
-                sample(j, encoded_example) # no multi-threading when verbose mode other all display is messed up
-            # MULTI THREADING MIXES FILES....
-            # else:
-            #     try:
-            #         threading.Thread(target=sample, args=(j, encoded_example)).start() # # tried to use .clone() does not alleviate threading problems...
-            #     except RuntimeError as e: # problem if number of threads to high
-            #         print(e)
-            #         while threading.active_count() > 1: 
-            #             print(f"waiting that {threading.active_count()} threads resume", end='\r')
-            #             time.sleep(1)
-            #         print()
-            #         # try again
-            #         threading.Thread(target=sample, args=(j, encoded_example)).start()
+            sample(j, encoded_example)
                 
 
 
