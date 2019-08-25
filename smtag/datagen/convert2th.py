@@ -423,7 +423,7 @@ class BratDataPreparator(DataPreparator):
 
     def encode_examples(self, subset, examples):
         augmenter = Augment(self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
-        with cd(config.encoded_dir):
+        #with cd(config.encoded_dir):
             for ex in examples: # 'text': text, 'annot': parsed_annotations, 'provenance': basename
                 encoded_features = BratEncoder.encode(ex)
                 try:
