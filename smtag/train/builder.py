@@ -94,10 +94,7 @@ class CatStackWithVizContext(nn.Module):
             )
             self.blocks.append(block)
             in_channels = out_channels
-        # self.out_channels = cumul_channels
-        self.compress = nn.Conv1d(cumul_channels, 128, 1, 1)
-        self.BN_out = nn.BatchNorm1d(128)
-        self.out_channels = 128
+        self.out_channels = cumul_channels
 
     def forward(self, x: torch.Tensor, context_list) -> torch.Tensor:
 
@@ -111,6 +108,5 @@ class CatStackWithVizContext(nn.Module):
             x = self.blocks[i](x)
             x_list.append(x.clone())
         y = torch.cat(x_list, 1)
-        y = self.compress(y)
         y = self.BN_out(F.relu(y))
         return y
