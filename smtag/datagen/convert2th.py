@@ -21,7 +21,7 @@ from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 
 from ..common.mapper import Catalogue, index2concept, concept2index, NUMBER_OF_ENCODED_FEATURES
 from ..common.converter import TString
-from ..common.utils import cd, timer, tokenize, Token, cleanup
+from ..common.utils import cd, timer, tokenize, Token, cleanup, xml_escape
 from ..common.progress import progress
 from ..common.embeddings import EMBEDDINGS
 from .encoder import XMLEncoder, BratEncoder
@@ -462,6 +462,7 @@ class DecoyDataPreparator(DataPreparator):
                 with open(os.path.join(path, filename), "r") as f:
                     text = f.read()
                     text = cleanup(text)
+                    text = xml_escape(text)
                     print(f"({i+1}/{len(filenames)} {filename}          )", end='\r')
                 provenance = os.path.splitext(filename)[0]
                 tagged_xml = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
