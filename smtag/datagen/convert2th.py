@@ -480,8 +480,8 @@ class DecoyDataPreparator(DataPreparator):
                     print("="*60)
                     print(tagged)
                     print("="*60)
-                    faulty_postition = int(re.search(r'column (\d+)', str(e)).group(1))
-                    print(f"faulty character: '{tagged_xml[faulty_postition]}'")
+                    faulty_position = int(re.search(r'column (\d+)', str(e)).group(1))
+                    print(f"faulty character: '{tagged[faulty_position]}'")
                     raise(e)
                 processed = self.anonymize(tagged_xml, self.anonymization_xpath)
                 examples.append({
