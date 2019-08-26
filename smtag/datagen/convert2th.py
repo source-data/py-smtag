@@ -173,7 +173,7 @@ class Augment():
                     Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
 
         L = len(encoded_example.text)
-        adaptive_iterations = int(max(1.0, L / self.length) * iterations)
+        adaptive_iterations = min(2, int(max(1.0, L / self.length))) * iterations
         for j in range(adaptive_iterations): # j is index of sampling iteration
             sample(j, encoded_example)
                 
@@ -470,7 +470,7 @@ class DecoyDataPreparator(DataPreparator):
                 with open(os.path.join(path, filename), "r") as f:
                     text = f.read()
                     text = cleanup(text)
-                    print(f"({i+1}/{len(filenames)} {filename}          )", end='\r')
+                    print(f"{i+1}/{len(filenames)} {filename}          ", end='\r')
                 provenance = os.path.splitext(filename)[0]
                 tagged = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
                 try:
