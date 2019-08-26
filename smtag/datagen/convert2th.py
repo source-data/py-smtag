@@ -13,7 +13,7 @@ import pickle
 import threading
 import time
 from math import floor, ceil
-from xml.etree.ElementTree  import XML, parse, tostring, XMLParser
+from xml.etree.ElementTree  import XML, parse, fromstring, tostring, XMLParser
 
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
@@ -21,7 +21,7 @@ from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 
 from ..common.mapper import Catalogue, index2concept, concept2index, NUMBER_OF_ENCODED_FEATURES
 from ..common.converter import TString
-from ..common.utils import cd, timer
+from ..common.utils import cd, timer, tokenize, Token, cleanup
 from ..common.progress import progress
 from ..common.embeddings import EMBEDDINGS
 from .encoder import XMLEncoder, BratEncoder
@@ -415,6 +415,64 @@ class BratDataPreparator(DataPreparator):
             encoded_example = EncodedExample(ex['provenance'], ex['text'], encoded_features)
             augmenter.sample_and_save(path_to_encoded, encoded_example, self.iterations)
 
+class DecoyDataPreparator(DataPreparator):
+    def __init__(self, options):
+        super(DecoyDataPreparator, self).__init__(options)
+        self.decoy_tags = options['decoy_tags']
+
+    def random_tag(self, text, p, tagset=['<sd-tag type="gene">', '<sd-tag type="protein">']):
+        tokenized = tokenize(text)
+        token_list = tokenized['token_list']
+        N = len(token_list)
+        n = floor(N * p)
+        indices = list(range(N))
+        shuffle(indices)
+        picked = indices[:n]
+        for i in picked:
+            old_token = token_list[i]
+            # ideally use nltk pos tagger to only tag nouns?
+            open_tag = choice(tagset)
+            closing_tag = re.sub(r'<([a-zA-Z\-]+) .*', r'</\1>', open_tag)
+            tagged_token_text = f"{open_tag}{old_token.text}{closing_tag}"
+            new_token = Token(
+                text = tagged_token_text,
+                start = old_token.start,
+                stop = old_token.stop,
+                length = old_token.length,
+                left_spacer = old_token.left_spacer
+            )
+            token_list[i] = new_token
+        randomly_tagged_text = "".join([t.left_spacer + t.text for t in token_list])
+        randomly_tagged_text = f"<article>{randomly_tagged_text}</article>"
+        xml = fromstring(randomly_tagged_text)
+        return xml
+         
+    
+    def import_files(self, subset):
+        """
+        Import decoy text documents from dir. In each document, randomly tag words.
+        """
+
+        with cd(config.data_dir):
+            path = os.path.join(self.compendium, subset)
+            print("\nloading from:", path)
+            filenames = [f for f in os.listdir(path) if os.path.splitext(f)[1] == '.txt']
+            examples = []
+            for i, filename in enumerate(filenames):
+                with open(os.path.join(path, filename), "r") as f:
+                    text = f.read()
+                    text = cleanup(text)
+                    print(f"({i+1}/{len(filenames)} {filename}          )", end='\r')
+                provenance = os.path.splitext(filename)[0]
+                tagged_xml = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
+                processed = self.anonymize(tagged_xml, self.anonymization_xpath)
+                examples.append({
+                    'xml': tagged_xml,
+                    'processed': processed,
+                    'provenance': provenance,
+                    'graphic': None
+                })
+        return examples
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Reads xml and transform into tensor format.')
@@ -433,6 +491,7 @@ def main():
     parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-E', '--example', default='.//sd-panel', help='Xpath to extract examples from XML documents')
     parser.add_argument('-G', '--graphic', default='.//graphic', help='Xpath to find link to graphic element in an example.')
+    parser.add_argument('--decoy', default=[], help='List of tags to use in order to generate a randomly tagged decoy dataset.')
     parser.add_argument('--noocr', action='store_true', default=False, help='Set this flag to prevent use of image-based OCR data.')
     parser.add_argument('--noviz', action='store_true', default=False, help='Set this flag to prevent use of image-based visual context data.')
 
@@ -458,9 +517,12 @@ def main():
     options['anonymize'] =  [a for a in args.anonymize.split(',') if a] # to make sure list is empty if args is ''
     options['exclusive'] =  [a for a in args.exclusive.split(',') if a]
     options['enrich'] =  [a for a in args.enrich.split(',') if a]
+    options['decoy_tags'] = [a for a in args.decoy.split(',') if a]
     print(options)
     if args.brat:
         prep = BratDataPreparator(options)
+    elif args.decoy:
+        prep = DecoyDataPreparator(options)
     else:
         prep = DataPreparator(options)
     prep.run_on_compendium()
