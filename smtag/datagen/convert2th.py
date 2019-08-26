@@ -435,7 +435,7 @@ class DecoyDataPreparator(DataPreparator):
             assert not "&<>\"'" in new_token.text, f"{new_token.text} contains characters that should have been xml escaped!"
             assert not "&<>\"'" in new_token.left_spacer, f"left spacer {new_token.left_spacer} contains characters that should have been xml escaped!"
             escaped_token_list.append(new_token)
-        N = len(token_list)
+        N = len(escaped_token_list)
         n = floor(N * p)
         indices = list(range(N))
         shuffle(indices)
@@ -453,8 +453,8 @@ class DecoyDataPreparator(DataPreparator):
                 length = old_token.length,
                 left_spacer = old_token.left_spacer
             )
-            token_list[i] = new_token
-        randomly_tagged_text = "".join([t.left_spacer + t.text for t in token_list])
+            escaped_token_list[i] = new_token
+        randomly_tagged_text = "".join([t.left_spacer + t.text for t in escaped_token_list])
         randomly_tagged_text = f"<article>{randomly_tagged_text}</article>"
         return randomly_tagged_text
          
