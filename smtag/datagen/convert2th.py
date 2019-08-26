@@ -423,13 +423,24 @@ class DecoyDataPreparator(DataPreparator):
     def random_tag(self, text, p, tagset=['<sd-tag type="gene">', '<sd-tag type="protein">']):
         tokenized = tokenize(text)
         token_list = tokenized['token_list']
+        escaped_token_list = []
+        for token in token_list:
+            escaped_token_text = xml_escape(token.text)
+            new_token = Token(
+                text = escaped_token_text,
+                start = token.start,
+                stop = token.stop,
+                length = token.length,
+                left_spacer = token.left_spacer
+            )
+            escaped_token_list.append(new_token)
         N = len(token_list)
         n = floor(N * p)
         indices = list(range(N))
         shuffle(indices)
         picked = indices[:n]
         for i in picked:
-            old_token = token_list[i]
+            old_token = escaped_token_list[i]
             # ideally use nltk pos tagger to only tag nouns?
             open_tag = choice(tagset)
             closing_tag = re.sub(r'<([a-zA-Z\-]+) .*', r'</\1>', open_tag)
@@ -461,7 +472,6 @@ class DecoyDataPreparator(DataPreparator):
                 with open(os.path.join(path, filename), "r") as f:
                     text = f.read()
                     text = cleanup(text)
-                    text = xml_escape(text)
                     print(f"({i+1}/{len(filenames)} {filename}          )", end='\r')
                 provenance = os.path.splitext(filename)[0]
                 tagged = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
