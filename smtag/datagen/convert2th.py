@@ -441,7 +441,7 @@ class DecoyDataPreparator(DataPreparator):
             old_token = escaped_token_list[i]
             # ideally use nltk pos tagger to only tag nouns?
             open_tag = choice(tagset)
-            closing_tag = re.sub(r'<([a-zA-Z\-]+) .*', r'</\1>', open_tag)
+            closing_tag = re.sub(r'<([a-zA-Z\-]+)[ >].*', r'</\1>', open_tag)
             tagged_token_text = f"{open_tag}{old_token.text}{closing_tag}"
             new_token = Token(
                 text = tagged_token_text,
