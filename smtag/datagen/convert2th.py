@@ -432,6 +432,8 @@ class DecoyDataPreparator(DataPreparator):
                 length = token.length,
                 left_spacer = xml_escape(token.left_spacer)
             )
+            assert not "&<>\"'" in new_token.text, f"{new_token.text} contains characters that should have been xml escaped!"
+            assert not "&<>\"'" in new_token.left_spacer, f"left spacer {new_token.left_spacer} contains characters that should have been xml escaped!"
             escaped_token_list.append(new_token)
         N = len(token_list)
         n = floor(N * p)
@@ -480,7 +482,7 @@ class DecoyDataPreparator(DataPreparator):
                     print("="*60)
                     print(tagged)
                     print("="*60)
-                    faulty_position = int(re.search(r'column (\d+)', str(e)).group(1))
+                    faulty_position = int(re.search(r'column (\d+)', str(e)).group(1)) - 1
                     print(f"faulty character: '{tagged[faulty_position-10:faulty_position]}>>>{tagged[faulty_position]}<<<{tagged[faulty_position+1:faulty_position+10]}'")
                     raise(e)
                 processed = self.anonymize(tagged_xml, self.anonymization_xpath)
