@@ -425,13 +425,12 @@ class DecoyDataPreparator(DataPreparator):
         token_list = tokenized['token_list']
         escaped_token_list = []
         for token in token_list:
-            escaped_token_text = xml_escape(token.text)
             new_token = Token(
-                text = escaped_token_text,
+                text = xml_escape(token.text),
                 start = token.start,
                 stop = token.stop,
                 length = token.length,
-                left_spacer = token.left_spacer
+                left_spacer = xml_escape(token.left_spacer)
             )
             escaped_token_list.append(new_token)
         N = len(token_list)
