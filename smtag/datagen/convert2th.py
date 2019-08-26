@@ -13,7 +13,7 @@ import pickle
 import threading
 import time
 from math import floor, ceil
-from xml.etree.ElementTree  import XML, parse, fromstring, tostring, XMLParser
+from xml.etree.ElementTree  import XML, parse, fromstring, tostring, XMLParser, ParseError
 
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
@@ -444,8 +444,7 @@ class DecoyDataPreparator(DataPreparator):
             token_list[i] = new_token
         randomly_tagged_text = "".join([t.left_spacer + t.text for t in token_list])
         randomly_tagged_text = f"<article>{randomly_tagged_text}</article>"
-        xml = fromstring(randomly_tagged_text)
-        return xml
+        return randomly_tagged_text
          
     
     def import_files(self, subset):
@@ -465,7 +464,14 @@ class DecoyDataPreparator(DataPreparator):
                     text = xml_escape(text)
                     print(f"({i+1}/{len(filenames)} {filename}          )", end='\r')
                 provenance = os.path.splitext(filename)[0]
-                tagged_xml = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
+                tagged = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
+                try:
+                    tagged_xml = fromstring(tagged)
+                except ParseError as e:
+                    print("="*60)
+                    print(tagged)
+                    print("="*60)
+                    raise(e)
                 processed = self.anonymize(tagged_xml, self.anonymization_xpath)
                 examples.append({
                     'xml': tagged_xml,
