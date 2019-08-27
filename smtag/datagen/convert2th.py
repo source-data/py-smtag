@@ -472,10 +472,11 @@ class DecoyDataPreparator(DataPreparator):
                     text = cleanup(text)
                     print(f"{i+1}/{len(filenames)} {filename}          ", end='\r')
                 provenance = os.path.splitext(filename)[0]
-                if self.decoy_tags:
-                    tagged = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
-                else:
+                if self.decoy_tags == ['notag']:
                     tagged = f"<article>{xml_escape(text)}</article>"
+                    
+                else:
+                    tagged = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
                 try:
                     tagged_xml = fromstring(tagged)
                 except ParseError as e:
@@ -511,7 +512,7 @@ def main():
     parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-E', '--example', default='.//sd-panel', help='Xpath to extract examples from XML documents')
     parser.add_argument('-G', '--graphic', default='.//graphic', help='Xpath to find link to graphic element in an example.')
-    parser.add_argument('--decoy', default=[], help='List of tags to use in order to generate a randomly tagged decoy dataset.')
+    parser.add_argument('--decoy', default=[], help='List of tags to use in order to generate a randomly tagged decoy dataset. Use "--decoy notag" to generate a decoy without tags')
     parser.add_argument('--noocr', action='store_true', default=False, help='Set this flag to prevent use of image-based OCR data.')
     parser.add_argument('--noviz', action='store_true', default=False, help='Set this flag to prevent use of image-based visual context data.')
 
