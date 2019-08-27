@@ -472,7 +472,10 @@ class DecoyDataPreparator(DataPreparator):
                     text = cleanup(text)
                     print(f"{i+1}/{len(filenames)} {filename}          ", end='\r')
                 provenance = os.path.splitext(filename)[0]
-                tagged = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
+                if self.decoy_tags:
+                    tagged = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
+                else:
+                    tagged = f"<article>{xml_escape(text)}</article>"
                 try:
                     tagged_xml = fromstring(tagged)
                 except ParseError as e:
@@ -539,6 +542,8 @@ def main():
     if args.brat:
         prep = BratDataPreparator(options)
     elif args.decoy:
+        options['viz'] = False
+        options['ocr'] = False
         prep = DecoyDataPreparator(options)
     else:
         prep = DataPreparator(options)
