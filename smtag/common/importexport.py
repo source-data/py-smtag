@@ -14,6 +14,14 @@ from ..train.builder import SmtagModel
 from .utils import cd, timer
 from .options import Options
 
+def file_with_suffix(namebase, selected_features):
+    suffixes = []
+    suffixes.append("_".join([str(f) for f in selected_features]))
+    suffixes.append(datetime.now().isoformat("-",timespec='minutes').replace(":", "-"))
+    suffix = "_".join(filter(None,suffixes))
+    name = f"{namebase}_{suffix}".format(namebase, suffix)
+    return name
+
 @timer
 def export_model(model, custom_name = '', model_dir = config.model_dir):
     # make copy of model first for continuous saving; need to leave model on GPU!
@@ -29,11 +37,7 @@ def export_model(model, custom_name = '', model_dir = config.model_dir):
     if custom_name:
         name = custom_name
     else:
-        suffixes = []
-        suffixes.append("_".join([str(f) for f in opt.selected_features]))
-        suffixes.append(datetime.now().isoformat("-",timespec='minutes').replace(":", "-"))
-        suffix = "_".join(filter(None,suffixes))
-        name = "{}_{}".format(opt.namebase, suffix)
+        name = file_with_suffix(opt.namebase, opt.selected_features)
     model_path = "{}.sddl".format(name)
     archive_path = "{}.zip".format(name)
     option_path = "{}.pickle".format(name)

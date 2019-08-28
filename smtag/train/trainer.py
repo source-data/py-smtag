@@ -12,7 +12,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 from random import shuffle
 import logging
-from ..common.importexport import export_model
+from ..common.importexport import export_model, file_with_suffix
 from ..common.viz import Show, Plotter
 from ..common.progress import progress
 from .. import config
@@ -124,7 +124,7 @@ class Trainer:
             # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
             if f1.mean() > f1_max:
                 f1_max = f1.mean()
-                export_model(self.model, custom_name = self.opt.namebase+f'_epoch_{e}')
+                export_model(self.model, custom_name = file_with_suffix(self.opt.namebase, self.opt.selected_features) + f'_epoch_{e}')
         self.plot.close()
         print("\n")
         return avg_train_loss, avg_validation_loss, precision, recall, f1
