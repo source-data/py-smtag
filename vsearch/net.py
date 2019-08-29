@@ -1,7 +1,7 @@
 
 import torch
 from torch import nn
-from .. import config
+from math import sqrt
 
 def attn(a, b): # we could save 2 transpose operations if b is provided directly as B_b, H_b, N, L
     # input need to be in format Batch x Heads x Length x Channel
@@ -21,8 +21,8 @@ class Hyperparameters:
     def __init__(
         self,
         attn_on = True,
-        in_channels = config.nbits,
-        out_channels = config.embedding_out_channels,
+        in_channels = 7,
+        out_channels = 128,
         nf_table      = [128,128,128,128,256,256,256,256,512,512],
         attn_heads =    [  2,  2,  2,  2,  4,  4,  4,  4,  8,  8],
         kernel_table  = [  7] * 10,

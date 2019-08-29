@@ -257,24 +257,24 @@ class Config():
         Threshold to allow adjascent token with identical features to be fused
         """
         return self._fusion_threshold
-    @property
-    def model_entity_viz(self):
-        return self._model_entity_viz
+    # @property
+    # def model_entity_viz(self):
+    #     return self._model_entity_viz
     @property
     def model_entity_no_viz(self):
         return self._model_entity_no_viz
-    @property
-    def model_geneprod_role_viz(self):
-        return self._model_geneprod_role_viz
+    # @property
+    # def model_geneprod_role_viz(self):
+    #     return self._model_geneprod_role_viz
     @property
     def model_geneprod_role_no_viz(self):
         return self._model_geneprod_role_no_viz
     @property
     def model_geneprod_reporter_no_viz(self):
         return self._model_geneprod_reporter_no_viz
-    @property
-    def model_molecule_role_viz(self):
-        return self._model_molecule_role_viz
+    # @property
+    # def model_molecule_role_viz(self):
+    #     return self._model_molecule_role_viz
     @property
     def model_molecule_role_no_viz(self):
         return self._model_molecule_role_no_viz

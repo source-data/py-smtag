@@ -1,23 +1,6 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-"""
-SmartTag semantic tagging engine.
-
-Usage:
-  engine.py [-D -d -m <str> -t <str> -f <str> -w <str> -g <str>]
-
-Options:
-
-  -m <str>, --method <str>                Method to call (smtag|tag|entity|role|panelize) [default: smtag]
-  -t <str>, --text <str>                  Text input in unicode [default: Fluorescence microcopy images of GFP-Atg5 in fibroblasts from Creb1-/- mice after bafilomycin treatment.].
-  -f <str>, --format <str>                Format of the output [default: xml]
-  -D, --debug                             Debug mode to see the successive processing steps in the engine.
-  -g <str>, --tag <str>                   XML tag to use when tagging concepts [default: sd-tag]
-  -d, --demo                              Demo with a long sample.
-"""
-
-
 import re
 from torch import nn
 import torch
@@ -243,33 +226,43 @@ class SmtagEngine:
         return self.__serialize(pred, format=format)
 
 def main():
+    parser = config.create_argument_parser_with_defaults(description='SmartTag semantic tagging engine.')
+    parser.add_argument('-m', '--method', default='smtag', help='Method to call (smtag|tag|entity|role|panelize)')
+    parser.add_argument('-t', '--text', default='', help='Text input in unicode')
+    parser.add_argument('-f', '--format', default='xml', help='Format of the output')
+    parser.add_argument('-D', '--debug', action='store_true', help='Debug mode to see the successive processing steps in the engine.')
+    parser.add_argument('-g', '--tag', default='sd-tag', help='XML tag to use when tagging concepts')
+    parser.add_argument('-d', '--demo', action='store_true', help='Demo with a long sample')
+
+    arguments = parser.parse_args()
+    input_string = arguments.text
+    method = arguments.method
+    DEBUG = arguments.debug
+    DEMO = arguments.demo
+    sdtag = arguments.tag
+    format = arguments.format
     from .cartridges import NO_VIZ
-    arguments = docopt(__doc__, version='0.1')
-    input_string = arguments['--text']
-    method = arguments['--method']
-    DEBUG = arguments['--debug']
-    DEMO = arguments['--demo']
-    sdtag = arguments['--tag']
-    format = arguments['--format']
+    
     if DEMO:
         input_string = '''The indicated panel of cell lines was exposed to either normoxia (20% O2) or hypoxia (1% O2) for up to 48 h prior to RNA and protein extraction.
 
-A, B (A) LIMD1 mRNA and (B) protein levels were increased following hypoxic exposure.
+(A and B) (A) LIMD1 mRNA and (B) protein levels were increased following hypoxic exposure.
 
-C. Densitometric analysis of (B).
+(C) Densitometric analysis of (B).
 
-D. The LIMD1 promoter contains a hypoxic response element responsible for HIF binding and transcriptional activation of LIMD1. Three predicted HRE elements were individually deleted within the context of the wild‐type LIMD1 promoter‐driven Renilla luciferase.
+(D) The LIMD1 promoter contains a hypoxic response element responsible for HIF binding and transcriptional activation of LIMD1. Three predicted HRE elements were individually deleted within the context of the wild‐type LIMD1 promoter‐driven Renilla luciferase.
 
-E. Reporter constructs in (D) were expressed in U2OS cells and exposed to hypoxia for the indicated time‐points. Luciferase activity was then assayed and normalised to firefly control. Data are displayed normalised to the normoxic value for each construct. Deletion of the third HRE present within the LIMD1 promoter (ΔHRE3) inhibited hypoxic induction of LIMD1 transcription.
+(E) Reporter constructs in (D) were expressed in U2OS cells and exposed to hypoxia for the indicated time‐points. Luciferase activity was then assayed and normalised to firefly control. Data are displayed normalised to the normoxic value for each construct. Deletion of the third HRE present within the LIMD1 promoter (ΔHRE3) inhibited hypoxic induction of LIMD1 transcription.
 
-F, G (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the indicated species demonstrate that the HRE3 consensus sequence is highly conserved.'''
+(F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the indicated species demonstrate that the HRE3 consensus sequence is highly conserved.'''
 
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
-    cv_img = torch.zeros(500, 500, 3).numpy()
+    # cv_img = torch.zeros(500, 500, 3).numpy()
+    cv_img = None
     engine = SmtagEngine(NO_VIZ)
     engine.DEBUG = DEBUG
-
+    
     if method == 'smtag':
         print(engine.smtag(input_string, cv_img, sdtag, format))
     elif method == 'panelize':

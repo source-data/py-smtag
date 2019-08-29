@@ -63,6 +63,19 @@ class VizContext(nn.Module):
         return embedding_list
 
  
+# def attn(a, b): # we could save 2 transpose operations if b is provided directly as B_b, H_b, N, L
+#     # input need to be in format Batch x Heads x Length x Channel
+#     B_a, H_a, R, N_a = a.size()
+#     B_b, H_b, L, N_b = b.size() 
+#     assert B_a == B_b, "mismatch batch size for a ({B_a}) and b ({B_b}) in attention layer."
+#     assert H_a == H_b, "mismatch attention heads for a ({H_a}) and b ({H_b}) in attention layer."
+#     assert N_a == N_b, "mismatch length (width) for a ({N_a}) and b ({N_b}) in attention layer."
+#     position_wise_interactions = torch.matmul(a, b.transpose(2, 3).contiguous()) # RxN * NxL -> RxL
+#     weights = torch.softmax(position_wise_interactions / sqrt(N_a), -2) # RxL
+#     attention = torch.matmul(a.transpose(2, 3).contiguous(), weights) # NxR * RxL -> NxL
+#     return attention
+
+
 class CatStackWithVizContext(nn.Module):
     
     def __init__(self, nf_input, nf_table, kernel_table, padding_table, context_table, dropout) -> torch.Tensor:
@@ -85,6 +98,9 @@ class CatStackWithVizContext(nn.Module):
             else:
                 context_channels = 0
             cumul_channels += out_channels
+            # self.poswise_linears.append(nn.Conv1d(in_channels, in_channels, 1, 1))
+            # if self.hp.attn_on and self.hp.attn_heads[i] > 0:
+            #     in_channels *= 2 # because the output of self-attention is concatenated with original input
             self.BN_pre.append(nn.BatchNorm1d(in_channels+context_channels))
             block = nn.Sequential(
                 nn.Dropout(self.dropout_rate),
@@ -105,6 +121,14 @@ class CatStackWithVizContext(nn.Module):
                 viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
                 x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
                 x = self.BN_pre[i](x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
+            # if self.hp.attn_on and self.hp.attn_heads[i] > 0: # this allows to switch off/on attention in specific layers
+            #     # multi-head attention
+            #     B, C, L = x.size()
+            #     x_h = self.poswise_linears[i](x)
+            #     x_h = x_h.view(B, self.hp.attn_heads[i], C // self.hp.attn_heads[i], L)
+            #     att = attn(x_h.transpose(2, 3).contiguous(), x_h.transpose(2, 3).contiguous())
+            #     att = att.view_as(x)
+            #     x = torch.cat((att, x), 1)
             x = self.blocks[i](x)
             x_list.append(x.clone())
         y = torch.cat(x_list, 1)
