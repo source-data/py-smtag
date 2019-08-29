@@ -1,3 +1,2 @@
 [submodule "vsearch"]
-	path = vsearch
-	url = git@github.com:source-data/vsearch.git
+
