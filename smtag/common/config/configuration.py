@@ -51,6 +51,7 @@ class Config():
     _ocr_max_edit_dist = 0.1 # max edit distance per character length between ocr term and matching term in caption
     _ocr_min_overlap   = 2 # minimum length of overlap between ocr term and caption term
     _nbits             = 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
+    _embedding_out_channels = 128 # the number of channels used for learned deep embeddings
     _marking_char      = '_' #u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _padding_char      = '`' # " " # character used to padd strings; would be smarter to use character different from space
     _min_padding       = 100 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
@@ -62,21 +63,21 @@ class Config():
     # MODELS
     #
     # WITH VISUAL CONTEXT
-    _model_entity_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-01-16-07.zip"
-    _model_geneprod_role_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-20-14-52.zip"
-    _model_molecule_role_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-15-17.zip"
-    # no diseasee model with viz context because no traininset for this
+    # _model_entity_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-01-16-07.zip"
+    # _model_geneprod_role_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-20-14-52.zip"
+    # _model_molecule_role_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-15-17.zip"
+    # # no diseasee model with viz context because no traininset for this
     # no reporter model with viz because viz does not help
     # no panel_stop model with viz because viz does not help
 
     # WITHOUT VISUAL CONTEXT
-    _model_entity_no_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-02-06-13.zip" # under construction
-    _model_geneprod_reporter_no_viz = "5X_L1200_fig_reporter_2019-05-20-16-12.zip"
-    _model_geneprod_role_no_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-12-16-47.zip"
-    _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-17-18.zip"
-    _model_disease_no_viz = "10X_L1200_disease-5X_L1200_fig_disease_2019-05-27-16-34.zip"
-    _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-05-11-01-10.zip"
-    _embeddings_model    =   "article_embeddings_128.zip" # article_embedding_pmc.zip" #shuffle3_embedding_pmc.zip" # embeddings_verbs_pmc_abstracts.zip" # "shuffle3_embeddings.py" # "verbs_embeddings.zip" #
+    _model_entity_no_viz = "5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-08-23-17-46.zip" # 
+    _model_geneprod_reporter_no_viz = "5X_L1200_article_embeddings_128_reporter_2019-08-28-00-08_epoch_23_.zip"
+    _model_geneprod_role_no_viz = "5X_L1200_anonym_not_reporter_article_embeddings_128_intervention_assayed_2019-08-22-16-25.zip"
+    _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-08-28-23-33_epoch_51.zip"
+    _model_disease_no_viz = "10X_L1200_disease_articke_embeddings_128-5X_L1200_article_embeddings_128_disease_2019-08-25-21-47.zip"
+    _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-08-29-08-31.zip"
+    _embeddings_model = "article_embeddings_128.zip" # article_embedding_pmc.zip" #shuffle3_embedding_pmc.zip" # embeddings_verbs_pmc_abstracts.zip" # "shuffle3_embeddings.py" # "verbs_embeddings.zip" #
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
@@ -214,6 +215,12 @@ class Config():
         Number of features used to encode a character.
         """
         return self._nbits
+    @property
+    def embedding_out_channels(self):
+        """
+        Number of channels used for learned deep embeddings.
+        """
+        return self._embedding_out_channels
     @property
     def marking_char(self):
         """
