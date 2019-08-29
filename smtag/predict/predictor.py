@@ -10,6 +10,7 @@ from ..common.converter import TString
 from .decode import Decoder, CharLevelDecoder
 from .markup import Serializer
 from ..common.utils import tokenize, timer
+from ..common.embeddings import EMBEDDINGS
 from .. import config
 
 
@@ -47,7 +48,13 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
             padding_length = int((L - len(input)) / 2)
             x = padded.toTensor()
 
-        #PREDICTION
+        # EMBEDDING
+        if config.embeddings_model:
+            with torch.no_grad(): # to avoid having grad tensors sticking with this and making problems later at upload
+                EMBEDDINGS.eval()
+                x = EMBEDDINGS(x)
+
+        # PREDICTION
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(x, viz_context) #.float() # prediction is 3D 1 x C x L
