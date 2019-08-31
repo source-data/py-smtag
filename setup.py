@@ -19,7 +19,7 @@ setuptools.setup(
     py_modules=['smtag.command_line'],
     install_requires=[
         'tensorflow==1.8.0', # dgx
-        # 'tensorflow', # mac needed for tensorboardX visualization
+        #'tensorflow', # mac needed for tensorboardX visualization
         'tensorboardX',
         'docopt',
         'torch==1.0.1',
@@ -32,7 +32,6 @@ setuptools.setup(
         'scikit-learn',
         'python-dotenv==0.10.1',
         'google-cloud-vision==0.34',
-        'vsearch'
     ],
     include_package_data=True,
     entry_points = {
