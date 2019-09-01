@@ -67,6 +67,10 @@ No `-V` option.
 <img src="figures/.png" width="50%">
 __Model: `5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-08-23-17-46.zip`__
 
+Benchmarking:
+
+    python -m smtag.train.evaluator 5X_L1200_article_embeddings_128 5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-08-23-17-46.zip
+
 
 ## Geneprod roles __without__ viz:
 
@@ -75,6 +79,9 @@ __Model: `5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_ce
 <img src="figures/.png" width="500px">
 __Model: `5X_L1200_anonym_not_reporter_article_embeddings_128_intervention_assayed_2019-08-22-16-25.zip`__
 
+Benchmarking
+
+    python -m smtag.train.evaluator 5X_L1200_anonym_not_reporter_article_embeddings_128 5X_L1200_anonym_not_reporter_article_embeddings_128_intervention_assayed_2019-08-22-16-25.zip
 
 ## Role for small molecule __without__ viz context (faster learning rate):
 
@@ -83,6 +90,9 @@ __Model: `5X_L1200_anonym_not_reporter_article_embeddings_128_intervention_assay
 <img src="figures/.png" width="50%">
 __Model: `5X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-08-28-23-33_epoch_51.zip`__
 
+Benchmarking:
+
+    python -m smtag.train.evaluator 5X_L1200_molecule_anonym_article_embeddings_128 5X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-08-28-23-33_epoch_51.zip
 
 ## Reporter __without__ viz:
 
@@ -91,6 +101,9 @@ __Model: `5X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2
 <img src="figures/.png" width="500px">
 Model: `5X_L1200_article_embeddings_128_epoch_23.zip` renamed __`5X_L1200_article_embeddings_128_reporter_2019-08-28-00-08_epoch_23_.zip`__
 
+Benchmarking:
+
+    python -m smtag.train.evaluator 5X_L1200_article_embeddings_128 5X_L1200_article_embeddings_128_reporter_2019-08-28-00-08_epoch_23_.zip
 
 ## Disease __without__ viz context:
 
@@ -99,12 +112,21 @@ Model: `5X_L1200_article_embeddings_128_epoch_23.zip` renamed __`5X_L1200_articl
 <img src="figures/.png" width="50%">
 __Model: `10X_L1200_disease_articke_embeddings_128-5X_L1200_article_embeddings_128_disease_2019-08-25-21-47.zip`__
 
+Benchmarking:
+
+    #python -m smtag.train.evaluator 10X_L1200_disease_articke_embeddings_128,5X_L1200_article_embeddings_128 10X_L1200_disease_articke_embeddings_128-5X_L1200_article_embeddings_128_disease_2019-08-25-21-47.zip
 
 ## Panels on emboj only:
 
     smtag-meta -f 5X_L1200_emboj_2012_no_viz -E20 -Z64 -R0.001 -o panel_stop -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -g 3,3,3,3,3,3,3,3,3,3
 
-
 <img src="figures/.png" width="50%">
 __Model: `5X_L1200_emboj_2012_no_viz_panel_stop_2019-08-29-08-31.zip`__
+
+
+Benchmarking:
+    
+    python -m smtag.train.evaluator 5X_L1200_emboj_2012_no_viz 5X_L1200_emboj_2012_no_viz_panel_stop_2019-08-29-08-31.zip
+ 
+
 
