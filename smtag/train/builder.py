@@ -63,73 +63,83 @@ class VizContext(nn.Module):
         return embedding_list
 
  
-# def attn(a, b): # we could save 2 transpose operations if b is provided directly as B_b, H_b, N, L
-#     # input need to be in format Batch x Heads x Length x Channel
-#     B_a, H_a, R, N_a = a.size()
-#     B_b, H_b, L, N_b = b.size() 
-#     assert B_a == B_b, "mismatch batch size for a ({B_a}) and b ({B_b}) in attention layer."
-#     assert H_a == H_b, "mismatch attention heads for a ({H_a}) and b ({H_b}) in attention layer."
-#     assert N_a == N_b, "mismatch length (width) for a ({N_a}) and b ({N_b}) in attention layer."
-#     position_wise_interactions = torch.matmul(a, b.transpose(2, 3).contiguous()) # RxN * NxL -> RxL
-#     weights = torch.softmax(position_wise_interactions / sqrt(N_a), -2) # RxL
-#     attention = torch.matmul(a.transpose(2, 3).contiguous(), weights) # NxR * RxL -> NxL
-#     return attention
-
-
-class CatStackWithVizContext(nn.Module):
-    
-    def __init__(self, nf_input, nf_table, kernel_table, padding_table, context_table, dropout) -> torch.Tensor:
-        super(CatStackWithVizContext, self).__init__()
-        self.nf_input = nf_input
-        self.N_layers = len(nf_table)
-        self.nf_table = nf_table
-        self.kernel_table = kernel_table
-        self.padding_table = padding_table
+class Unet2(nn.Module):
+    def __init__(self, nf_input, nf_table, kernel_table, pool_table, context_table, dropout_rate, skip=True):
+        super(Unet2, self).__init__()
         self.context_table = context_table
-        self.dropout_rate = dropout
-        self.blocks = nn.ModuleList()
-        self.BN_pre = nn.ModuleList()
-        in_channels = self.nf_input
-        cumul_channels = in_channels # features of original input included
-        for i in range(self.N_layers):
-            out_channels = self.nf_table[i]
-            if self.context_table:
-                context_channels = self.context_table[i]
-            else:
-                context_channels = 0
-            cumul_channels += out_channels
-            # self.poswise_linears.append(nn.Conv1d(in_channels, in_channels, 1, 1))
-            # if self.hp.attn_on and self.hp.attn_heads[i] > 0:
-            #     in_channels *= 2 # because the output of self-attention is concatenated with original input
-            self.BN_pre.append(nn.BatchNorm1d(in_channels+context_channels))
-            block = nn.Sequential(
-                nn.Dropout(self.dropout_rate),
-                nn.Conv1d(in_channels+context_channels, out_channels, self.kernel_table[i], 1, self.padding_table[i]),
-                nn.ReLU(inplace=True),
-                nn.BatchNorm1d(out_channels)
-            )
-            self.blocks.append(block)
-            in_channels = out_channels
-        self.out_channels = cumul_channels
+        self.nf_input = nf_input
+        self.nf_context = 0
+        if self.context_table:
+            self.nf_context = context_table.pop(0)
+        self.nf_table = nf_table
+        self.nf_output = nf_table.pop(0)
+        self.pool_table = pool_table
+        self.pool = pool_table.pop(0)
+        self.kernel_table = kernel_table
+        self.kernel = kernel_table.pop(0)
+        # if self.kernel % 2 == 0:
+        #    self.padding = int(self.kernel/2)
+        # else:
+        #    self.padding = floor((self.kernel-1)/2) # TRY WITHOUT ANY PADDING
+        self.padding = 0 
+        self.stride = 1
+        self.dropout_rate = dropout_rate
+        self.skip = skip
+        self.dropout = nn.Dropout(self.dropout_rate)
+        self.BN_pre = nn.BatchNorm1d(self.nf_input+self.nf_context)
+        self.conv_down_A = nn.Conv1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding)
+        self.BN_down_A = nn.BatchNorm1d(self.nf_input+self.nf_context)
 
-    def forward(self, x: torch.Tensor, context_list) -> torch.Tensor:
+        self.conv_down_B = nn.Conv1d(self.nf_input+self.nf_context, self.nf_output, self.kernel, self.stride, self.padding)
+        self.BN_down_B = nn.BatchNorm1d(self.nf_output)
 
-        x_list = [x.clone()]
-        for i in range(self.N_layers):
-            if context_list: # skipped if no context_list empty in which case nf_context is also 0
-                viz_context = context_list[i]
-                viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
-                x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
-                x = self.BN_pre[i](x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
-            # if self.hp.attn_on and self.hp.attn_heads[i] > 0: # this allows to switch off/on attention in specific layers
-            #     # multi-head attention
-            #     B, C, L = x.size()
-            #     x_h = self.poswise_linears[i](x)
-            #     x_h = x_h.view(B, self.hp.attn_heads[i], C // self.hp.attn_heads[i], L)
-            #     att = attn(x_h.transpose(2, 3).contiguous(), x_h.transpose(2, 3).contiguous())
-            #     att = att.view_as(x)
-            #     x = torch.cat((att, x), 1)
-            x = self.blocks[i](x)
-            x_list.append(x.clone())
-        y = torch.cat(x_list, 1)
+        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input+self.nf_context, self.kernel, self.stride)
+        self.BN_up_B = nn.BatchNorm1d(self.nf_input+self.nf_context)
+
+        self.conv_up_A = nn.ConvTranspose1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride)
+        self.BN_up_A = nn.BatchNorm1d(self.nf_input+self.nf_context)
+
+        if len(self.nf_table) > 0:
+            self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, context_table, self.dropout_rate, self.skip)
+            self.BN_middle = nn.BatchNorm1d(self.nf_output,)
+        else:
+            self.unet2 = None
+
+        if self.skip:
+            self.reduce = nn.Conv1d(2*(self.nf_input+self.nf_context), self.nf_input, 1, 1)
+
+    def forward(self, x, context_list):
+        if context_list: # skipped if no context_list empty in which case nf_context is also 0
+            viz_context = context_list[0]
+            viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
+            x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
+            # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
+            context_list = context_list[1:]
+        x = self.BN_pre(x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
+        y = self.dropout(x)
+        y = self.conv_down_A(y)
+        y = F.relu(self.BN_down_A(y), inplace=True)
+        y_size_1 = list(y.size())
+        y, pool_1_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
+        y = self.conv_down_B(y)
+        y = F.relu(self.BN_down_B(y), inplace=True)
+
+        if self.unet2 is not None:
+            y_size_2 = list(y.size())
+            y, pool_2_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
+            y = self.unet2(y, context_list)
+            y = F.relu(self.BN_middle(y), inplace=True)
+            y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_2_indices, y_size_2) # problem on 1.0.1 ses issue #16486
+        y = self.dropout(y)
+        y = self.conv_up_B(y)
+        y = F.relu(self.BN_up_B(y), inplace=True)
+        y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_1_indices, y_size_1)
+        y = self.conv_up_A(y)
+        y = F.relu(self.BN_up_A(y), inplace=True)
+
+        if self.skip:
+            y = torch.cat((x, y), 1) # merge via concatanation of output layers 
+            y = self.reduce(y) # reducing from 2*nf_output to nf_output
+            # y = x + y # this would be the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
+
         return y
