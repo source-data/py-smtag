@@ -77,7 +77,7 @@ class Config():
     _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-08-28-23-33_epoch_51.zip"
     _model_disease_no_viz = "10X_L1200_disease_articke_embeddings_128-5X_L1200_article_embeddings_128_disease_2019-08-25-21-47.zip"
     _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-08-29-08-31.zip"
-    _embeddings_model = "article_embeddings_128.zip" # article_embedding_pmc.zip" #shuffle3_embedding_pmc.zip" # embeddings_verbs_pmc_abstracts.zip" # "shuffle3_embeddings.py" # "verbs_embeddings.zip" #
+    _embeddings_model = None # "article_embeddings_128.zip" # article_embedding_pmc.zip" #shuffle3_embedding_pmc.zip" # embeddings_verbs_pmc_abstracts.zip" # "shuffle3_embeddings.py" # "verbs_embeddings.zip" #
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
