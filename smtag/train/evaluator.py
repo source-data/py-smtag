@@ -109,7 +109,7 @@ class Accuracy(object):
 
 class Benchmark():
 
-    def __init__(self, model_basename, testset_basename):#, tokenize):
+    def __init__(self, model_basename, testset_basenames):#, tokenize):
         self.model_name = model_basename
         self.model = load_model(model_basename)
         self.output_semantics = self.model.output_semantics
@@ -121,7 +121,7 @@ class Benchmark():
             self.model.output_semantics = self.output_semantics
 
         # self.tokenize = tokenize
-        self.opt.data_path_list = [os.path.join(config.data4th_dir, testset_basename)] # it has to be a list (to allow joint training on multiple datasets)
+        self.opt.data_path_list = [os.path.join(config.data4th_dir, f) for f in testset_basenames] # it has to be a list (to allow joint training on multiple datasets)
         testset = Data4th(self.opt, 'test')
         testset = DataLoader(testset, batch_size=self.opt.minibatch_size, shuffle=True, collate_fn=collate_fn, num_workers=0, drop_last=True, timeout=60)
         benchmark = Accuracy(self.model, testset, self.opt.nf_output)#, tokenize=self.tokenize)
@@ -173,22 +173,22 @@ class Benchmark():
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Accuracy evaluation.')
-    parser.add_argument('filename', help='Basename of the dataset to import (testset)')
+    parser.add_argument('filenames', help='Basename(s) of the dataset(s) to import (testset)')
     parser.add_argument('model', help='Basename of the model to benchmark.')
     # parser.add_argument('-T' , '--no_token', action='store_true', help='Flag to disable tokenization.')
     # parser.add_argument('-S' , '--scan', action='store_true', help='Flag to switch to threshold scaning mode.')
 
     arguments = parser.parse_args()
-    basename = arguments.filename
+    basenames = [f.strip() for f in arguments.filename.split(',')]
     model_basename = arguments.model
     # scan_threshold = arguments.scan
     # tokenize = not arguments.no_token
-    print("model: {}, testset: {}".format(model_basename, basename))#, tokenize))
+    print(f"model: {model_basename}, testset: {'-'.join(basenames)}")
     # if scan_threshold:
     #     s = ScanThreshold(model_basename, basename)#, tokenize=tokenize)
     #     s.run()
     # else:
-    b = Benchmark(model_basename, basename)#, tokenize=tokenize)
+    b = Benchmark(model_basename, basenames)#, tokenize=tokenize)
     b.display()
 
 if __name__ == '__main__':
