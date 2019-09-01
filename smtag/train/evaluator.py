@@ -7,6 +7,7 @@ import argparse
 import numpy as np
 from random import randrange
 from torch.utils.data import DataLoader
+from torch import nn
 from .dataset import Data4th
 from .trainer import predict_fn, collate_fn
 from ..predict.decode import Decoder
@@ -111,7 +112,14 @@ class Benchmark():
     def __init__(self, model_basename, testset_basename):#, tokenize):
         self.model_name = model_basename
         self.model = load_model(model_basename)
+        self.output_semantics = self.model.output_semantics
         self.opt = self.model.opt
+        if torch.cuda.is_available():
+            print(torch.cuda.device_count(), "GPUs available.")
+            self.model = nn.DataParallel(self.model)
+            self.model.cuda()
+            self.model.output_semantics = self.output_semantics
+
         # self.tokenize = tokenize
         self.opt.data_path_list = [os.path.join(config.data4th_dir, testset_basename)] # it has to be a list (to allow joint training on multiple datasets)
         testset = Data4th(self.opt, 'test')
