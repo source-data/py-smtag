@@ -179,7 +179,7 @@ def main():
     # parser.add_argument('-S' , '--scan', action='store_true', help='Flag to switch to threshold scaning mode.')
 
     arguments = parser.parse_args()
-    basenames = [f.strip() for f in arguments.filename.split(',')]
+    basenames = [f.strip() for f in arguments.filenames.split(',')]
     model_basename = arguments.model
     # scan_threshold = arguments.scan
     # tokenize = not arguments.no_token
