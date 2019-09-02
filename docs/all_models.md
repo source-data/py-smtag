@@ -62,7 +62,7 @@ No `-V` option.
 
 ## Multi entities with exp assays and __without__ viz context:
 
-    smtag-meta -f 5X_L1200_unet_no_embed -E20 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7 -n 128,128,128 --pool_table 2,2,2
+    smtag-meta -f 5X_L1200_unet_no_embed -E120 -Z32 -R0.001 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7 -n 128,128,128 --pool_table 2,2,2
     
 <img src="figures/.png" width="50%">
 __Model: `5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-08-23-17-46.zip`__
