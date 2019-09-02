@@ -1,0 +1,194 @@
+========================================================                                                                                                        
+                                                                                                                                                            
+Data: /workspace/py-smtag/resources/data4th/5X_L1200_article_embeddings_128                                                                                    
+                                                                                                                                                            
+Model: 5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-08-23-17-46.zip                                     
+                                                                                                                                                            
+Global stats:                                                                                                                                                  
+                                                                                                                                                            
+    precision = 0.8090225458145142                                                                                                                          
+    recall = 0.78                                                                                                                                           
+    f1 = 0.79                                                                                                                                               
+                                                                                                                                                            
+Feature: 'small_molecule'
+
+    precision = 0.72
+    recall = 0.72
+    f1 = 0.72
+
+Feature: 'geneprod'
+
+    precision = 0.84
+    recall = 0.88
+    f1 = 0.86
+
+Feature: 'subcellular'
+
+    precision = 0.72
+    recall = 0.78
+    f1 = 0.75
+
+Feature: 'cell'
+
+    precision = 0.83
+    recall = 0.78
+    f1 = 0.81
+
+Feature: 'tissue'
+
+    precision = 0.77
+    recall = 0.67
+    f1 = 0.72
+
+Feature: 'organism'
+
+    precision = 0.83
+    recall = 0.67
+    f1 = 0.74
+
+Feature: 'assay'
+
+    precision = 0.77
+    recall = 0.70
+    f1 = 0.73
+
+Feature: 'untagged'
+
+    precision = 0.99
+    recall = 0.99
+    f1 = 0.99
+
+
+========================================================
+
+Data: /workspace/py-smtag/resources/data4th/5X_L1200_anonym_not_reporter_article_embeddings_128
+
+Model: 5X_L1200_anonym_not_reporter_article_embeddings_128_intervention_assayed_2019-08-22-16-25.zip
+
+Global stats: 
+
+    precision = 0.8826258778572083
+    recall = 0.88
+    f1 = 0.88
+
+Feature: 'intervention'
+
+    precision = 0.82
+    recall = 0.76
+    f1 = 0.79
+
+Feature: 'assayed'
+
+    precision = 0.83
+    recall = 0.87
+    f1 = 0.85
+
+Feature: 'untagged'
+
+    precision = 1.00
+    recall = 1.00
+    f1 = 1.00
+
+
+========================================================
+
+Data: /workspace/py-smtag/resources/data4th/5X_L1200_molecule_anonym_article_embeddings_128
+
+Model: 5X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-08-28-23-33_epoch_51.zip
+
+Global stats: 
+
+    precision = 0.8728659749031067
+    recall = 0.90
+    f1 = 0.88
+
+Feature: 'intervention'
+
+    precision = 0.95
+    recall = 0.92
+    f1 = 0.94
+
+Feature: 'assayed'
+
+    precision = 0.67
+    recall = 0.78
+    f1 = 0.72
+
+Feature: 'untagged'
+
+    precision = 1.00
+    recall = 1.00
+    f1 = 1.00
+
+========================================================
+
+Data: /workspace/py-smtag/resources/data4th/5X_L1200_article_embeddings_128
+
+Model: 5X_L1200_article_embeddings_128_reporter_2019-08-28-00-08_epoch_23_.zip
+
+Global stats: 
+
+    precision = 0.9299678206443787
+    recall = 0.88
+    f1 = 0.90
+
+Feature: 'reporter'
+
+    precision = 0.86
+    recall = 0.76
+    f1 = 0.81
+
+Feature: 'untagged'
+
+    precision = 1.00
+    recall = 1.00
+    f1 = 1.00
+
+
+========================================================
+
+Data: /workspace/py-smtag/resources/data4th/5X_L1200_emboj_2012_no_viz
+
+Model: 5X_L1200_emboj_2012_no_viz_panel_stop_2019-08-29-08-31.zip
+
+Global stats: 
+
+    precision = 0.9664154648780823
+    recall = 1.00
+    f1 = 0.98
+
+Feature: 'panel_stop'
+
+    precision = 0.93
+    recall = 0.99
+    f1 = 0.96
+
+Feature: 'untagged'
+
+    precision = 1.00
+    recall = 1.00
+    f1 = 1.00
+
+========================================================
+
+Data: /workspace/py-smtag/resources/data4th/10X_L1200_disease_articke_embeddings_128 + /workspace/py-smtag/resources/data4th/5X_L1200_article_embeddings_128
+
+Model: 10X_L1200_disease_articke_embeddings_128-5X_L1200_article_embeddings_128_disease_2019-08-25-21-47.zip
+
+Global stats: 
+
+    precision = 0.9544399380683899
+    recall = 0.89
+    f1 = 0.92
+
+Feature: 'disease'
+
+    precision = 0.91
+    recall = 0.79
+    f1 = 0.85
+
+Feature: 'untagged'
+
+    precision = 1.00
+    recall = 1.00
+    f1 = 1.00
