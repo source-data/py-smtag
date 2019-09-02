@@ -43,14 +43,18 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
             padding_length = int((L - len(input[0])) / 2)
             x = [p.toTensor() for p in padded]
             with torch.no_grad():
-                x = [EMBEDDINGS(t) for t in x]
-            
+                embeddings = []
+                for t in x:
+                    EMBEDDINGS.eval()
+                    x.append(EMBEDDINGS(t))
+                x = embeddings 
         else:
             padded = self.padding(input)
             L = len(padded)
             padding_length = int((L - len(input)) / 2)
             x = padded.toTensor()
             with torch.no_grad():
+                EMBEDDINGS.eval()
                 x = EMBEDDINGS(x)
 
         # PREDICTION
