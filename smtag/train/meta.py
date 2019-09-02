@@ -107,7 +107,7 @@ def main():
     opt['nf_table'] = [int(x.strip()) for x in arguments.nf_table.split(',')]
     opt['kernel_table'] = [int(x.strip()) for x in arguments.kernel_table.split(',')]
     opt['pool_table'] = [int(x.strip()) for x in arguments.pool_table.split(',')]
-    opt['padding_table'] = [int(x.strip()) for x in arguments.padding_table.split(',')]
+    #opt['padding_table'] = [int(x.strip()) for x in arguments.padding_table.split(',')]
     if arguments.viz_table:
         opt['viz_context_table'] = [int(x.strip()) for x in arguments.viz_table.split(',')]
     else:

@@ -20,14 +20,14 @@ class SmtagModel(nn.Module):
         nf_output = opt.nf_output
         nf_table = deepcopy(opt.nf_table)
         kernel_table = deepcopy(opt.kernel_table)
-        padding_table = deepcopy(opt.padding_table)
+        pool_table = deepcopy(opt.pool_table)
         context_table = deepcopy(opt.viz_context_table)
         context_in = PRETRAINED(torch.Tensor(1, 3, config.resized_img_size, config.resized_img_size)).numel()
         dropout = opt.dropout
 
         self.viz_ctxt = VizContext(context_in, context_table)
         # self.pre = nn.BatchNorm1d(nf_input)
-        self.net = Unet2(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
+        self.net = Unet2(nf_input, nf_table, kernel_table, pool_table, context_table, dropout)
         self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1) # reduce output features of model to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>

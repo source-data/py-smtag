@@ -19,7 +19,7 @@ class Options():
             self.L = None # can only be update when loading dataset...
             self.nf_table = opt['nf_table']
             self.pool_table = opt['pool_table']
-            self.padding_table = opt['padding_table']
+            #self.padding_table = opt['padding_table']
             self.kernel_table = opt['kernel_table']
             self.selected_features = Catalogue.from_list(opt['selected_features'])
             self.use_ocr_context = opt['use_ocr_context']
