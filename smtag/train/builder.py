@@ -27,8 +27,8 @@ class SmtagModel(nn.Module):
 
         self.viz_ctxt = VizContext(context_in, context_table)
         # self.pre = nn.BatchNorm1d(nf_input)
-        self.net = CatStackWithVizContext(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
-        self.adapter = nn.Conv1d(self.net.out_channels, nf_output, 1, 1) # reduce output features of model to final desired number of output features
+        self.net = Unet2(nf_input, nf_table, kernel_table, padding_table, context_table, dropout)
+        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1) # reduce output features of model to final desired number of output features
         self.BN = nn.BatchNorm1d(nf_output)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
         self.output_semantics.append(Catalogue.UNTAGGED)

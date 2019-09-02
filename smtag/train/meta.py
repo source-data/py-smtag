@@ -81,7 +81,7 @@ def main():
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
     parser.add_argument('-n', '--nf_table', default="32,32,32", help='Number of features in each hidden super-layer.')
     parser.add_argument('-k', '--kernel_table', default="7,7,7", help='Convolution kernel for each hidden layer.')
-    # parser.add_argument('-p', '--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
+    parser.add_argument('--pool_table',  default="2,2,2", help='Pooling for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-g', '--padding_table',  default="3,3,3", help='Padding for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
     parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
@@ -106,7 +106,7 @@ def main():
     opt['selected_features'] = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
     opt['nf_table'] = [int(x.strip()) for x in arguments.nf_table.split(',')]
     opt['kernel_table'] = [int(x.strip()) for x in arguments.kernel_table.split(',')]
-    # opt['pool_table'] = [int(x.strip()) for x in arguments.pool_table.split(',')]
+    opt['pool_table'] = [int(x.strip()) for x in arguments.pool_table.split(',')]
     opt['padding_table'] = [int(x.strip()) for x in arguments.padding_table.split(',')]
     if arguments.viz_table:
         opt['viz_context_table'] = [int(x.strip()) for x in arguments.viz_table.split(',')]
