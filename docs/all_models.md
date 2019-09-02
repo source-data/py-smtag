@@ -17,9 +17,9 @@ Processing of images:
     
 # Preparation of ready-to-train datasets, panel level
 
-    smtag-convert2th -c 190414 -f 5X_L1200_article_embeddings_128 -X5 -L1200 -E ".//sd-panel" -p rack
+    smtag-convert2th -c 190414 -f 5X_L1200_unet_no_embed -X5 -L1200 -E ".//sd-panel" -p rack
 
-    smtag-convert2th -c 190414 -f 5X_L1200_anonym_not_reporter_article_embeddings_128 -L1200 -X5 -E ".//sd-panel" -y ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -e ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']"
+    smtag-convert2th -c 190414 -f 5X_L1200_anonym_not_reporter_unet_no_embed -L1200 -X5 -E ".//sd-panel" -y ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -e ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']"
     
     smtag-convert2th -c 190414 -L1200 -X5 -E ".//sd-panel" -e ".//sd-tag[@type='molecule']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']" -f 5X_L1200_molecule_anonym_article_embeddings_128 -p rack --noocr --noviz
     
@@ -34,7 +34,7 @@ Use `-V 500` to include 500 features from visual context.
 
 ## Multi-entities with exp assays and viz:
 
-    smtag-meta -f  -E120 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -p 3,3,3,3,3,3,3,3,3,3 -V500,0,0,0,0,0,0,0,0,0
+    smtag-meta -f  -E120 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7-n 128,128,128,128,128,128,128,128,128,128 -p 3,3,3,3,3,3,3,3,3,3 -V500,0,0,0,0,0,0,0,0,0
     
 <img src="figures/.png" width="50%">
 __Model: `...`__
@@ -62,7 +62,7 @@ No `-V` option.
 
 ## Multi entities with exp assays and __without__ viz context:
 
-    smtag-meta -f 5X_L1200_article_embeddings_128 -E20 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -g 3,3,3,3,3,3,3,3,3,3
+    smtag-meta -f 5X_L1200_unet_no_embed -E20 -Z32 -R0.005 -D0.2 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7 -n 128,128,128 --pool_table 2,2,2
     
 <img src="figures/.png" width="50%">
 __Model: `5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-08-23-17-46.zip`__
