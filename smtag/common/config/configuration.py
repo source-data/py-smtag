@@ -50,7 +50,7 @@ class Config():
     _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
     _ocr_max_edit_dist = 0.1 # max edit distance per character length between ocr term and matching term in caption
     _ocr_min_overlap   = 2 # minimum length of overlap between ocr term and caption term
-    _nbits             = 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
+    _nbits             = 17 # 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
     _embedding_out_channels = 128 # the number of channels used for learned deep embeddings
     _marking_char      = '_' #u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
     _padding_char      = '`' # " " # character used to padd strings; would be smarter to use character different from space
