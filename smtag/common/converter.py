@@ -53,7 +53,7 @@ class ConverterNBITS(Converter):
         L = len(input_string)
         t = torch.Tensor(0)
         if L > 0:
-            t = cached_zeroed(L, self.dtype)
+            t = cached_zeroed(L, self.dtype).clone()
             for i in range(L):
                 code = ord(input_string[i])
                 try:
@@ -180,6 +180,11 @@ def self_test(input_string: str):
     decode_encoded = ConverterNBITS().decode(encoded)
     print("the decoded of the encoded:", str(TString(TString(input_string).tensor)))
     assert input_string == decode_encoded, f"{input_string}<>{decode_encoded}"
+
+    a = TString("a")
+    b = TString("b")
+    assert str(TString(a.tensor)) == "a"
+    assert str(TString(b.tensor)) == "b"
 
 def main():
     # more systematic tests in test.test_converter
