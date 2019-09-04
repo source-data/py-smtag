@@ -74,6 +74,7 @@ class Cartridge():
 
 class SmtagEngine:
 
+
     DEBUG = False
 
     def __init__(self, cartridge:Cartridge):

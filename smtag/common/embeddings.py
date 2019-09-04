@@ -11,7 +11,8 @@ class Embedding:
         if self.model is not None:
             with torch.no_grad():
                 self.model.eval()
-                return self.model(x)
+                y = self.model(x)
+                return y
         else:
             return x
 

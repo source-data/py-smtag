@@ -41,7 +41,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
             padded = [self.padding(inp) for inp in input]
             L = len(padded[0])
             padding_length = int((L - len(input[0])) / 2)
-            x = [EMBEDDINGS(p.toTensor()) for p in padded] 
+            x = [EMBEDDINGS(p.toTensor()) for p in padded]
         else:
             padded = self.padding(input)
             L = len(padded)
