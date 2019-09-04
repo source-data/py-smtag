@@ -41,21 +41,13 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
             padded = [self.padding(inp) for inp in input]
             L = len(padded[0])
             padding_length = int((L - len(input[0])) / 2)
-            x = [p.toTensor() for p in padded]
-            with torch.no_grad():
-                embeddings = []
-                for t in x:
-                    EMBEDDINGS.eval()
-                    x.append(EMBEDDINGS(t))
-                x = embeddings 
+            x = [EMBEDDINGS(p.toTensor()) for p in padded] 
         else:
             padded = self.padding(input)
             L = len(padded)
             padding_length = int((L - len(input)) / 2)
             x = padded.toTensor()
-            with torch.no_grad():
-                EMBEDDINGS.eval()
-                x = EMBEDDINGS(x)
+            x = EMBEDDINGS(x)
 
         # PREDICTION
         with torch.no_grad():
@@ -100,7 +92,8 @@ class ContextualPredictor(Predictor):
         for anonymization in self.model.anonymize_with:
             group = anonymization['group']
             concept = anonymization['concept']
-            anonymized_t.append(self.anonymize(for_anonymization, group, concept))
+            a_tstring = self.anonymize(for_anonymization, group, concept)
+            anonymized_t.append(a_tstring)
         prediction = self.forward(anonymized_t, viz_context) # ContextCombinedModel takes list of anonymized inputs; ouch need to be all padded
         input_string = for_anonymization.input_string
         token_list = for_anonymization.token_list

@@ -54,9 +54,9 @@ NO_VIZ = engine.Cartridge(
         ('geneprod_roles',
             (geneprod_role_no_viz, {'group': 'entities', 'concept': Catalogue.GENEPROD}),
         ),
-        ('small_molecule_role',
-            (molecule_role_no_viz, {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE}),
-        )
+        # ('small_molecule_role',
+        #     (molecule_role_no_viz, {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE}),
+        # )
     ])),
     panelize_model = engine.CombinedModel(OrderedDict([
         ('panels', panel),

@@ -150,9 +150,7 @@ class Augment():
                 # use context-aware embeddings
                 if config.embeddings_model:
                     textcoded4th = TString(padded_frag).toTensor()
-                    with torch.no_grad(): # to avoid having grad tensors sticking with this and making problems later at upload
-                        EMBEDDINGS.eval()
-                        textcoded4th = EMBEDDINGS(textcoded4th)
+                    textcoded4th = EMBEDDINGS(textcoded4th)
                 else:
                     textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
                     #assert str(TString(textcoded4th)) == padded_frag, f"\n'{str(TString(textcoded4th))}'\n is different from original \n'{padded_frag}'"
