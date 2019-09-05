@@ -121,7 +121,7 @@ def main():
     else:
         opt['use_ocr_context'] = ''
     if config.embeddings_model:
-        opt['nf_input'] = EMBEDDINGS.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
+        opt['nf_input'] = EMBEDDINGS.model.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
     else:
         opt['nf_input'] = config.nbits
     options = Options(opt)
