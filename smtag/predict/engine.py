@@ -134,6 +134,7 @@ class SmtagEngine:
         encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
         encoded.unsqueeze_(0) # 3D byteTensor!
         semantic_groups = OrderedDict([('entities', Catalogue.standard_channels)])
+        semantic_groups['entities'].append(Catalogue.UNTAGGED)
         entities = Decoder(input_string, encoded.float(), semantic_groups)
         entities.decode(token_list)
         reporter = self.__reporter(input_t_string, token_list, viz_context)
