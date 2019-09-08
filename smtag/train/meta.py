@@ -125,7 +125,6 @@ def main():
     else:
         opt['nf_input'] = config.nbits
     options = Options(opt)
-    # print(options)
 
     metatrainer = Meta(options)
     if not hyperparams:
