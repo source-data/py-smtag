@@ -229,6 +229,13 @@ class Config():
         """
         return self._marking_char
     @property
+    def masking_proba(self):
+        """
+        Probability with wich an element selected for potential masking will actually be masked.
+        """
+        return self._masking_proba
+    
+    @property
     def padding_char(self):
         """
         Special character used to pad strings.
