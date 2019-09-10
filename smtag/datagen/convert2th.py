@@ -312,16 +312,30 @@ class DataPreparator(object):
         return xml
 
 
-    def anonymize(self, xml, anonymizations):
-        if anonymizations:
+    def anonymize(self, xml, xpath_expressions):
+        """
+        Randomly masks selected elements from xml. The element are selected using XPath expressions.
+        """
+        def mixed_masking(text, p_masking):
+            """
+            Replaces text with probability p_masking by a string of same length made of a concatenated special 'marking charcater'.
+            """
+            p = random()
+            if p <= p_masking: # True with probability p_masking
+                replacement = config.marking_char * len(text)
+            else: # True with probability (1 - p_masking)
+                replacement = text
+            return replacement
+
+        if xpath_expressions:
             xml = copy.deepcopy(xml)
-            for xpath in anonymizations:
+            for xpath in xpath_expressions: 
                 to_be_processed = xml.findall(xpath)
-                for e in to_be_processed: #  # ".//sd-tag[@type='gene']"
+                for e in to_be_processed: # 
                     innertext = "".join([s for s in e.itertext()])
                     for sub in list(e):
                         e.remove(sub)
-                    e.text = config.marking_char * len(innertext)
+                    e.text = mixed_masking(innertext, config.masking_proba)
         return xml
 
     def import_files(self, subset):
