@@ -52,7 +52,7 @@ class Config():
     _ocr_min_overlap   = 2 # minimum length of overlap between ocr term and caption term
     _nbits             = 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
     _embedding_out_channels = 128 # the number of channels used for learned deep embeddings
-    _marking_char      = '$' #'_' # Substitution special xml-compatible character used to mark anonymized entities.
+    _marking_char      = '_' # Substitution special xml-compatible character used to mark anonymized entities.
     _masking_proba     = 1.0 # probability with wich an element selected to be potentially masked is effectively masked
     _padding_char      = '`' # " " # character used to padd strings; would be smarter to use character different from space
     _min_padding       = 100 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
