@@ -19,6 +19,22 @@ def cleanup(text):
     text = re.sub(r'[–—‐−]', '-', text) # controversial!!!
     return text
 
+def innertext(xml):
+    '''
+    Finds the innertext of an xml element and restores spaces between elements when necessary
+    '''
+    tokens = [t for t in xml.itertext()]
+    new = []
+    for i in range(len(tokens) - 1):
+        a = tokens[i]
+        b = tokens[i+1]
+        if a[-1] != ' ' and b[0] != ' ':
+            a += ' '
+        new.append(a)
+    new.append(b)
+    text = "".join(new)
+    text = re.sub(' +', ' ', text)
+    return text
 
 Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer']) # should be a proper object with __len__ method
 

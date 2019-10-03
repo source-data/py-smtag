@@ -21,7 +21,7 @@ from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 
 from ..common.mapper import Catalogue, index2concept, concept2index, NUMBER_OF_ENCODED_FEATURES
 from ..common.converter import TString
-from ..common.utils import cd, timer, tokenize, Token, cleanup, xml_escape
+from ..common.utils import cd, timer, tokenize, Token, cleanup, xml_escape, innertext
 from ..common.progress import progress
 from ..common.embeddings import EMBEDDINGS
 from .encoder import XMLEncoder, BratEncoder
@@ -256,8 +256,8 @@ class DataPreparator(object):
             processed_xml = ex['processed']
             graphic_filename = ex['graphic']
             prov = ex['provenance']
-            original_text = ''.join([s for s in xml.itertext()]) # needed when aligning OCR terms to the text
-            processed_text = ''.join([s for s in processed_xml.itertext()]) # alterations can be introduced by filtering or anonymization masking
+            original_text = innertext(xml) # needed when aligning OCR terms to the text
+            processed_text = innertext(processed_xml) # alterations can be introduced by filtering or anonymization masking
             path_to_encoded = os.path.join(config.data4th_dir, self.namebase, subset, prov)
             progress(i, N, "{}".format(prov+"              "))
             if original_text:
@@ -332,7 +332,7 @@ class DataPreparator(object):
             for xpath in xpath_expressions: 
                 to_be_processed = xml.findall(xpath)
                 for e in to_be_processed: # 
-                    innertext = "".join([s for s in e.itertext()])
+                    innertext = innertext(e) # "".join([s for s in e.itertext()])
                     for sub in list(e):
                         e.remove(sub)
                     e.text = mixed_masking(innertext, config.masking_proba)
