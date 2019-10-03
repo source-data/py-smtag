@@ -31,7 +31,7 @@ def innertext(xml):
         if a[-1] != ' ' and b[0] != ' ':
             a += ' '
         new.append(a)
-    new.append(b)
+    new.append(tokens[-1])
     text = "".join(new)
     text = re.sub(' +', ' ', text)
     return text
