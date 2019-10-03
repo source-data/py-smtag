@@ -332,7 +332,7 @@ class DataPreparator(object):
             for xpath in xpath_expressions: 
                 to_be_processed = xml.findall(xpath)
                 for e in to_be_processed: # 
-                    inner_text = innertext(e) # "".join([s for s in e.itertext()])
+                    inner_text = "".join([s for s in e.itertext()])
                     for sub in list(e):
                         e.remove(sub)
                     e.text = mixed_masking(inner_text, config.masking_proba)
