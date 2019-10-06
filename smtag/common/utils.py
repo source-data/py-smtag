@@ -23,7 +23,7 @@ def cleanup(text):
 def innertext(element: Element) -> str:
     return "".join([t for t in element.itertext()])
 
-def special_innertext(element:Element, tag_list =['sd-panel', 'sd-tag', 'label', '']) -> str:
+def special_innertext(element:Element, tag_list = ['sd-panel', 'label', 'b']) -> str:
     def add_tail_space(element: Element):
         for e in element:
             if e.tag in tag_list:
