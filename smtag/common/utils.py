@@ -5,6 +5,7 @@ import re
 from xml.sax.saxutils import escape
 from collections import namedtuple
 from contextlib import contextmanager
+from xml.etree.ElementTree import Element, fromstring, tostring
 import os
 import time
 
@@ -19,22 +20,29 @@ def cleanup(text):
     text = re.sub(r'[–—‐−]', '-', text) # controversial!!!
     return text
 
-def innertext(xml):
-    '''
-    Finds the innertext of an xml element and restores spaces between elements when necessary
-    '''
-    tokens = [t for t in xml.itertext()]
-    new = []
-    for i in range(len(tokens) - 1):
-        a = tokens[i]
-        b = tokens[i+1]
-        if a[-1] != ' ' and b[0] != ' ':
-            a += ' '
-        new.append(a)
-    new.append(tokens[-1])
-    text = "".join(new)
-    text = re.sub(' +', ' ', text)
-    return text
+def innertext(element:Element, tag_list =['sd-panel', 'sd-tag', 'label', '']) -> str:
+    def add_tail_space(element: Element):
+        for e in element:
+            if e.tag in tag_list:
+                if e.tail is None: 
+                    e.tail = ' '
+                elif e.tail[0] != ' ':
+                    e.tail = ' ' + e.tail
+            add_tail_space(e)
+
+    def remove_double_spaces(element: Element):
+        s = tostring(element, encoding = "unicode")
+        replaced = re.sub(r' ((?:<[^>]+>)+) ', r' \1', s)
+        try:
+            xml = fromstring(replaced)
+        except:
+            import pdb; pdb.set_trace()
+        return xml
+
+    add_tail_space(element)
+    no_double_space = remove_double_spaces(element)
+    inner_text = "".join([t for t in no_double_space.itertext()])
+    return inner_text, no_double_space
 
 Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer']) # should be a proper object with __len__ method
 

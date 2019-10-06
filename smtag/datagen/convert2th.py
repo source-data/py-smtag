@@ -256,13 +256,13 @@ class DataPreparator(object):
             processed_xml = ex['processed']
             graphic_filename = ex['graphic']
             prov = ex['provenance']
-            original_text = innertext(xml) # needed when aligning OCR terms to the text
-            processed_text = innertext(processed_xml) # alterations can be introduced by filtering or anonymization masking
+            original_text, xml = innertext(xml) # needed when aligning OCR terms to the text
+            processed_text, processed_xml = innertext(processed_xml) # alterations can be introduced by filtering or anonymization masking
             path_to_encoded = os.path.join(config.data4th_dir, self.namebase, subset, prov)
             progress(i, N, "{}".format(prov+"              "))
             if original_text:
                 # ENCODING XML
-                encoded_features = XMLEncoder.encode(processed_xml)
+                encoded_features = XMLEncoder.encode(processed_xml) # HERE: SPACES PUT BACK WILL SHIFT FEATURES
                 # OCR and percetpual vision features
                 ocr_context = None
                 viz_context = None
