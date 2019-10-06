@@ -21,7 +21,7 @@ from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 
 from ..common.mapper import Catalogue, index2concept, concept2index, NUMBER_OF_ENCODED_FEATURES
 from ..common.converter import TString
-from ..common.utils import cd, timer, tokenize, Token, cleanup, xml_escape, innertext
+from ..common.utils import cd, timer, tokenize, Token, cleanup, xml_escape, innertext, special_innertext
 from ..common.progress import progress
 from ..common.embeddings import EMBEDDINGS
 from .encoder import XMLEncoder, BratEncoder
@@ -252,12 +252,11 @@ class DataPreparator(object):
         augmenter = Augment(self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         N = len(examples)
         for i, ex in enumerate(examples):
-            xml = ex['xml']
             processed_xml = ex['processed']
             graphic_filename = ex['graphic']
             prov = ex['provenance']
-            original_text, xml = innertext(xml) # needed when aligning OCR terms to the text
-            processed_text, processed_xml = innertext(processed_xml) # alterations can be introduced by filtering or anonymization masking
+            original_text = ex['original_text']
+            processed_text = ex['processed_text']
             path_to_encoded = os.path.join(config.data4th_dir, self.namebase, subset, prov)
             progress(i, N, "{}".format(prov+"              "))
             if original_text:
@@ -358,8 +357,10 @@ class DataPreparator(object):
                     if not self.enrich(e, self.enrichment_xpath):
                         excluded.append(provenance)
                     else:
-                        e = self.exclusive(e, self.exclusive_xpath)
-                        processed = self.anonymize(e, self.anonymization_xpath)
+                        filtered_xml = self.exclusive(e, self.exclusive_xpath)
+                        original_text, updated_xml = special_innertext(filtered_xml) # restores missing spaces and updates xml
+                        processed = self.anonymize(updated_xml, self.anonymization_xpath)
+                        processed_text = innertext(updated_xml)
                         g = e.find(self.XPath_to_assets) # Note: XPath_to_assets is to find graphic element *within* the example; NOT within the whole xml document!
                         if g is not None:
                             url = g.get('href')
@@ -372,7 +373,9 @@ class DataPreparator(object):
                             graphic_filename = None
                         examples.append({
                             'xml': e,
-                            'processed': processed, #
+                            'processed': processed,
+                            'original_text': original_text,
+                            'processed_text': processed_text,
                             'provenance': provenance,
                             'graphic': graphic_filename
                         })

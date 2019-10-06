@@ -20,7 +20,10 @@ def cleanup(text):
     text = re.sub(r'[–—‐−]', '-', text) # controversial!!!
     return text
 
-def innertext(element:Element, tag_list =['sd-panel', 'sd-tag', 'label', '']) -> str:
+def innertext(element: Element) -> str:
+    return "".join([t for t in element.itertext()])
+
+def special_innertext(element:Element, tag_list =['sd-panel', 'sd-tag', 'label', '']) -> str:
     def add_tail_space(element: Element):
         for e in element:
             if e.tag in tag_list:
@@ -33,15 +36,12 @@ def innertext(element:Element, tag_list =['sd-panel', 'sd-tag', 'label', '']) ->
     def remove_double_spaces(element: Element):
         s = tostring(element, encoding = "unicode")
         replaced = re.sub(r' ((?:<[^>]+>)+) ', r' \1', s)
-        try:
-            xml = fromstring(replaced)
-        except:
-            import pdb; pdb.set_trace()
+        xml = fromstring(replaced)
         return xml
 
     add_tail_space(element)
     no_double_space = remove_double_spaces(element)
-    inner_text = "".join([t for t in no_double_space.itertext()])
+    inner_text = innertext(no_double_space)
     return inner_text, no_double_space
 
 Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer']) # should be a proper object with __len__ method
