@@ -5,7 +5,7 @@ import re
 from xml.sax.saxutils import escape
 from collections import namedtuple
 from contextlib import contextmanager
-from xml.etree.ElementTree import Element, fromstring, tostring
+from xml.etree.ElementTree import Element, fromstring, tostring, ParseError
 import os
 import time
 
@@ -37,8 +37,8 @@ def special_innertext(element:Element, tag_list = ['sd-panel', 'label', 'b']) ->
         s = tostring(element, encoding='unicode')
         replaced = re.sub(r' ((?:<[^>]+>)+) ', r' \1', s)
         try:
-            xml = fromstring(replaced)
-        except xml.etree.ElementTree.ParseError as err:
+            new_xml = fromstring(replaced)
+        except ParseError as err:
             # junk after document element: line 1, column 441
             print("PARSING ERROR IN:")
             print(replaced)
@@ -48,7 +48,7 @@ def special_innertext(element:Element, tag_list = ['sd-panel', 'label', 'b']) ->
             print(replaced[column])
             print('=================')
             raise err
-        return xml
+        return new_xml
 
     add_tail_space(element)
     no_double_space = remove_double_spaces(element)
