@@ -34,9 +34,20 @@ def special_innertext(element:Element, tag_list = ['sd-panel', 'label', 'b']) ->
             add_tail_space(e)
 
     def remove_double_spaces(element: Element):
-        s = tostring(element, encoding = "unicode")
+        s = tostring(element)
         replaced = re.sub(r' ((?:<[^>]+>)+) ', r' \1', s)
-        xml = fromstring(replaced)
+        try:
+            xml = fromstring(replaced)
+        except xml.etree.ElementTree.ParseError as err:
+            # junk after document element: line 1, column 441
+            print("PARSING ERROR IN:")
+            print(replaced)
+            print()
+            column = int(re.search(r'column (\d+)', str(err)).group(0))
+            print('culprit:')
+            print(replaced[column])
+            print('=================')
+            raise err
         return xml
 
     add_tail_space(element)
