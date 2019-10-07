@@ -34,7 +34,7 @@ def special_innertext(element:Element, tag_list = ['sd-panel', 'label', 'b']) ->
             add_tail_space(e)
 
     def remove_double_spaces(element: Element):
-        s = tostring(element)
+        s = tostring(element, encoding='unicode')
         replaced = re.sub(r' ((?:<[^>]+>)+) ', r' \1', s)
         try:
             xml = fromstring(replaced)
