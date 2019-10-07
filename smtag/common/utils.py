@@ -43,7 +43,7 @@ def special_innertext(element:Element, tag_list = ['sd-panel', 'label', 'b']) ->
             print("PARSING ERROR IN:")
             print(replaced)
             print()
-            column = int(re.search(r'column (\d+)', str(err)).group(0))
+            column = int(re.search(r'column (\d+)', str(err)).group(1))
             print('culprit:')
             print(replaced[column])
             print('=================')
