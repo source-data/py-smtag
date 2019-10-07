@@ -50,6 +50,8 @@ def special_innertext(element:Element, tag_list = ['sd-panel', 'label', 'b']) ->
             raise err
         return new_xml
 
+    # before taking the innertext we nee to make sure we remove any tail so that only the inner conent is considered
+    element.tail = None 
     add_tail_space(element)
     no_double_space = remove_double_spaces(element)
     inner_text = innertext(no_double_space)
