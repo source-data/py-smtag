@@ -20,42 +20,6 @@ def cleanup(text):
     text = re.sub(r'[–—‐−]', '-', text) # controversial!!!
     return text
 
-def innertext(element: Element) -> str:
-    return "".join([t for t in element.itertext()])
-
-def special_innertext(element:Element, tag_list = ['sd-panel', 'label', 'b']) -> str:
-    def add_tail_space(element: Element):
-        for e in element:
-            if e.tag in tag_list:
-                if e.tail is None: 
-                    e.tail = ' '
-                elif e.tail[0] != ' ':
-                    e.tail = ' ' + e.tail
-            add_tail_space(e)
-
-    def remove_double_spaces(element: Element):
-        s = tostring(element, encoding='unicode')
-        replaced = re.sub(r' ((?:<[^>]+>)+) ', r' \1', s)
-        try:
-            new_xml = fromstring(replaced)
-        except ParseError as err:
-            # junk after document element: line 1, column 441
-            print("PARSING ERROR IN:")
-            print(replaced)
-            print()
-            column = int(re.search(r'column (\d+)', str(err)).group(1))
-            print('culprit:')
-            print(replaced[column])
-            print('=================')
-            raise err
-        return new_xml
-
-    # before taking the innertext we nee to make sure we remove any tail so that only the inner conent is considered
-    element.tail = None 
-    add_tail_space(element)
-    no_double_space = remove_double_spaces(element)
-    inner_text = innertext(no_double_space)
-    return inner_text, no_double_space
 
 Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer']) # should be a proper object with __len__ method
 

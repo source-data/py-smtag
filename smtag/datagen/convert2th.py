@@ -21,7 +21,8 @@ from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
 
 from ..common.mapper import Catalogue, index2concept, concept2index, NUMBER_OF_ENCODED_FEATURES
 from ..common.converter import TString
-from ..common.utils import cd, timer, tokenize, Token, cleanup, xml_escape, innertext, special_innertext
+from ..common.utils import cd, timer, tokenize, Token, cleanup, xml_escape
+from ..common.innertext import special_innertext, innertext
 from ..common.progress import progress
 from ..common.embeddings import EMBEDDINGS
 from .encoder import XMLEncoder, BratEncoder
@@ -358,9 +359,9 @@ class DataPreparator(object):
                         excluded.append(provenance)
                     else:
                         filtered_xml = self.exclusive(e, self.exclusive_xpath)
-                        original_text, updated_xml = special_innertext(filtered_xml) # restores missing spaces and updates xml
-                        processed = self.anonymize(updated_xml, self.anonymization_xpath)
-                        processed_text = innertext(updated_xml)
+                        original_text = special_innertext(filtered_xml) # restores missing spaces and updates the xml accordingly
+                        processed_xml = self.anonymize(filtered_xml, self.anonymization_xpath)
+                        processed_text = innertext(processed_xml)
                         g = e.find(self.XPath_to_assets) # Note: XPath_to_assets is to find graphic element *within* the example; NOT within the whole xml document!
                         if g is not None:
                             url = g.get('href')
@@ -373,7 +374,7 @@ class DataPreparator(object):
                             graphic_filename = None
                         examples.append({
                             'xml': e,
-                            'processed': processed,
+                            'processed': processed_xml,
                             'original_text': original_text,
                             'processed_text': processed_text,
                             'provenance': provenance,
