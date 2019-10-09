@@ -160,8 +160,8 @@ class Augment():
                     features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
                 except RuntimeError as e:
                     print(encoded_example.text)
-                    print(self.length, len(encoded_example.text))
-                    import pdb; pdb.set_trace()
+                    print("len(encoded_example.text)", len(encoded_example.text))
+                    print("encoded_example.features", encoded_example.features.size())
                     raise e
                 # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
                 features4th[ : , concept2index[Catalogue.GENEPROD],  : ] = features4th[ : , concept2index[Catalogue.GENE],  : ] + features4th[ : ,  concept2index[Catalogue.PROTEIN], : ]
