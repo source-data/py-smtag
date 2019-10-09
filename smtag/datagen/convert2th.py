@@ -368,6 +368,7 @@ class DataPreparator(object):
                         original_text = special_innertext(filtered_xml) # restores missing spaces and updates the xml accordingly
                         processed_xml = self.anonymize(filtered_xml, self.anonymization_xpath)
                         processed_text = innertext(processed_xml)
+                        assert len(processed_text) == len(original_text), f"{len(processed_text)} != {len(original_text)}, \n {original_text}"
                         g = e.find(self.XPath_to_assets) # Note: XPath_to_assets is to find graphic element *within* the example; NOT within the whole xml document!
                         if g is not None:
                             url = g.get('href')
