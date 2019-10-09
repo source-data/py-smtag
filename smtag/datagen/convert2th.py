@@ -156,7 +156,13 @@ class Augment():
                     textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
                     #assert str(TString(textcoded4th)) == padded_frag, f"\n'{str(TString(textcoded4th))}'\n is different from original \n'{padded_frag}'"
                 # the encoded features of the fragment are selected and padded
-                features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
+                try:
+                    features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
+                except RuntimeError as e:
+                    print(encoded_example.text)
+                    print(self.length, len(encoded_example.text))
+                    import pdb; pdb.set_trace()
+                    raise e
                 # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
                 features4th[ : , concept2index[Catalogue.GENEPROD],  : ] = features4th[ : , concept2index[Catalogue.GENE],  : ] + features4th[ : ,  concept2index[Catalogue.PROTEIN], : ]
                 # the encoded ocr context features is formatted the same way to stay in register
