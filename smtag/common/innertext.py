@@ -43,7 +43,7 @@ def special_innertext(element:Element, add_after =['.//sd-panel/b[1]'], add_befo
     #     return new_xml
 
     # before taking the innertext we nee to make sure we remove any tail so that only the inner conent is considered
-    element.tail = None 
+    # element.tail = None 
     add_space_after(element)
     add_space_before(element)
     inner_text = innertext(element)
