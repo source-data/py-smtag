@@ -29,19 +29,7 @@ class NeoImport():
 
 
     @staticmethod
-    def caption_text2xml(panel_caption, tags, tags2anonym, safe_mode = True, exclusive_mode = False, keep_roles_only_for_selected_tags = False):
-        def anonymize_sdtags(panel_xml, tags_neo):
-            # mini_index = [] #keeps an index of terms that are the same; will be anonymized by respective 'marker' characters
-            for t in tags_neo:
-                tag_xml = panel_xml.find('.//sd-tag[@id="sdTag{}"]'.format(t['data']['id']))
-                if tag_xml is not None:
-                    if tag_xml.text:
-                        # tag_text_lo = tag_xml.text.lower()
-                        # if tag_text_lo not in mini_index: mini_index.append(tag_text_lo)
-                        # mark = unichr(MARKING_CHAR_ORD + mini_index.index(tag_text_lo))
-                        # tag_xml.text = mark * len(tag_xml.text)
-                        tag_xml.text = config.marking_char * len(tag_xml.text)
-            return panel_xml
+    def caption_text2xml(panel_caption, tags, safe_mode = True, keep_roles_only_for_selected_tags = False):
 
         tag_errors = []
         # panel_caption = panel_caption.encode('utf-8')
@@ -70,7 +58,7 @@ class NeoImport():
                 print(panel_caption)
                 panel_caption = SD_PANEL_OPEN + panel_caption + SD_PANEL_CLOSE
 
-            # proteection against nested or empty sd-panel
+            # protection against nested or empty sd-panel
             panel_caption = re.sub(r'<sd-panel><sd-panel>', r'<sd-panel>', panel_caption)
             panel_caption = re.sub(r'</sd-panel></sd-panel>', r'</sd-panel>', panel_caption)
             panel_caption = re.sub(r'<sd-panel/>', '', panel_caption)
@@ -83,7 +71,8 @@ class NeoImport():
         panel_xml = fromstring(panel_caption)
 
         tags_xml = panel_xml.findall('.//sd-tag')
-        tags_neo_id = [u"sdTag{}".format(t['data']['id']) for t in tags]
+        tags_neo = {f"sdTag{t['data']['id']}": t['data'] for t in tags}
+        tags_neo_id = tags_neo.keys() #[u"sdTag{}".format(t['data']['id']) for t in tags]
         tags_not_found = set(tags_neo_id) - set([t.attrib['id'] for t in tags_xml])
         if tags_not_found:
             print("WARNING, tag(s) not found: ", tags_not_found)
@@ -107,24 +96,14 @@ class NeoImport():
                     tag.remove(e)
                 print("cleaned tag: {}".format(tostring(tag)))
 
-        # keep attributes only for the selected tags and clear the rest
-        if exclusive_mode:
-            for t_xml in tags_xml:
-                if 'id' in t_xml.attrib:
-                    if not t_xml.attrib['id'] in tags_neo_id:
-                        t_xml.attrib.clear()
-                else:
-                    print("WARNING, tag", tostring(t_xml), "has no id" )
-
-        if keep_roles_only_for_selected_tags:
-            for t_xml in tags_xml:
-                if 'id' in t_xml.attrib and 'role' in  t_xml.attrib:
-                    if not t_xml.attrib['id'] in tags_neo_id:
-                        t_xml.attrib.pop('role')
-
-        #anonymize a subset of the tags
-        if tags2anonym:
-            anonymize_sdtags(panel_xml, tags2anonym)
+        # transfer attributes from tags_neo into the xml
+        for tag in tags_xml:
+            tag_id = tag.get('id', '')
+            neo = tags_neo.get(tag_id, None)
+            if neo is not None:
+                for attr in neo:
+                    if attr != 'id':
+                        tag.attrib[attr] =  str(neo[attr])
 
         return panel_xml, tag_errors
 
@@ -132,14 +111,8 @@ class NeoImport():
     def neo2xml(self, source):
 
         where_clause = self.options['where_clause']
-        entity_type_clause = self.options['entity_type_clause']
-        entity_role_clause = self.options['entity_role_clause']
-        tags2anonmymize_clause = self.options['tags2anonmymize_clause']
-        donotanonymize_clause = self.options['donotanonymize_clause']
         limit_clause = self.options['limit_clause']
         safe_mode = self.options['safe_mode']
-        exclusive_mode = self.options['exclusive_mode']
-        keep_roles_only_for_selected_tags = self.options['keep_roles_only_for_selected_tags']
 
         DB = GraphDatabase(source['db'],source['username'], source['password'])
 
@@ -216,27 +189,24 @@ class NeoImport():
                     q_panel = '''
                     MATCH (f:Figure)-->(p:Panel)-->(t:Tag)
                     WHERE id(f) = {} AND t.in_caption = true
-                    {} //AND t.type = some_entity_type OR some other type
-                    {} //AND t.role = some role OR some role
-                    WITH p.formatted_caption AS formatted_caption, p.label AS panel_label, p.panel_id AS panel_id, p.href As url, COLLECT(DISTINCT t) AS tags
-                    RETURN formatted_caption, panel_label, panel_id, url, tags , [t in tags WHERE (t.type in [{}] AND NOT t.role in[{}])] AS tags2anonym // (t.type in ["gene","protein"] AND NOT t.role in ["reporter"])
-                    '''.format(f_id, entity_type_clause, entity_role_clause, tags2anonmymize_clause, donotanonymize_clause)
+                    WITH p.caption AS caption, p.label AS panel_label, p.panel_id AS panel_id, p.href As url, COLLECT(DISTINCT t) AS tags
+                    RETURN caption, panel_label, panel_id, url, tags
+                    '''.format(f_id)
                     results_panels = DB.query(q_panel)
                     print("{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi))
 
                     if results_panels:
                         #panels not in the proper order, need resorting via label
-                        results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'panel_label':p[1], 'href': p[3], 'tags':p[4], 'tags2anonym':p[5]} for p in results_panels}
+                        results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'panel_label':p[1], 'href': p[3], 'tags':p[4]} for p in results_panels}
                         sorted_panel_labels = list(results_labeled.keys())
                         sorted_panel_labels.sort()
 
                         for p in sorted_panel_labels:
                             panel_caption = results_labeled[p]['panel_caption']
                             tags = results_labeled[p]['tags']
-                            tags2anonym = results_labeled[p]['tags2anonym']
                             image_link = results_labeled[p]['href']
                             try:
-                                panel_element, tag_errors = self.caption_text2xml(panel_caption, tags, tags2anonym, safe_mode, exclusive_mode, keep_roles_only_for_selected_tags)
+                                panel_element, tag_errors = self.caption_text2xml(panel_caption, tags, safe_mode)
                                 graphic = Element('graphic')
                                 graphic.attrib['href'] = image_link
                                 panel_element.append(graphic)
@@ -370,40 +340,24 @@ def main():
     parser = config.create_argument_parser_with_defaults(description='Top level module to manage training.')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode.')
     parser.add_argument('-f', '--namebase', default='test', help='The name of the dataset')
-    parser.add_argument('-A', '--tags2anonymize', default='', help='tag type to anonymise')
-    parser.add_argument('-AA','--donotanonymize', default='', help='role of tags that should NOT be anonymized')
     parser.add_argument('-l', '--limit', default=10, type=int, help='limit number of papers scanned, mainly for testing')
     parser.add_argument('-Y', '--year_range', default='', help='select papers published in the start:end year range')
     parser.add_argument('-J', '--journals', default='', help='select set of journals, comma delimited')
     parser.add_argument('-D', '--doi', default='', help='restrict to a single doi')
-    parser.add_argument('-y', '--type', default='', help='makes sure each example has entities of the specified type')
-    parser.add_argument('-e', '--exclusive', action='store_true', help='only the tags selected by -y are kept, the others are removed')
-    parser.add_argument('-s', '--selective', action='store_true', help='keep the roles only for the entities selected by the -y option')
-    parser.add_argument('-r', '--role', default='', help='makes sure each example has entities with the specified role')
     parser.add_argument('-N', '--not_safe_mode', action='store_true', help='protects against some misformed XML in caption; set this option to False for debugging')
     parser.add_argument('-T', '--testfract', default=0.2, type=float, help='fraction of papers in testset')
     parser.add_argument('-V', '--validation', default=0.2, type=float, help='fraction of papers in validation set')
 
     args = parser.parse_args()
 
-    tags2anonymize = args.tags2anonymize
-    donotanonymize = args.donotanonymize
     limit = args.limit
     year_range = args.year_range.split(":")
     journals = [j.strip() for j in args.journals.split(",")]
     single_doi = args.doi
-    type = args.type
-    exclusive_mode = args.exclusive
-    keep_roles_only_for_selected_tags = args.selective
-    role = args.role
     safe_mode = not args.not_safe_mode
 
     where_clause= ''
     limit_clause = ''
-    entity_type_clause = ''
-    entity_role_clause = ''
-    tags2anonmymize_clause = ''
-    donotanonymize_clause = ''
 
     if single_doi or year_range[0] or journals[0]:
         where_clause = "WHERE "
@@ -420,53 +374,14 @@ def main():
         limit_clause = " LIMIT {} ".format(limit)
         print("limit_clause", limit_clause)
 
-    if type:
-        if type == 'entity':
-            type = "molecule, gene, protein, subcellular, cell, tissue, organism, undefined"
-        type_list = [t.strip() for t in type.split(",")]
-        entity_type_clause = ''
-        if 'assay' in type_list:
-            entity_type_clause += ' t.category = "assay" '
-            type_list.remove('assay')
-            if type_list: entity_type_clause +='OR t.type = '
-        else:
-            entity_type_clause += ' t.type = '
-        entity_type_clause += " OR t.type = ".join(["'{}'".format(t) for t in type_list])
-        entity_type_clause = "AND ({}) ".format(entity_type_clause)
-        print("entity_type_clause", entity_type_clause)
-
-    if role:
-        entity_role_clause = ' t.role = '
-        entity_role_clause += " OR t.role = ".join(["'{}'".format(t.strip()) for t in role.split(",")])
-        entity_role_clause = "AND ({}) ".format(entity_role_clause)
-        print("entity_role_clause", entity_role_clause )
-
-    if tags2anonymize:
-        if tags2anonymize == 'entity':
-            tags2anonymize = "molecule, gene, protein, subcellular, cell, tissue, organism, undefined"
-        tags2anonymize = ['"{}"'.format(t.strip()) for t in tags2anonymize.split(',')]
-        tags2anonmymize_clause = ", ".join(tags2anonymize)
-    print("tags2anonmymize_clause", tags2anonmymize_clause)
-
-    if donotanonymize:
-        donotanonymize = ['"{}"'.format(t.strip()) for t in donotanonymize.split(',')]
-        donotanonymize_clause = ", ".join(donotanonymize)
-    print("donotanonymize_clause", donotanonymize_clause)
-
     options = {}
     options['verbose'] = args.verbose
     options['namebase'] = args.namebase
     options['testset_fraction'] = args.testfract
     options['validation_fraction'] = args.validation
     options['where_clause'] = where_clause
-    options['entity_type_clause'] = entity_type_clause
-    options['entity_role_clause'] = entity_role_clause
-    options['tags2anonmymize_clause'] = tags2anonmymize_clause
-    options['donotanonymize_clause'] = donotanonymize_clause
     options['limit_clause'] = limit_clause
     options['safe_mode'] = safe_mode
-    options['exclusive_mode'] = exclusive_mode
-    options['keep_roles_only_for_selected_tags'] = keep_roles_only_for_selected_tags
     #options['source'] = {'db': 'http://localhost:7474/db/data/', 'username': 'neo4j', 'password': 'sourcedata'} #getpass()}
     options['source'] = {
        'db': os.environ.get('SMTAG_NEO4J_URL', 'http://localhost:7474/db/data/'),

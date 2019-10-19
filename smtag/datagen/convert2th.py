@@ -268,7 +268,8 @@ class DataPreparator(object):
             progress(i, N, "{}".format(prov+"              "))
             if original_text:
                 # ENCODING XML
-                encoded_features = XMLEncoder.encode(processed_xml) # HERE: SPACES PUT BACK WILL SHIFT FEATURES
+                encoded_features = XMLEncoder.encode(processed_xml)
+
                 # OCR and percetpual vision features
                 ocr_context = None
                 viz_context = None
