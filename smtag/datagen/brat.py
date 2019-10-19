@@ -56,6 +56,7 @@ class BratImport():
         all_files_in_dir = [f for f in listdir(mypath) if path.isfile(path.join(mypath, f))]
         #reduce list to list of unique filenames
         for f in all_files_in_dir:
+            import pdb; pdb.set_trace()
             basename, ext = f.split('.')
             if basename not in unique_basenames and ext in BratImport.ALLOWED_FILE_TYPES:
                 unique_basenames.append(basename)
