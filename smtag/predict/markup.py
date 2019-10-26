@@ -3,7 +3,8 @@
 
 #from abc import ABC
 import torch
-import xml.etree.ElementTree as ET
+import json
+from xml.etree.ElementTree import fromstring
 from copy import deepcopy
 from typing import List
 from collections import OrderedDict
@@ -267,16 +268,43 @@ class HTMLTagger(AbstractTagger):
         html_string = super(HTMLTagger, self).serialize(decoded_pred)
         return "<ul>{}</ul>".format(html_string)
 
+class JSONTagger(XMLTagger):
+
+    def __init__(self, tag):
+        super(JSONTagger, self).__init__(tag)
+
+    def serialize(self, decoded_pred):
+        xml_string = super(JSONTagger, self).serialize(decoded_pred)
+        xml = fromstring(xml_string)
+        j =  {
+            'smtag': []
+        }
+        panels = xml.findall('sd-panel')
+        if not panels:
+            panels = [xml]
+        for panel in panels:
+            entities = []
+            for e in panel.findall(self.tag):
+                entity = e.attrib
+                entity['text'] = e.text
+                if entity not in entities:
+                    entities.append(entity)
+            j['smtag'].append({'entities': entities})
+        js = json.dumps(j)
+        return js
 
 class Serializer():
 
     def __init__(self, tag, format = 'xml'):
         self.tag = tag
         self.format = format.lower()
+        assert format in ['xml', 'html', 'json'], f"unknown format: {self.format}"
 
     def serialize(self, decoded_pred):
         if self.format == 'html':
             s = HTMLTagger(self.tag)
-        else: # elif self.format == 'xml':
+        elif self.format == 'xml': # elif self.format == 'xml':
             s = XMLTagger(self.tag)
+        elif self.format == 'json':
+            s = JSONTagger(self.tag)
         return s.serialize(decoded_pred)
