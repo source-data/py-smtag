@@ -29,10 +29,14 @@ from .. import config
 
 class Meta():
 
-    def __init__(self, opt):
+    def __init__(self, opt, production_mode=False):
         self.opt = opt
-        self.trainset = Data4th(opt, 'train')
-        self.validation = Data4th(opt, 'valid')
+        if production_mode:
+            self.trainset = Data4th(opt, ['train','valid'])
+            self.validation = Data4th(opt, ['test'])
+        else:
+            self.trainset = Data4th(opt, ['train'])
+            self.validation = Data4th(opt, ['valid'])
         self.opt.L = self.trainset.opt.L
         
         
@@ -85,6 +89,7 @@ def main():
     parser.add_argument('-g', '--padding_table',  default="3,3,3", help='Padding for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-H', '--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
     parser.add_argument('-I', '--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
+    parser.add_argument('--production', action='store_true', help='Production mode, where train and valid are combined and test used to control for overfitting.')
     parser.add_argument('-m', '--model', default='', help='Load pre-trained model and continue training.')
     parser.add_argument('--ocrxy', action="store_true", help='Use as additional input position and orientation of words extracted by OCR from the illustration.')
     parser.add_argument('--ocr1', action="store_true", help='Use as additional presence of words extracted by OCR from the illustration.')
@@ -124,9 +129,10 @@ def main():
         opt['nf_input'] = EMBEDDINGS.model.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
     else:
         opt['nf_input'] = config.nbits
+    production_mode = arguments.production
     options = Options(opt)
 
-    metatrainer = Meta(options)
+    metatrainer = Meta(options, production_mode)
     if not hyperparams:
         metatrainer.simple_training()
     else:

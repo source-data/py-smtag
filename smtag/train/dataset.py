@@ -18,9 +18,11 @@ from .. import config
 
 class Data4th(Dataset):
 
-    def __init__(self, opt: 'Options', subdir: str):
+    def __init__(self, opt: 'Options', subdir_list: List[str]):
         # use a list of data_dir_path to aggregate several training set
-        data_dir_path_list = [os.path.join(config.data4th_dir, dir, subdir) for dir in opt.data_path_list]
+        data_dir_path_list = []
+        for subdir in subdir_list:
+            data_dir_path_list += [os.path.join(config.data4th_dir, dir, subdir) for dir in opt.data_path_list]
         self.path_list = []
         for data_dir_path in data_dir_path_list:
             new_list = [os.path.join(data_dir_path, d) for d in os.listdir(data_dir_path) if d not in config.dirignore]

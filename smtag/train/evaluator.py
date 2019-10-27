@@ -122,7 +122,7 @@ class Benchmark():
 
         # self.tokenize = tokenize
         self.opt.data_path_list = [os.path.join(config.data4th_dir, f) for f in testset_basenames] # it has to be a list (to allow joint training on multiple datasets)
-        testset = Data4th(self.opt, 'test')
+        testset = Data4th(self.opt, ['test'])
         testset = DataLoader(testset, batch_size=self.opt.minibatch_size, shuffle=True, collate_fn=collate_fn, num_workers=0, drop_last=True, timeout=60)
         benchmark = Accuracy(self.model, testset, self.opt.nf_output)#, tokenize=self.tokenize)
         self.precision, self.recall, self.f1, self.loss = benchmark.run(predict_fn)
