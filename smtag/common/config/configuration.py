@@ -72,13 +72,13 @@ class Config():
     # no panel_stop model with viz because viz does not help
 
     # WITHOUT VISUAL CONTEXT
-    _model_entity_no_viz = "5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-08-23-17-46.zip" # 
-    _model_geneprod_reporter_no_viz = "5X_L1200_article_embeddings_128_reporter_2019-08-28-00-08_epoch_23_.zip"
-    _model_geneprod_role_no_viz = "5X_L1200_anonym_not_reporter_article_embeddings_128_intervention_assayed_2019-08-22-16-25.zip"
-    _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-08-28-23-33_epoch_51.zip"
-    _model_disease_no_viz = "10X_L1200_disease_articke_embeddings_128-5X_L1200_article_embeddings_128_disease_2019-08-25-21-47.zip"
-    _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-08-29-08-31.zip"
-    _embeddings_model = "article_embeddings_128.zip" # article_embedding_pmc.zip" #shuffle3_embedding_pmc.zip" # embeddings_verbs_pmc_abstracts.zip" # "shuffle3_embeddings.py" # "verbs_embeddings.zip" #
+    _model_entity_no_viz = "10X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-10-27-09-28.zip"
+    _model_geneprod_reporter_no_viz = "10X_L1200_article_embeddings_128_reporter_2019-10-28-00-43.zip"
+    _model_geneprod_role_no_viz = "10X_L1200_anonym_not_reporter_article_embbeddings_128_intervention_assayed_2019-10-27-12-25.zip"
+    _model_molecule_role_no_viz = "10X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-10-27-21-03.zip"
+    _model_disease_no_viz = "10X_L1200_disease_article_embeddings_128-10X_L1200_figure_article_embeddings_128_disease_2019-10-28-06-44_epoch_10.zip"
+    _model_panel_stop_no_viz = "10X_L1200_figure_emboj_2012_article_embeddings_128_panel_stop_2019-10-28-11-19.zip"
+    _embeddings_model = "article_embeddings_128.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
