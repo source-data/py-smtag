@@ -12,7 +12,7 @@ COPY . /workspace/py-smtag
 #   ssh-keyscan github.com > /root/.ssh/known_hosts
 
 # Install ssh client and git
-RUN apk add --no-cache openssh-client git
+#RUN apk add --no-cache openssh-client git
 
 # Download public key for github.com
 RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
