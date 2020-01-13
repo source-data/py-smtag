@@ -1,6 +1,6 @@
 import torch
 from .importexport import load_model
-from vsearch.net import CatStack
+from catstack.model import CatStack, Hyperparameters
 from .. import config
 
 class Embedding:

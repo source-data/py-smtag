@@ -15,3 +15,4 @@ scikit-learn == 0.20.1
 python-dotenv==0.10.1 # to load .env file
 # vsearch==0.2.1 # update with git submodule update --remote
 #-e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
+-e git+git@github.com:source-data/catstack.git#egg=catstack

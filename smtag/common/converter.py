@@ -34,9 +34,7 @@ def cached_zeroed(L, dtype):
     return t
 
 class ConverterNBITS(Converter):
-    
-    CODE2BITS = [code2bits(code) for code in range(2**NBITS)]
-    
+
     def __init__(self, dtype:torch.dtype=torch.float):
        super(ConverterNBITS, self).__init__(dtype)
 
@@ -57,9 +55,9 @@ class ConverterNBITS(Converter):
             for i in range(L):
                 code = ord(input_string[i])
                 try:
-                    t[0, : , i] = self.CODE2BITS[code]
+                    t[0, : , i] = code2bits(code) # CODE2BITS[code]
                 except IndexError:
-                    t[0, : , i] = self.CODE2BITS[ord('?')]
+                    t[0, : , i] = code2bits(ord('?')) # CODE2BITS[ord('?')]
         return t
 
     def decode(self, t: torch.Tensor) -> str:
@@ -95,6 +93,7 @@ class ConverterNBITS(Converter):
                 print(t[0, : , i].view(-1))
                 str += '?'
         return str
+
 
 class TString:
     '''
