@@ -11,6 +11,12 @@ COPY . /workspace/py-smtag
 #   touch -m 600 /root/.ssh/known_hosts; \
 #   ssh-keyscan github.com > /root/.ssh/known_hosts
 
+# Install ssh client and git
+RUN apk add --no-cache openssh-client git
+
+# Download public key for github.com
+RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+
 # This command will have access to the forwarded agent (if one is
 # available)
 #RUN --mount=type=ssh git clone --branch multihead git@github.com:source-data/vsearch
