@@ -1,5 +1,5 @@
 #tensorflow==1.8.0 # works on dgx not on Mac... 
-git tensorflow==1.14.0 # works on Mac not on dgx...
+tensorflow==1.14.0 # works on Mac not on dgx...
 docopt==0.6.2
 numpy==1.16.3
 torch==1.0.1
@@ -15,3 +15,4 @@ scikit-learn == 0.20.1
 python-dotenv==0.10.1 # to load .env file
 # vsearch==0.2.1 # update with git submodule update --remote
 #-e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
+-e git+git@github.com:source-data/catstack.git#egg=catstack
