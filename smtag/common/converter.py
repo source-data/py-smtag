@@ -5,6 +5,7 @@
 import argparse
 import torch
 from functools import lru_cache
+from copy import copy
 from typing import List
 from .utils import timer
 from .. import config
@@ -131,6 +132,7 @@ class StringList:
     _N = 0
     _L = 0
     _list = []
+
     def __init__(self, x: List[str]=[]):
         if x:
             self._N = len(x)
@@ -166,6 +168,10 @@ class StringList:
 
     def __nonzero__(self):
         return len(self) > 0
+
+    def clone(self):
+        cloned = StringList(copy(self.words))
+        return cloned
 
 
 class TString:
@@ -286,9 +292,9 @@ def self_test(input_string: str):
     assert input_string == decode_encoded, f"{input_string}<>{decode_encoded}"
     print("the decoded of the encoded:", TString(TString(StringList([input_string, input_string])).tensor).toStringList())
 
-    a = TString(["a"])
-    b = TString(["b"])
-    assert (a + b).toStringList() == ["ab"]
+    a = TString("a")
+    b = TString("b")
+    assert (a + b).toStringList().words == StringList(["ab"]).words
 
 def main():
     # more systematic tests in test.test_converter
