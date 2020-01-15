@@ -9,6 +9,7 @@ from smtag.common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from smtag.predict.decode import Decoder
 from smtag.common.mapper import Catalogue
+from smtag.common.converter import StringList
 
 class DecoderTest(SmtagTestCase):
 
@@ -25,17 +26,17 @@ class DecoderTest(SmtagTestCase):
         group = 'test'
         concepts = [Catalogue.GENEPROD, Catalogue.UNTAGGED]
         semantic_groups = OrderedDict([(group, concepts)])
-        d = Decoder(input_string, prediction, semantic_groups)
+        d = Decoder(StringList([input_string]), prediction, semantic_groups)
         d.decode()
-        print([t.text for t in d.token_list])
-        print(d.concepts)
-        print(d.scores)
-        print(d.char_level_concepts)
+        print([t.text for t in d.token_lists[0]])
+        print(d.concepts[0])
+        print(d.scores[0])
+        print(d.char_level_concepts[0])
         #                                          A                   ge                  ne                  or                  others
         expected_concepts = OrderedDict([('test', [Catalogue.UNTAGGED, Catalogue.GENEPROD, Catalogue.GENEPROD, Catalogue.UNTAGGED, Catalogue.UNTAGGED])])
-        self.assertEqual(expected_concepts, d.concepts)
+        self.assertEqual(expected_concepts, d.concepts[0])
 
-    def test_fuse_adjascent_1(self):
+    def test_fuse_adjacent_1(self):
         '''
         Testing the fusion between two similarly labeled terms separated by a tab.
         '''
@@ -47,19 +48,19 @@ class DecoderTest(SmtagTestCase):
         group = 'test'
         concepts = [Catalogue.GENEPROD, Catalogue.UNTAGGED]
         semantic_groups = OrderedDict([(group, concepts)])
-        d = Decoder(input_string, prediction, semantic_groups)
+        d = Decoder(StringList([input_string]), prediction, semantic_groups)
         d.decode()
         d.fuse_adjacent()
-        print([t.text for t in d.token_list])
-        print(d.concepts)
-        print(d.scores)
-        print(d.char_level_concepts)
+        print([t.text for t in d.token_lists[0]])
+        print(d.concepts[0])
+        print(d.scores[0])
+        print(d.char_level_concepts[0])
         #                                          A                   gene                or                  others
         expected_concepts = OrderedDict([('test', [Catalogue.UNTAGGED, Catalogue.GENEPROD, Catalogue.UNTAGGED, Catalogue.UNTAGGED])])
-        self.assertEqual(expected_concepts, d.concepts)
+        self.assertEqual(expected_concepts, d.concepts[0])
 
 
-    def test_fuse_adjascent_2(self):
+    def test_fuse_adjacent_2(self):
         '''
         Testing the fusion of two terms at the end of the string.
         '''
@@ -71,18 +72,18 @@ class DecoderTest(SmtagTestCase):
         group = 'test'
         concepts = [Catalogue.GENEPROD, Catalogue.UNTAGGED]
         semantic_groups = OrderedDict([(group, concepts)])
-        d = Decoder(input_string, prediction, semantic_groups)
+        d = Decoder(StringList([input_string]), prediction, semantic_groups)
         d.decode()
         d.fuse_adjacent()
-        print([t.text for t in d.token_list])
-        print(d.concepts)
-        print(d.scores)
-        print(d.char_level_concepts)
+        print([t.text for t in d.token_lists[0]])
+        print(d.concepts[0])
+        print(d.scores[0])
+        print(d.char_level_concepts[0])
         #                                          A                   ge n
         expected_concepts = OrderedDict([('test', [Catalogue.UNTAGGED, Catalogue.GENEPROD])])
-        self.assertEqual(expected_concepts, d.concepts)
+        self.assertEqual(expected_concepts, d.concepts[0])
 
-    def test_fuse_adjascent_3(self):
+    def test_fuse_adjacent_3(self):
         '''
         Testing the fusion of two terms separated by nothing at the end of the string.
         '''
@@ -94,16 +95,41 @@ class DecoderTest(SmtagTestCase):
         group = 'test'
         concepts = [Catalogue.GENEPROD, Catalogue.UNTAGGED]
         semantic_groups = OrderedDict([(group, concepts)])
-        d = Decoder(input_string, prediction, semantic_groups)
+        d = Decoder(StringList([input_string]), prediction, semantic_groups)
         d.decode()
         d.fuse_adjacent()
-        print([t.text for t in d.token_list])
-        print(d.concepts)
-        print(d.scores)
-        print(d.char_level_concepts)
+        print([t.text for t in d.token_lists[0]])
+        print(d.concepts[0])
+        print(d.scores[0])
+        print(d.char_level_concepts[0])
         #                                          A                   ge-n
         expected_concepts = OrderedDict([('test', [Catalogue.UNTAGGED, Catalogue.GENEPROD])])
-        self.assertEqual(expected_concepts, d.concepts)
+        self.assertEqual(expected_concepts, d.concepts[0])
+
+    def test_cat(self):
+        '''
+        Testing the decoding without fusion.
+        '''
+        input_string = 'A ge ne or others'
+        prediction = torch.Tensor([[#A         g    e         n    e         o    r         o    t    h    e    r    s
+                                    [0   ,0   ,1.0 ,1.0 ,0   ,1.0 ,1.0 ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ,0   ],
+                                    [1.0 ,1.0 ,0   ,0   ,1.0 ,0   ,0   ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ,1.0 ]
+                                  ]])
+
+        group = 'test'
+        concepts = [Catalogue.GENEPROD, Catalogue.UNTAGGED]
+        semantic_groups = OrderedDict([(group, concepts)])
+        d = Decoder(StringList([input_string]), prediction, semantic_groups)
+        d.decode()
+        d.fuse_adjacent()
+        cloned = d.clone()
+        d.cat_(cloned)
+        print(d.prediction)
+        print([t.text for t in d.token_lists[0]])
+        print(d.concepts[0])
+        print(d.scores[0])
+        print(d.char_level_concepts[0])
+        self.assertTensorEqual(torch.cat((prediction, prediction),1), d.prediction)
 
 if __name__ == '__main__':
     unittest.main()
