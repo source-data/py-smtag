@@ -5,16 +5,18 @@
 import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
-from smtag.common.converter import ConverterNBITS, TString
+from smtag.common.converter import ConverterNBITS, TString, HeterogenousWordLengthError
 from smtag.common.utils import timer
 from string import ascii_letters
 from random import choice
+
 
 from smtag import config
 
 NBITS = config.nbits
 N_RANDOM_LETTERS = 10000
 RANDOM_LETTERS = [choice(ascii_letters) for _ in range(N_RANDOM_LETTERS)]
+
 
 class ConverterTest(SmtagTestCase):
     def setUp(self):
@@ -37,47 +39,6 @@ class ConverterTest(SmtagTestCase):
     def test_lossless_decode_encode(self):
         self.assertTensorEqual(self.tensor, ConverterNBITS().encode(ConverterNBITS().decode(self.tensor)))
 
-    def test_concat_1(self):
-        a = "the "
-        b = "cat"
-        ab = a + b
-        t_ab = TString(a) + TString(b)
-        self.assertEqual(ab, str(t_ab))
-        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
-
-    def test_concat_2(self):
-        a = "the "
-        b = ""
-        ab = a + b
-        t_ab = TString(a) + TString(b)
-        self.assertEqual(ab, str(t_ab))
-        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
-
-    def test_concat_3(self):
-        a = ""
-        b = "cat"
-        ab = a + b
-        t_ab = TString(a) + TString(b)
-        self.assertEqual(ab, str(t_ab))
-        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
-
-    def test_slice(self):
-        the_cat = "The cat"
-        the_cat_ts = TString(the_cat)
-        the_ts = the_cat_ts[0:3]
-        the = the_cat[0:3]
-        expected = TString(the)
-        self.assertEqual(str(expected), str(the_ts))
-        self.assertTensorEqual(expected.tensor, the_ts.tensor)
-
-    def test_empty_string(self):
-        empty_string = ''
-        empty_string_ts = TString(empty_string)
-        expected_tensor = torch.Tensor()
-        expected_string = ''
-        self.assertEqual(expected_string, str(empty_string_ts))
-        self.assertTensorEqual(expected_tensor, empty_string_ts.tensor)
-
     @timer
     def test_timing(self):
         c = ConverterNBITS()
@@ -92,17 +53,55 @@ class TStringTest(SmtagTestCase):
         tensor = s1.toTensor()
         s2 = TString(tensor)
         self.assertTensorEqual(s1.toTensor(), s2.toTensor())
-        self.assertEqual(s1.size(), s2.size())
+        self.assertEqual(s1.toTensor().size(), s2.toTensor().size())
         self.assertEqual(len(s1), len(s1))
         self.assertNotEqual(len(s2), 0)
-        self.assertEqual(text, str(s1))
+        self.assertEqual([text], s1.toStringList())
 
-    def test_concat(self):
-        hello = TString("hello ")
-        world = TString("world")
-        hello_world = TString("hello world")
-        concatenated = hello + world
-        self.assertTensorEqual(hello_world.toTensor(), concatenated.toTensor())
+    def test_slice(self):
+        the_cat = ["The","cat"]
+        the_cat_ts = TString(the_cat)
+        slices_ts = the_cat_ts[1:3]
+        slices = [s[1:3] for s in the_cat]
+        expected = TString(slices)
+        self.assertEqual(slices, slices_ts.toStringList())
+        self.assertTensorEqual(expected.tensor, slices_ts.tensor)
+
+    def test_empty_string(self):
+        empty_string = ''
+        empty_string_ts = TString(empty_string)
+        expected_string_list = []
+        self.assertEqual(expected_string_list, empty_string_ts.toStringList())
+        self.assertEqual(empty_string_ts.tensor.dim(), 0)
+
+    def test_concat_1(self):
+        a = ["the ", "the "]
+        b = ["cat", "dog"]
+        ab = [first + second for first, second in zip(a, b)]
+        t_ab = TString(a) + TString(b)
+        self.assertEqual(ab, t_ab.toStringList())
+        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
+
+    def test_concat_2(self):
+        a = "the "
+        b = ""
+        ab = [a+b]
+        t_ab = TString(a) + TString(b)
+        self.assertEqual(ab, t_ab.toStringList())
+        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
+
+    def test_concat_3(self):
+        a = ""
+        b = "cat"
+        ab = [a+b]
+        t_ab = TString(a) + TString(b)
+        self.assertEqual(ab, t_ab.toStringList())
+        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
+
+    def test_homogeneity(self):
+        a = ["the ", "a "] # first word StringList should have words of same length otherwise cannot be stacked into same tensor
+        with self.assertRaises(HeterogenousWordLengthError):
+            TString(a)
 
     def test_len(self):
 
@@ -111,7 +110,7 @@ class TStringTest(SmtagTestCase):
         l2 = len("1234567890")
         self.assertEqual(l1, l2)
 
-    def test_repeat(self):
+    def test_repeat_1(self):
         c = "a"
         c10 = c * 10
         s = TString(c)
