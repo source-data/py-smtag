@@ -11,7 +11,7 @@ from .. import config
 
 NBITS = config.nbits
 
-StringList = List[str]
+
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -25,16 +25,23 @@ class TStringTypeError(Error):
         message -- explanation of the error
     """
 
-    def __init__(self, message):
-        self.message = message
+    def __init__(self, x):
+        super().__init__(f"Wrong type: only str, StringList or torch.Tensor allowed whereas {x} is of type {type(x)}")
 
 class HeterogenousWordLengthError(Error):
     """
-    Exception raised when TString is initialized with a list of words that are of various length.
+    Exception raised when StringList is initialized with a list of words that are of various length.
     """
     def __init__(self, message):
-        self.message = message
+        super().__init__(message)
 
+
+class RepeatError(Error):
+    """
+    Exception raised when TString.repeat(0) is called. Rather than returning an empty tensor, raising an exception is preferred as repeating zero times is probably unintended.
+    """
+    def __init__(self, N):
+        super().__init__(f"repeat with N={N} as argument is not allowed. N must be int and N > 0")
 
 class Converter():
     """
@@ -120,6 +127,46 @@ class ConverterNBITS(Converter):
                 str += '?'
         return str
 
+class StringList:
+    _N = 0
+    _L = 0
+    _list = []
+    def __init__(self, x: List[str]=[]):
+        if x:
+            self._N = len(x)
+            x_0 = len(x[0])
+            total = len("".join([e for e in x]))
+            if total != self._N * x_0 or x_0 == 0:
+                raise HeterogenousWordLengthError(f"{x}: all the words have to have the same length in a StringList so that they can be stacked into same tensor when converted.")
+            self._L = x_0
+            self._list = x
+
+    @property
+    def words(self):
+        return self._list
+
+    def __len__(self):
+        return self._L
+
+    @property
+    def depth(self):
+        return self._N
+
+    def __add__(self, x: 'StringList'):
+        result = StringList([a + b for a, b in zip(self.words, x.words)])
+        return result
+
+    def __getitem__(self, i: int):
+        result = self.words[i]
+        return result
+
+    def __repr__(self):
+        result = " | ".join(self.words)
+        return result
+
+    def __nonzero__(self):
+        return len(self) > 0
+
 
 class TString:
     '''
@@ -141,41 +188,51 @@ class TString:
         tensor: returns the 3D (N x NBITS x L) torch.Tensor representation of the encoded list of strings
     '''
 
-    def __init__(self, x: StringList=[], dtype:torch.dtype=torch.float):
+    def __init__(self, x = StringList(), dtype:torch.dtype=torch.float):
         self.dtype = dtype
         self._t = torch.zeros([], dtype=self.dtype) # empty tensor
         self._s = []
-        self._L = 0
+        self._L = 0 # length
+        self._N = 0 # number of strings in the list, or depth
         converter = ConverterNBITS(dtype=self.dtype)
         if isinstance(x, str):
-            x = [x] if x else []
+            x = StringList([x]) if x else StringList()
         if isinstance(x, torch.Tensor):
             assert x.dim() == 3 and x.size(1) == NBITS
             self._t = x
             self._L = self._t.size(2)
-            for i in range(x.size(0)):
+            self._N = self._t.size(0)
+            for i in range(self.depth):
                 self._s.append(converter.decode(x[i:i+1, :, : ])) # i:
-        elif isinstance(x, list): # in fact StringList
+        elif isinstance(x, StringList):
             if x:
-                # all words have to have the same non zero length so that their corresponding tensors can be stacked.
-                N = len(x)
-                x_0 = len(x[0])
-                total = len("".join([e for e in x]))
-                if total != N * x_0 and x_0 > 0:
-                    raise HeterogenousWordLengthError(f"{x}: all the words have to have the same length in a StringList so that they can be stacked into same tensor when converted.")
-                self._s = x
+                self._s = x.words
+                self._N = x.depth
                 t_list = [converter.encode(ex) for ex in x]
                 self._t = torch.cat(t_list, 0)
                 self._L = self._t.size(2)
+                assert self._N == self._t.size(0)
         else:
-            raise TStringTypeError
-        
+            raise TStringTypeError(x)
+
 
     def toStringList(self) -> StringList:
-        return self._s
+        return StringList(self._s) # slight overhead due to checks of homogenous length
+
+    @property
+    def words(self) -> List[str]:
+        return self._s # more direct
+
+    @property
+    def stringList(self) -> StringList:
+        return self.toStringList()
 
     def __len__(self) -> int:
         return self._L
+
+    @property
+    def depth(self) -> int:
+        return self._N
 
     def __add__(self, x: 'TString') -> 'TString':
         # overwrites tensor adding operator to make it a tensor concatenation like for strings
@@ -185,10 +242,9 @@ class TString:
         elif len(self) == 0:
             return x # or should it return a cloned x?
         else:
-            # check all words have same length, otherwise cannot concatenate lists
             concatenated = TString(dtype=self.dtype)
             concatenated._t = torch.cat((self.tensor, x.tensor), 2)
-            concatenated._s = [a + b for a, b in zip(self.toStringList(), x.toStringList())]
+            concatenated._s = [a + b for a, b in zip(self.words, x.words)]
             concatenated._L = len(self) + len(x)
             return concatenated
 
@@ -197,17 +253,19 @@ class TString:
             return TString()
         else:
             item = TString(dtype=self.dtype)
-            item._s = [s[i] for s in self.toStringList()]
+            item._s = [s[i] for s in self.words]
             item._t = self.toTensor()[ : , : , i]
             return item
 
     def repeat(self, N: int) -> 'TString':
-        if N == 0: 
+        if N == 0 or not isinstance(N, int): 
+            raise RepeatError(N)
+        if N == 1:
             return self
         else:
             repeated = TString(dtype=self.dtype)
             repeated._t = self.toTensor().repeat(1, 1, N) 
-            repeated._s = self.toStringList() * N
+            repeated._s = self.words * N
             repeated.L = len(self) * N
         return repeated
 
@@ -226,7 +284,7 @@ def self_test(input_string: str):
     encoded = ConverterNBITS().encode(input_string)
     decode_encoded = ConverterNBITS().decode(encoded)
     assert input_string == decode_encoded, f"{input_string}<>{decode_encoded}"
-    print("the decoded of the encoded:", TString(TString([input_string, input_string]).tensor).toStringList())
+    print("the decoded of the encoded:", TString(TString(StringList([input_string, input_string])).tensor).toStringList())
 
     a = TString(["a"])
     b = TString(["b"])
