@@ -6,16 +6,17 @@ import torch.nn
 from torch.nn import functional as F
 from math import ceil
 from collections import namedtuple
-from ..common.converter import TString
+from typing import List, Tuple
+from ..common.converter import TString, StringList
 from .decode import Decoder, CharLevelDecoder
 from .markup import Serializer
-from ..common.utils import tokenize, timer
+from ..common.utils import tokenize, timer, Token
 from ..common.embeddings import EMBEDDINGS
+from ..common.mapper import Concept
 from .. import config
 
 
 PADDING_CHAR = config.padding_char
-PADDING_CHAR_T = TString(config.padding_char)
 
 class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagModel class and subclassed
 
@@ -24,50 +25,47 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         self.tag = tag
         self.format = format
 
-    def padding(self, input):
+    def padding(self, input_t_strings: TString) -> Tuple[TString, int]:
         # 0123456789012345678901234567890
         #        this cat               len(input)==8, min_size==10, min_padding=5
         #       +this cat+              pad to bring to min_size
         #  _____+this cat+_____         add min_padding on both sides
         min_size= config.min_size
         min_padding = config.min_padding
-        padding_length = ceil(max(min_size - len(input), 0)/2) + min_padding
-        pad = PADDING_CHAR_T.repeat(padding_length)
-        padded_string = pad + input + pad
-        return padded_string
+        padding_length = ceil(max(min_size - len(input_t_strings), 0) / 2) + min_padding
+        padding_char_t = TString(StringList([PADDING_CHAR] * input_t_strings.depth))
+        pad = padding_char_t.repeat(padding_length)
+        padded_t_strings = pad + input_t_strings + pad
+        return padded_t_strings, padding_length
 
-    def forward(self, input, viz_context):
-        if isinstance(input, list):
-            padded = [self.padding(inp) for inp in input]
-            L = len(padded[0])
-            padding_length = int((L - len(input[0])) / 2)
-            x = [EMBEDDINGS(p.toTensor()) for p in padded]
-        else:
-            padded = self.padding(input)
-            L = len(padded)
-            padding_length = int((L - len(input)) / 2)
-            x = padded.toTensor()
-            x = EMBEDDINGS(x)
+    @staticmethod
+    def embed(x: TString) -> torch.Tensor:
+        return EMBEDDINGS(x.tensor)
+
+    def forward(self, input_t_strings:TString, viz_contexts: torch.Tensor) -> torch.Tensor:
+        # PADD TO MINIMAL LENGTH AND GET EMBEDDINGS
+        safely_padded, padding_length = self.padding(input_t_strings)
+        x = self.embed(safely_padded)
 
         # PREDICTION
         with torch.no_grad():
             self.model.eval()
-            prediction = self.model(x, viz_context) #.float() # prediction is 3D 1 x C x L
+            prediction = self.model(x, viz_contexts) #.float() # prediction is 3D 1 x C x L
             prediction = torch.exp(prediction) # to get 0..1 positive scores
             self.model.train()
 
-        #remove safety padding
-        prediction = prediction[ : , : , padding_length : L-padding_length]
+        # RESTORE ORIGINAL LENGTH 
+        prediction = prediction[ : , : , padding_length : len(safely_padded)-padding_length]
         return prediction
 
-    def decode(self, input_str, token_list, prediction, semantic_groups):
-        decoded = Decoder(input_str, prediction, self.model.semantic_groups)
-        decoded.decode(token_list)
+    def decode(self, input_strings: StringList, token_lists, prediction, semantic_groups):
+        decoded = Decoder(input_strings, prediction, self.model.semantic_groups)
+        decoded.decode(token_lists)
         return decoded
     
-    def predict(self, input_t_string, token_list, viz_context):
-        prediction = self.forward(input_t_string, viz_context)
-        decoded = self.decode(str(input_t_string), token_list, prediction, self.model.semantic_groups)
+    def predict(self, input_t_strings: TString, token_lists:List[List[Token]], viz_contexts: torch.Tensor) -> Decoder:
+        prediction = self.forward(input_t_strings, viz_contexts)
+        decoded = self.decode(input_t_strings.toStringList(), token_lists, prediction, self.model.semantic_groups)
         return decoded
 
 class ContextualPredictor(Predictor):
@@ -76,34 +74,54 @@ class ContextualPredictor(Predictor):
         super(ContextualPredictor, self).__init__(model, tag, format)
 
     @staticmethod
-    def anonymize(for_anonymization, group, concept_to_anonymize, mark_char = config.marking_char):
-        concepts = for_anonymization.concepts[group]
-        token_list = for_anonymization.token_list
-        res = list(for_anonymization.input_string)
-        for token, concept in zip(token_list, concepts):
-            if concept == concept_to_anonymize:
-                res[token.start:token.stop] = [mark_char] * token.length
-        res = "".join(res)
-        return TString(res)
+    def anonymize(for_anonymization: Decoder, group: str, concept_to_anonymize: Concept, mark_char: str = config.marking_char) -> TString:
+        res_list = []
+        for n in range(for_anonymization.N):
+            concepts = for_anonymization.concepts[n][group]
+            token_list = for_anonymization.token_lists[n]
+            res = list(for_anonymization.input_strings[n]) # explode the string
+            for token, concept in zip(token_list, concepts):
+                if concept == concept_to_anonymize:
+                    res[token.start:token.stop] = [mark_char] * token.length
+            res = "".join(res) # reassemble the string
+            res_list.append(res)
+        return TString(StringList(res_list))
 
-    def predict(self, for_anonymization: Decoder, viz_context) -> Decoder:
-        prediction = []
-        anonymized_t = []
+    def forward(self, input_t_strings_list: List[TString], viz_contexts):
+        # PADDING AND EMBEDDING OF THE *LIST* OF TStrings THAT WERE EACH ANONMYMIZED IN A DIFFERENT WAY
+        safely_padded = []
+        for inp in input_t_strings_list:
+            padded, padding_length = self.padding(inp)
+            safely_padded.append(padded)
+        x_list = [EMBEDDINGS(p) for p in safely_padded]
+
+        with torch.no_grad():
+            self.model.eval()
+            prediction = self.model(x_list, viz_contexts) # ContextCombinedModel takes List[torch.Tensor] as input and -> prediction is 3D N x C x L
+            prediction = torch.exp(prediction) # to get 0..1 positive scores
+            self.model.train()
+
+        # RESTORE ORIGINAL LENGTH 
+        prediction = prediction[ : , : , padding_length : len(safely_padded)-padding_length]
+        return prediction
+
+    def predict(self, for_anonymization: Decoder, viz_contexts) -> Decoder:
+        input_t_strings_list = []
         for anonymization in self.model.anonymize_with:
             group = anonymization['group']
             concept = anonymization['concept']
-            a_tstring = self.anonymize(for_anonymization, group, concept)
-            anonymized_t.append(a_tstring)
-        prediction = self.forward(anonymized_t, viz_context) # ContextCombinedModel takes list of anonymized inputs; ouch need to be all padded
-        input_string = for_anonymization.input_string
-        token_list = for_anonymization.token_list
-        decoded = self.decode(input_string, token_list, prediction, self.model.semantic_groups) # input_string will be tokenized again; a waste, but maybe not worth the complication; could have an *args or somethign
+            anonymized_tstring = self.anonymize(for_anonymization, group, concept)
+            input_t_strings_list.append(anonymized_tstring)
+        prediction = self.forward(input_t_strings_list, viz_contexts)
+        input_strings = for_anonymization.input_strings
+        token_lists = for_anonymization.token_lists
+        decoded = self.decode(input_strings, token_lists, prediction, self.model.semantic_groups)
         return decoded
-        
+
 
 class CharLevelPredictor(Predictor):
 
-    def decode(self, input_str, token_list, prediction, semantic_groups):
-        decoded = CharLevelDecoder(input_str, prediction, self.model.semantic_groups)
-        decoded.decode(token_list)
+    def decode(self, input_strings: StringList, token_lists: List[List[Token]], prediction: torch.Tensor, semantic_groups: List[Concept]):
+        decoded = CharLevelDecoder(input_strings, prediction, self.model.semantic_groups)
+        decoded.decode(token_lists)
         return decoded
