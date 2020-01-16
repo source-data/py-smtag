@@ -8,7 +8,7 @@ from collections import OrderedDict
 from copy import copy, deepcopy
 from ..common.converter import StringList
 from ..common.utils import xml_escape, timer, tokenize, Token
-from ..common.mapper import Catalogue
+from ..common.mapper import Catalogue, Concept
 from .. import config
 
 FUSION_THRESHOLD = config.fusion_threshold
@@ -61,7 +61,7 @@ class Decoder:
             self.scores.append(scores)
 
     @staticmethod
-    def pred2concepts(token_list: List[Token], prediction: Tensor2D, semantic_concepts: List):
+    def pred2concepts(token_list: List[Token], prediction: Tensor2D, semantic_concepts: List[Concept]):
         '''
         Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
         A feature code is the index of the feature with maximum score.
@@ -175,7 +175,7 @@ class Decoder:
 class CharLevelDecoder(Decoder):
 
     @staticmethod
-    def pred2concepts(token_list, prediction, semantic_concepts):
+    def pred2concepts(token_list: List[Token], prediction: Tensor2D, semantic_concepts: List[Concept]):
         '''
         Here we take first the argmax at character level to obtain the classification of each character. 
         '''
