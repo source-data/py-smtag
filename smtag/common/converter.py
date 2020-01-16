@@ -36,6 +36,12 @@ class HeterogenousWordLengthError(Error):
     def __init__(self, message):
         super().__init__(message)
 
+class ConcatenatingTStringWithUnequalDepthError(Error):
+    """
+    Exception raised when 2 TStrings with different depth (number of examples) are concatenated.
+    """
+    def __init__(self, d1, d2):
+        super().__init__(f"Depths of the 2 concatenated TString are not identical ({d1} != {d2}).")
 
 class RepeatError(Error):
     """
@@ -248,10 +254,15 @@ class TString:
         elif len(self) == 0:
             return x # or should it return a cloned x?
         else:
+            try:
+                assert self.depth == x.depth
+            except AssertionError:
+                raise ConcatenatingTStringWithUnequalDepthError(self.depth, x.depth)
             concatenated = TString(dtype=self.dtype)
             concatenated._t = torch.cat((self.tensor, x.tensor), 2)
             concatenated._s = [a + b for a, b in zip(self.words, x.words)]
             concatenated._L = len(self) + len(x)
+            concatenated._N = self._N
             return concatenated
 
     def __getitem__(self, i: int) -> 'TString':
@@ -261,6 +272,8 @@ class TString:
             item = TString(dtype=self.dtype)
             item._s = [s[i] for s in self.words]
             item._t = self.toTensor()[ : , : , i]
+            item._L = 1
+            item._N = self._N
             return item
 
     def repeat(self, N: int) -> 'TString':
@@ -271,8 +284,9 @@ class TString:
         else:
             repeated = TString(dtype=self.dtype)
             repeated._t = self.toTensor().repeat(1, 1, N) 
-            repeated._s = self.words * N
-            repeated.L = len(self) * N
+            repeated._s = [w * N for w in self.words]
+            repeated._L = len(self) * N
+            repeated._N = self._N
         return repeated
 
     @property

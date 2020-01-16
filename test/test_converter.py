@@ -5,7 +5,7 @@
 import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
-from smtag.common.converter import ConverterNBITS, TString, StringList, HeterogenousWordLengthError, RepeatError
+from smtag.common.converter import ConverterNBITS, TString, StringList, HeterogenousWordLengthError, RepeatError, ConcatenatingTStringWithUnequalDepthError
 from smtag.common.utils import timer
 from string import ascii_letters
 from random import choice
@@ -74,15 +74,30 @@ class TStringTest(SmtagTestCase):
         self.assertEqual(expected_string_list, empty_string_ts.words)
         self.assertEqual(empty_string_ts.tensor.dim(), 0)
 
+
     def test_concat_1(self):
+        a = StringList(["the "])
+        b = StringList(["cat"])
+        ab = a + b
+        t_ab = TString(a) + TString(b)
+        print(ab.words)
+        print(t_ab.words)
+        self.assertEqual(ab.words, t_ab.words)
+        self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
+
+    def test_concat_2(self):
         a = StringList(["the ", "the "])
         b = StringList(["cat", "dog"])
         ab = a + b
         t_ab = TString(a) + TString(b)
         self.assertEqual(ab.words, t_ab.words)
         self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
+        self.assertEqual(len(ab), 7)
+        self.assertEqual(len(t_ab), 7)
+        self.assertEqual(ab.depth, 2)
+        self.assertEqual(t_ab.depth, 2)
 
-    def test_concat_2(self):
+    def test_concat_3(self):
         a = "the "
         b = ""
         ab = StringList([a+b])
@@ -90,7 +105,7 @@ class TStringTest(SmtagTestCase):
         self.assertEqual(ab.words, t_ab.words)
         self.assertTensorEqual(TString(ab).tensor, t_ab.tensor)
 
-    def test_concat_3(self):
+    def test_concat_4(self):
         a = ""
         b = "cat"
         ab = StringList([a+b])
@@ -102,6 +117,12 @@ class TStringTest(SmtagTestCase):
         # StringList should have words of same length otherwise cannot be stacked into same tensor
         with self.assertRaises(HeterogenousWordLengthError):
             StringList(["the ", "a "])
+
+    def test_concat_5(self):
+        a = StringList(["the "])
+        b = StringList(["cat", "dog"])
+        with self.assertRaises(ConcatenatingTStringWithUnequalDepthError):
+            TString(a) + TString(b)
 
     def test_len(self):
 
@@ -119,6 +140,16 @@ class TStringTest(SmtagTestCase):
         self.assertTensorEqual(t10, s10.toTensor())
 
     def test_repeat_2(self):
+        c = "a"
+        c10 = c * 10
+        s = TString(StringList([c,c]))
+        s10 = s.repeat(10)
+        t10 = s.toTensor().repeat(1,1,10)
+        print(s10.toStringList())
+        self.assertTensorEqual(t10, s10.toTensor())
+        self.assertListEqual([c10, c10], s10.words)
+
+    def test_repeat_3(self):
         s = TString("a")
         with self.assertRaises(RepeatError):
             s.repeat(0)
