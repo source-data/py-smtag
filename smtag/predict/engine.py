@@ -6,9 +6,10 @@ from torch import nn
 import torch
 from docopt import docopt
 from collections import OrderedDict
+from typing import List, Tuple
 from xml.etree.ElementTree import tostring, fromstring, Element
-from ..common.utils import tokenize, timer
-from ..common.converter import TString
+from ..common.utils import tokenize, Token, timer
+from ..common.converter import TString, StringList
 from ..common.mapper import Catalogue
 from ..common.importexport import load_model
 from ..datagen.encoder import XMLEncoder
@@ -53,10 +54,10 @@ class ContextCombinedModel(nn.Module):
             self.anonymize_with.append(anonymization)
             self.model_list.append(model)
             self.semantic_groups[group] = model.output_semantics
-         #super(ContextCombinedModel, self).__init__(self.model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
+        #super(ContextCombinedModel, self).__init__(self.model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
 
-    def forward(self, x_list, viz_context): # takes a list of inputs each specifically anonymized for each context model
-        y_list = []
+    def forward(self, x_list: List[torch.Tensor], viz_context) -> torch.Tensor: # takes a list of inputs each specifically anonymized for each context model
+        y_list = [] 
         for m, x in zip(self.model_list, x_list):
             y_list.append(m(x, viz_context))
         y = torch.cat(y_list, 1)
@@ -74,7 +75,6 @@ class Cartridge():
 
 class SmtagEngine:
 
-
     DEBUG = False
 
     def __init__(self, cartridge:Cartridge):
@@ -84,21 +84,23 @@ class SmtagEngine:
         self.panelize_model = cartridge.panelize_model
         self.viz_context_processor = cartridge.viz_preprocessor
 
-    def __panels(self, input_t_string: TString, token_list, viz_context) -> CharLevelDecoder:
-        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_string, token_list, viz_context)
+    def __panels(self, input_t_strings: TString, token_lists, viz_contexts) -> CharLevelDecoder:
+        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __entity(self, input_t_string: TString, token_list, viz_context) -> Decoder:
-        decoded = Predictor(self.entity_models).predict(input_t_string, token_list, viz_context)
+# =============
+    def __entity(self, input_t_strings: List[TString], token_lists, viz_contexts) -> Decoder:
+        decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded
+# =============
 
     def __reporter(self, input_t_string: TString, token_list, viz_context) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_string, token_list, viz_context)
@@ -170,13 +172,10 @@ class SmtagEngine:
 
         return output
 
-    def __serialize(self, output, sdtag="sd-tag", format="xml"):
-        output.fuse_adjascent()
+    def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml"):
+        output.fuse_adjacent()
         ml = Serializer(tag=sdtag, format=format).serialize(output)
         return ml # engine works with single example
-
-    def __string_preprocess(self, input_string):
-        return TString(input_string), tokenize(input_string)['token_list']
 
     def __img_preprocess(self, img):
         # what does get_context return if img is None? or torch.Tensor(0)?
@@ -184,47 +183,54 @@ class SmtagEngine:
         # the Context module returns an empty list if context is torch.Tensor(0)
         # what to do if no img for _with_viz model
         # what to do if img for _no_viz
-        if img is not None:
+        if img:
             viz_context = self.viz_context_processor.get_context(img)
             vectorized = viz_context.view(1, -1) # WATCH OUT: torch.Tensor(0).view(1,-1).size() is torch.Size([1, 0])
         else:
             vectorized = torch.Tensor(0) # the model will then skip the Context module and only uses the unet with the text
         return vectorized
+
+    def __string_preprocess(self, input_strings: List[str]) -> Tuple[TString, List[List[Token]]]:
+        input_t_strings = TString(StringList(input_strings)) # StringList makes sure all strings are of same length before stacking them into tensor format
+        token_lists = [tokenize(s)['token_list'] for s in input_strings]
+        return input_t_strings, token_lists
     
+    def __preprocess(self, input_strings: List[str], imgs) -> Tuple[TString, List[List[Token]], List[torch.Tensor]]:
+        input_t_strings, token_lists = self.__string_preprocess(input_strings)
+        viz_contexts = self.__img_preprocess(imgs)
+        return input_t_strings, token_lists, viz_contexts
+
     @timer
-    def entity(self, input_string, img, sdtag, format):
-        input_t_string, token_list = self.__string_preprocess(input_string)
-        viz_context = self.__img_preprocess(img)
-        pred = self.__entity(input_t_string, token_list, viz_context)
+    def entity(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
+        prepro = self.__preprocess(input_strings, imgs) # input_t_strings, token_lists, viz_contexts
+        pred = self.__entity(*prepro)
         return self.__serialize(pred, sdtag, format)
 
     @timer
-    def tag(self, input_string, img, sdtag, format):
-        input_t_string, token_list = self.__string_preprocess(input_string)
-        viz_context = self.__img_preprocess(img)
-        pred = self.__entity_and_role(input_t_string, token_list, viz_context)
+    def tag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
+        prepro = self.__preprocess(input_strings, imgs)
+        pred = self.__entity_and_role(*prepro)
         return self.__serialize(pred, sdtag, format)
 
     @timer
-    def smtag(self, input_string, img, sdtag, format):
-        input_t_string, token_list = self.__string_preprocess(input_string)
-        viz_context = self.__img_preprocess(img)
-        pred = self.__all(input_t_string, token_list, viz_context)
+    def smtag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
+        prepro = self.__preprocess(input_strings, imgs)
+        pred = self.__all(*prepro)
         return self.__serialize(pred, sdtag, format)
 
     @timer
-    def role(self, input_xml_string:str, img, sdtag):
-        input_xml = fromstring(input_xml_string)
-        viz_context = self.__img_preprocess(img)
-        pred = self.__role_from_pretagged(input_xml, viz_context)
-        updatexml_(input_xml, pred, pretag=fromstring('<'+sdtag+'/>'))
-        return tostring(input_xml) # tostring() returns bytes...
+    def role(self, input_xml_strings: List[str], imgs, sdtag)  -> List[bytes]:
+        input_xmls = [fromstring(s) for s in input_xml_strings]
+        viz_contexts = self.__img_preprocess(imgs)
+        pred = self.__role_from_pretagged(input_xmls, viz_contexts)
+        updatexml_(input_xmls, pred, pretag=fromstring('<'+sdtag+'/>'))
+        updated_xmls = [tostring(x) for x in input_xmls] # tostring() returns bytes...
+        return updated_xmls
 
     @timer
-    def panelizer(self, input_string, img, format):
-        input_t_string, token_list = self.__string_preprocess(input_string)
-        viz_context = self.__img_preprocess(img) # DEBUG
-        pred = self.__panels(input_t_string, token_list, viz_context)
+    def panelizer(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
+        prepro = self.__preprocess(input_strings, imgs)
+        pred = self.__panels(*prepro)
         return self.__serialize(pred, format=format)
 
 def main():
@@ -261,20 +267,19 @@ def main():
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
     # cv_img = torch.zeros(500, 500, 3).numpy()
-    cv_img = None
     engine = SmtagEngine(NO_VIZ)
     engine.DEBUG = DEBUG
     
     if method == 'smtag':
-        print(engine.smtag(input_string, cv_img, sdtag, format))
+        print(engine.smtag([input_string], [], sdtag, format))
     elif method == 'panelize':
-        print(engine.panelizer(input_string, cv_img, format))
+        print(engine.panelizer([input_string], [], format))
     elif method == 'tag':
-        print(engine.tag(input_string, cv_img, sdtag, format))
+        print(engine.tag([input_string], [], sdtag, format))
     elif method == 'entity':
-        print(engine.entity(input_string, cv_img, sdtag, format))
+        print(engine.entity([input_string, input_string], [], sdtag, format))
     elif method == 'role':
-        print(engine.role(input_string, cv_img, sdtag)) # can only be xml format
+        print(engine.role([input_string], [], sdtag)) # can only be xml format
     else:
         print("unknown method {}".format(method))
 
