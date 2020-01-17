@@ -45,6 +45,9 @@ class Decoder:
     def decode(self, token_lists: List[List[Token]]=None):
         if token_lists is None:
             self.token_lists = [tokenize(s)['token_list'] for s in self.input_strings]
+            assert len(self.token_lists) ==  self.N, f"number of examples in token list different from examples in tensor and input_strings: {self.token_lists} != {self.N}"
+        else:
+            self.token_lists = token_lists
         for n, token_list in enumerate(self.token_lists):
             start_feature = 0
             char_level_concepts = OrderedDict()
