@@ -50,7 +50,7 @@ class Config():
     _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
     _ocr_max_edit_dist = 0.1 # max edit distance per character length between ocr term and matching term in caption
     _ocr_min_overlap   = 2 # minimum length of overlap between ocr term and caption term
-    _nbits             = 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
+    nbits             = 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
     _embedding_out_channels = 128 # the number of channels used for learned deep embeddings
     _marking_char      = '_' # Substitution special xml-compatible character used to mark anonymized entities.
     _masking_proba     = 1.0 # probability with wich an element selected to be potentially masked is effectively masked
@@ -210,12 +210,12 @@ class Config():
         Minimum length of overlap between ocr term and caption term
         """
         return self._ocr_min_overlap
-    @property
-    def nbits(self):
-        """
-        Number of features used to encode a character.
-        """
-        return self._nbits
+    # @property
+    # def nbits(self):
+    #     """
+    #     Number of features used to encode a character.
+    #     """
+    #     return self._nbits
     @property
     def embedding_out_channels(self):
         """

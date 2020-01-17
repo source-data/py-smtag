@@ -11,7 +11,9 @@ from smtag.predict.decode import Decoder
 from smtag.common.mapper import Catalogue
 from smtag.common.converter import StringList
 
+
 class DecoderTest(SmtagTestCase):
+
 
     def test_decode(self):
         '''
