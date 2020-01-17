@@ -133,13 +133,16 @@ class Show():
         # f /= f.max()
         out = ""
         N = len(Show.SYMBOLS) # = 5
-        for i in range(features.size(1)):
-            track = ""
-            for j in range(features.size(2)):
-                k = min(N-1, math.floor(N*f[0, i, j])) # 0 -> 0; 0.2 -> 1; 0.4 -> 2; 0.6 -> 3; 0.8 -> 4; 1.0 -> 4
-                track += Show.SYMBOLS[k]
-            out += "Tagging track {}".format(i) + self.nl + self.nl
-            out += "    " + track + self.nl + self.nl
+        
+        for n in range(features.size(0)):
+            track = f"Example {n}" + self.nl + self.nl
+            for i in range(features.size(1)):
+                track += f"Tagging track {i}" + self.nl
+                for j in range(features.size(2)):
+                    k = min(N-1, math.floor(N*f[n, i, j])) # 0 -> 0; 0.2 -> 1; 0.4 -> 2; 0.6 -> 3; 0.8 -> 4; 1.0 -> 4
+                    track += Show.SYMBOLS[k]
+                track += self.nl + self.nl
+            out += track + self.nl + self.nl
         return out
 
     def print_pretty_color(self, features, text):
