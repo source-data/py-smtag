@@ -17,7 +17,7 @@ from ..datagen.context import VisualContext
 from .decode import CharLevelDecoder, Decoder
 from .predictor import Predictor, ContextualPredictor, CharLevelPredictor
 from .markup import Serializer
-from .updatexml import updatexml_
+from .updatexml import updatexml_list
 from ..common.viz import Show
 from .. import config
 
@@ -84,7 +84,7 @@ class SmtagEngine:
         self.panelize_model = cartridge.panelize_model
         self.viz_context_processor = cartridge.viz_preprocessor
 
-    def __panels(self, input_t_strings: TString, token_lists, viz_contexts) -> CharLevelDecoder:
+    def __panels(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> CharLevelDecoder:
         decoded = CharLevelPredictor(self.panelize_model).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
@@ -92,18 +92,16 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-# =============
-    def __entity(self, input_t_strings: List[TString], token_lists, viz_contexts) -> Decoder:
+    def __entity(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded
-# =============
 
-    def __reporter(self, input_t_string: TString, token_list, viz_context) -> Decoder:
-        decoded = Predictor(self.reporter_models).predict(input_t_string, token_list, viz_context)
+    def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
+        decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter reporter: {decoded.semantic_groups} {B}x{C}x{L}")
@@ -118,51 +116,56 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __entity_and_role(self, input_t_string, token_list, viz_context) -> Decoder:
-        entities = self.__entity(input_t_string, token_list, viz_context)
-        output = entities.clone() # clone just in case, test if necessary...should not be
-        reporter = self.__reporter(input_t_string, token_list, viz_context)
-        entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
+    def __entity_and_role(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
+        output = self.__entity(input_t_strings, token_lists, viz_contexts)
+        # output = entities.clone() # clone just in case, test if necessary...should not be
+        reporter = self.__reporter(input_t_strings, token_lists, viz_contexts)
+        entities_less_reporter = output.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output.cat_(reporter)
-        context = self.__context(entities_less_reporter, viz_context)
+        context = self.__context(entities_less_reporter, viz_contexts)
         output.cat_(context)
-
         return output
 
-    def __role_from_pretagged(self, input_xml: Element, viz_context) -> Decoder:
-        input_string = ''.join([s for s in input_xml.itertext()])
-        input_t_string = TString(input_string)
-        token_list = tokenize(input_string)['token_list']
-        encoded = XMLEncoder.encode(input_xml) # 2D tensor, single example
-        encoded.unsqueeze_(0) # 3D byteTensor!
+    def __role_from_pretagged(self, input_xml_list: List[Element], viz_contexts) -> Decoder:
+        input_strings = []
+        for xml_str in input_xml_list:
+            input_strings.append(''.join([s for s in xml_str.itertext()]))
+        input_t_strings = TString(StringList(input_strings))
+        token_lists = [tokenize(s)['token_list'] for s in input_strings]
+        encoded_list = []
+        for x in input_xml_list:
+            encoded = XMLEncoder.encode(x) # 2D tensor, single example
+            encoded.unsqueeze_(0) # 3D byteTensor!
+            encoded_list.append(encoded)
+        encoded_cat = torch.cat(encoded_list, 0)
         semantic_groups = OrderedDict([('entities', Catalogue.standard_channels)])
         semantic_groups['entities'].append(Catalogue.UNTAGGED)
-        entities = Decoder(input_string, encoded.float(), semantic_groups)
-        entities.decode(token_list)
-        reporter = self.__reporter(input_t_string, token_list, viz_context)
+        entities = Decoder(StringList(input_strings), encoded_cat.float(), semantic_groups)
+        entities.decode(token_lists)
+        reporter = self.__reporter(input_t_strings, token_lists, viz_contexts)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output = reporter # there was a clone() here??
-        context = self.__context(entities_less_reporter, viz_context)
+        context = self.__context(entities_less_reporter, viz_contexts)
         output.cat_(context)
         return output
 
-    def __all(self, input_t_string, token_list, viz_context):
+    def __all(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts):
 
         if self.DEBUG:
             print("\nText:")
-            print("    "+str(input_t_string))
+            print("    "+str(input_t_strings))
 
-        panels = self.__panels(input_t_string, token_list, viz_context)
+        panels = self.__panels(input_t_strings, token_lists, viz_contexts)
         output = panels
 
-        entities = self.__entity(input_t_string, token_list, viz_context)
+        entities = self.__entity(input_t_strings, token_lists, viz_contexts)
         output.cat_(entities.clone())
 
-        reporter = self.__reporter(input_t_string, token_list, viz_context)
+        reporter = self.__reporter(input_t_strings, token_lists, viz_contexts)
         output.cat_(reporter) # add reporter prediction to output features
 
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
-        context = self.__context(entities_less_reporter, viz_context)
+        context = self.__context(entities_less_reporter, viz_contexts)
         output.cat_(context)
 
         if self.DEBUG:
@@ -223,9 +226,9 @@ class SmtagEngine:
         input_xmls = [fromstring(s) for s in input_xml_strings]
         viz_contexts = self.__img_preprocess(imgs)
         pred = self.__role_from_pretagged(input_xmls, viz_contexts)
-        updatexml_(input_xmls, pred, pretag=fromstring('<'+sdtag+'/>'))
-        updated_xmls = [tostring(x) for x in input_xmls] # tostring() returns bytes...
-        return updated_xmls
+        updated_xml = updatexml_list(input_xmls, pred, pretag=fromstring('<'+sdtag+'/>')) # in place, xml Elements and List mutable
+        updated_xml_bytes = [tostring(x) for x in updated_xml] # tostring() returns bytes...
+        return updated_xml_bytes
 
     @timer
     def panelizer(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
@@ -273,7 +276,7 @@ def main():
     if method == 'smtag':
         print(engine.smtag([input_string], [], sdtag, format))
     elif method == 'panelize':
-        print(engine.panelizer([input_string], [], format))
+        print(engine.panelizer([input_string], [], sdtag, format))
     elif method == 'tag':
         print(engine.tag([input_string], [], sdtag, format))
     elif method == 'entity':
