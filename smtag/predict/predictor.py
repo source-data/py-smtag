@@ -26,6 +26,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         self.format = format
 
     def padding(self, input_t_strings: TString) -> Tuple[TString, int]:
+        # MOVE THIS TO ENGINE PREPROCESS
         # 0123456789012345678901234567890
         #        this cat               len(input)==8, min_size==10, min_padding=5
         #       +this cat+              pad to bring to min_size
@@ -33,8 +34,8 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         min_size= config.min_size
         min_padding = config.min_padding
         padding_length = ceil(max(min_size - len(input_t_strings), 0) / 2) + min_padding
-        padding_char_t = TString(StringList([PADDING_CHAR] * input_t_strings.depth))
-        pad = padding_char_t.repeat(padding_length)
+        pad = TString(StringList([PADDING_CHAR * padding_length] * input_t_strings.depth))
+        # pad = padding_char_t.repeat(padding_length)
         padded_t_strings = pad + input_t_strings + pad
         return padded_t_strings, padding_length
 
@@ -43,8 +44,10 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         return EMBEDDINGS(x.tensor)
 
     def forward(self, input_t_strings:TString, viz_contexts: torch.Tensor) -> torch.Tensor:
-        # PADD TO MINIMAL LENGTH AND GET EMBEDDINGS
+        # PADD TO MINIMAL LENGTH
         safely_padded, padding_length = self.padding(input_t_strings)
+        
+        # EMBEDDING
         x = self.embed(safely_padded)
 
         # PREDICTION
@@ -58,12 +61,12 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         prediction = prediction[ : , : , padding_length : len(safely_padded)-padding_length]
         return prediction
 
-    def decode(self, input_strings: StringList, token_lists, prediction, semantic_groups):
+    def decode(self, input_strings: StringList, token_lists: List[List[Token]], prediction: torch.Tensor, semantic_groups: List[Concept]):
         decoded = Decoder(input_strings, prediction, self.model.semantic_groups)
         decoded.decode(token_lists)
         return decoded
     
-    def predict(self, input_t_strings: TString, token_lists:List[List[Token]], viz_contexts: torch.Tensor) -> Decoder:
+    def predict(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts: torch.Tensor) -> Decoder:
         prediction = self.forward(input_t_strings, viz_contexts)
         decoded = self.decode(input_t_strings.toStringList(), token_lists, prediction, self.model.semantic_groups)
         return decoded
@@ -93,7 +96,7 @@ class ContextualPredictor(Predictor):
         for inp in input_t_strings_list:
             padded, padding_length = self.padding(inp)
             safely_padded.append(padded)
-        x_list = [EMBEDDINGS(p) for p in safely_padded]
+        x_list = [EMBEDDINGS(p.tensor) for p in safely_padded]
 
         with torch.no_grad():
             self.model.eval()
@@ -102,7 +105,7 @@ class ContextualPredictor(Predictor):
             self.model.train()
 
         # RESTORE ORIGINAL LENGTH 
-        prediction = prediction[ : , : , padding_length : len(safely_padded)-padding_length]
+        prediction = prediction[ : , : , padding_length : len(inp)+padding_length]
         return prediction
 
     def predict(self, for_anonymization: Decoder, viz_contexts) -> Decoder:
@@ -112,6 +115,7 @@ class ContextualPredictor(Predictor):
             concept = anonymization['concept']
             anonymized_tstring = self.anonymize(for_anonymization, group, concept)
             input_t_strings_list.append(anonymized_tstring)
+        
         prediction = self.forward(input_t_strings_list, viz_contexts)
         input_strings = for_anonymization.input_strings
         token_lists = for_anonymization.token_lists

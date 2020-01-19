@@ -150,7 +150,6 @@ class SmtagEngine:
         return output
 
     def __all(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts):
-
         if self.DEBUG:
             print("\nText:")
             print("    "+str(input_t_strings))

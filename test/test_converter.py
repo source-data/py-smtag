@@ -5,13 +5,14 @@
 import unittest
 import torch
 from test.smtagunittest import SmtagTestCase
-from smtag.common.converter import ConverterNBITS, TString, StringList, HeterogenousWordLengthError, RepeatError, ConcatenatingTStringWithUnequalDepthError
 from smtag.common.utils import timer
 from string import ascii_letters
 from random import choice
 
-
 from smtag import config
+config.nbits = 32 # 32 bits for testing non-ASCII characters conversion
+from smtag.common.converter import ConverterNBITS, TString, StringList, HeterogenousWordLengthError, RepeatError, ConcatenatingTStringWithUnequalDepthError
+
 
 NBITS = config.nbits
 N_RANDOM_LETTERS = 10000
