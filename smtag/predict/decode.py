@@ -31,7 +31,12 @@ class Decoder:
         self.L = len(input_strings)
         self.N = input_strings.depth
         if input_strings:
-            assert (self.N == prediction.size(0)) and (self.L == prediction.size(2)), f"Size mismatch: input string has {self.N} examples with length {self.L}, prediction tensor is {prediction.size(0)} x {prediction.size(1)} x {prediction.size(2)}"
+            try:
+                assert (self.N == prediction.size(0)) and (self.L == prediction.size(2)), f"Size mismatch: input string has {self.N} examples with length {self.L}, prediction tensor is {prediction.size(0)} x {prediction.size(1)} x {prediction.size(2)}"
+            except AssertionError as e:
+                print(e)
+                print(input_strings.words)
+                import pdb; pdb.set_trace()
         else:
             assert (len(input_strings) == 0 and prediction.dim() == 2)
         self.input_strings = input_strings
@@ -141,7 +146,7 @@ class Decoder:
         target_group, target_concept = target
         untagged_code = self.semantic_groups[target_group].index(Catalogue.UNTAGGED) # finds where the UNTAGGED feature is
         for n in range(self.N):
-            for i, (token, other_concept, my_concept) in enumerate(zip(self.token_list[n], other.concepts[n][erase_with_group], self.concepts[n][target_group])):
+            for i, (token, other_concept, my_concept) in enumerate(zip(self.token_lists[n], other.concepts[n][erase_with_group], self.concepts[n][target_group])):
                 if (my_concept == target_concept) and (other_concept == erase_with_concept):
                     self.concepts[n][target_group][i] = Catalogue.UNTAGGED
                     self.scores[n][target_group][i] = 0
