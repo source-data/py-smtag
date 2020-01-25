@@ -276,7 +276,7 @@ class HTMLTagger(AbstractTagger):
 
     def serialize(self, decoded_pred: Decoder) -> List[str]:
         html_string_list = super(HTMLTagger, self).serialize(decoded_pred)
-        html_string_list = [f"<ul>{x}</ul>".format(x) for x in html_string_list]
+        html_string_list = [f"<ul>{x}</ul>" for x in html_string_list]
         return html_string_list
 
 class JSONTagger(XMLTagger):
