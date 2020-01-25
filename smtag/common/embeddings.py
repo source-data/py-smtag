@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from .importexport import load_model
 from catstack.model import CatStack, Hyperparameters
 from .. import config
