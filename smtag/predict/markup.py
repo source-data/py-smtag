@@ -252,7 +252,7 @@ class XMLTagger(AbstractTagger):
     def serialize(self, decoded_pred: Decoder) -> List[str]:
         xml_string_list = super(XMLTagger, self).serialize(decoded_pred)
         # need to provide valid xml
-        xml_string_list = [f"<smtag>{x}</smtag>".format(x) for x in xml_string_list]
+        xml_string_list = [f"<smtag>{x}</smtag>" for x in xml_string_list]
         return xml_string_list
 
 class HTMLTagger(AbstractTagger):
