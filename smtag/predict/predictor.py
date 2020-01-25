@@ -41,7 +41,10 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
 
     @staticmethod
     def embed(x: TString) -> torch.Tensor:
-        return EMBEDDINGS(x.tensor)
+        if torch.cuda.is_available():
+            return EMBEDDINGS(x.tensor.cuda())
+        else:
+            return EMBEDDINGS(x.tensor)
 
     def forward(self, input_t_strings:TString, viz_contexts: torch.Tensor) -> torch.Tensor:
         # PADD TO MINIMAL LENGTH
@@ -51,11 +54,15 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         x = self.embed(safely_padded)
 
         # PREDICTION
+        if torch.cuda.is_available():
+            viz_contexts = viz_contexts.cuda()
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(x, viz_contexts) #.float() # prediction is 3D 1 x C x L
             prediction = torch.exp(prediction) # to get 0..1 positive scores
             self.model.train()
+        if torch.cuda.is_available():
+            prediction = prediction.float()
 
         # RESTORE ORIGINAL LENGTH 
         prediction = prediction[ : , : , padding_length : len(safely_padded)-padding_length]
@@ -96,13 +103,19 @@ class ContextualPredictor(Predictor):
         for inp in input_t_strings_list:
             padded, padding_length = self.padding(inp)
             safely_padded.append(padded)
-        x_list = [EMBEDDINGS(p.tensor) for p in safely_padded]
 
+        if torch.cuda.is_available():
+            x_list = [EMBEDDINGS(p.tensor.cuda()) for p in safely_padded]
+            viz_contexts = viz_contexts.cuda()
+        else:
+            x_list = [EMBEDDINGS(p.tensor) for p in safely_padded]
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(x_list, viz_contexts) # ContextCombinedModel takes List[torch.Tensor] as input and -> prediction is 3D N x C x L
             prediction = torch.exp(prediction) # to get 0..1 positive scores
             self.model.train()
+        if torch.cuda.is_available():
+            prediction = prediction.float()
 
         # RESTORE ORIGINAL LENGTH 
         prediction = prediction[ : , : , padding_length : len(inp)+padding_length]
