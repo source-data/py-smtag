@@ -19,7 +19,7 @@ models = {
 
 # put models on GPU DataParallel when possible
 if torch.cuda.is_available():
-    print(torch.cuda.device_count(), "GPUs available.")
+    print(torch.cuda.device_count(), "GPUs available for model cartridge.")
     for m in models:
         gpu_model = nn.DataParallel(models[m])
         gpu_model.cuda()
