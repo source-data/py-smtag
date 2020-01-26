@@ -34,7 +34,6 @@ class CombinedModel(nn.Module):
         self.model_list = nn.ModuleDict(models)
         self.semantic_groups = {g:models[g].output_semantics for g in models}
 
-    @timer
     def forward(self, x, viz_context):
         y_list = []
         for group in self.semantic_groups:
@@ -57,7 +56,6 @@ class ContextCombinedModel(nn.Module):
             self.semantic_groups[group] = model.output_semantics
         #super(ContextCombinedModel, self).__init__(self.model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
 
-    @timer
     def forward(self, x_list: List[torch.Tensor], viz_context) -> torch.Tensor: # takes a list of inputs each specifically anonymized for each context model
         y_list = [] 
         for m, x in zip(self.model_list, x_list):
