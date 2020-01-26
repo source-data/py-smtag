@@ -47,6 +47,7 @@ class Decoder:
         self.scores = []
         self.char_level_concepts = []
 
+    @timer
     def decode(self, token_lists: List[List[Token]]=None):
         if token_lists is None:
             self.token_lists = [tokenize(s)['token_list'] for s in self.input_strings]
@@ -69,7 +70,6 @@ class Decoder:
             self.scores.append(scores)
 
     @staticmethod
-    @timer
     def pred2concepts(token_list: List[Token], prediction: Tensor2D, semantic_concepts: List[Concept]):
         '''
         Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
