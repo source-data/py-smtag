@@ -39,6 +39,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         padded_t_strings = pad + input_t_strings + pad
         return padded_t_strings, padding_length
 
+    @timer
     @staticmethod
     def embed(x: TString) -> torch.Tensor:
         if torch.cuda.is_available():
