@@ -69,6 +69,7 @@ class Decoder:
             self.scores.append(scores)
 
     @staticmethod
+    @timer
     def pred2concepts(token_list: List[Token], prediction: Tensor2D, semantic_concepts: List[Concept]):
         '''
         Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
@@ -99,6 +100,7 @@ class Decoder:
             char_level_concepts[token.start:token.stop] = [concept] * (token.stop - token.start)
         return char_level_concepts, token_level_concepts, token_level_scores
 
+    @timer
     def fuse_adjacent(self):
         for n in range(self.N):
             if len(self.token_lists[n]) > 1:
@@ -140,6 +142,7 @@ class Decoder:
     def check_compatible_depth(a, b):
         assert a.N == b.N, f"depth mismatch: {a.N} != {b.N}"
 
+    @timer
     def erase_with_(self, other: 'Decoder', erase_with: Tuple, target: Tuple): # in place
         self.check_compatible_depth(self, other)
         erase_with_group, erase_with_concept = erase_with
@@ -154,12 +157,14 @@ class Decoder:
                     self.prediction[n, : , token.start:token.stop] = 0 # sets all the features to zero
                     self.prediction[n, untagged_code , token.start:token.stop] = 1 # set the untagged features to 1, do we need this?
 
+    @timer
     def erase_with(self, other: 'Decoder', eraser: str, target:str) -> 'Decoder': # after cloning
         self.check_compatible_depth(self, other)
         cloned_self = self.clone()
         cloned_self.erase_with_(other, eraser, target)
         return cloned_self
 
+    @timer
     def cat_(self, other: 'Decoder'):
         self.check_compatible_depth(self, other)
         self.semantic_groups.update(copy(other.semantic_groups))
@@ -169,6 +174,7 @@ class Decoder:
             self.char_level_concepts[n].update(other.char_level_concepts[n])
             self.prediction = torch.cat([self.prediction, other.prediction.clone()], 1)
 
+    @timer
     def clone(self) -> 'Decoder':
         other = Decoder(self.input_strings.clone(), self.prediction.clone(), deepcopy(self.semantic_groups))
         other.token_lists = deepcopy(self.token_lists)

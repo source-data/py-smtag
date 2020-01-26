@@ -25,7 +25,6 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         self.tag = tag
         self.format = format
 
-    @timer
     def padding(self, input_t_strings: TString) -> Tuple[TString, int]:
         # MOVE THIS TO ENGINE PREPROCESS
         # 0123456789012345678901234567890
@@ -41,14 +40,12 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         return padded_t_strings, padding_length
 
     @staticmethod
-    @timer
     def embed(x: TString) -> torch.Tensor:
         if torch.cuda.is_available():
             return EMBEDDINGS(x.tensor.cuda())
         else:
             return EMBEDDINGS(x.tensor)
 
-    @timer
     def forward(self, input_t_strings:TString, viz_contexts: torch.Tensor) -> torch.Tensor:
         # PADD TO MINIMAL LENGTH
         safely_padded, padding_length = self.padding(input_t_strings)
@@ -71,13 +68,11 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         prediction = prediction[ : , : , padding_length : len(safely_padded)-padding_length]
         return prediction
 
-    @timer
     def decode(self, input_strings: StringList, token_lists: List[List[Token]], prediction: torch.Tensor, semantic_groups: List[Concept]):
         decoded = Decoder(input_strings, prediction, self.model.semantic_groups)
         decoded.decode(token_lists)
         return decoded
 
-    @timer
     def predict(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts: torch.Tensor) -> Decoder:
         prediction = self.forward(input_t_strings, viz_contexts)
         decoded = self.decode(input_t_strings.toStringList(), token_lists, prediction, self.model.semantic_groups)
