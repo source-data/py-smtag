@@ -22,10 +22,10 @@ if config.embeddings_model:
     if torch.cuda.is_available():
         print(f"{torch.cuda.device_count()} GPUs available for embeddings.")
         device = torch.device("cuda:0")
-        # embedding_model = embedding_model.cuda()
-        gpu_model = nn.DataParallel(embedding_model)
+        embedding_model = embedding_model.to(device)#.cuda()
+        gpu_model = nn.DataParallel(embedding_model, device_ids=[0,1,2,3])
         gpu_model.hp = embedding_model.hp # not sure if necessary
-        gpu_model.to(device)
+        #gpu_model.to(device)
         embedding_model = gpu_model
 else:
     embedding_model = None

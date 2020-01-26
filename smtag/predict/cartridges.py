@@ -22,10 +22,10 @@ if torch.cuda.is_available():
     print(f"{torch.cuda.device_count()} GPUs available for model cartridge.")
     device = torch.device("cuda:0")
     for m in models:
-        #models[m] = models[m].cuda()
-        gpu_model = nn.DataParallel(models[m])
+        models[m] = models[m].to(device) #.cuda()
+        gpu_model = nn.DataParallel(models[m], device_ids=[0,1,2,3])
         gpu_model.output_semantics = models[m].output_semantics
-        gpu_model.to(device)
+        # gpu_model.to(device)
         models[m] = gpu_model
 
 
