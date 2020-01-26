@@ -20,9 +20,41 @@ def cleanup(text):
     text = re.sub(r'[–—‐−]', '-', text) # controversial!!!
     return text
 
+@contextmanager
+def cd(newdir):
+    '''
+    From: https://stackoverflow.com/questions/431684/how-do-i-change-directory-cd-in-python/24176022#24176022
+    '''
+
+    prevdir = os.getcwd()
+    os.chdir(os.path.expanduser(newdir))
+    try:
+        yield
+    finally:
+        os.chdir(prevdir)
+
+
+def timer(f):
+    '''
+    A decorator to print the execution time of a method.
+    Usage:
+        @timer
+        def some_function_to_profile(x, y, z):
+    '''
+    def t(*args, **kwargs):
+        start_time = time.time()
+        output = f(*args, **kwargs)
+        end_time = time.time()
+        delta_t = end_time - start_time
+        print("\nExec time for '{}': {:.3f}s".format(f.__name__, delta_t))
+        return output
+    return t
+
+
 
 Token = namedtuple('Token', ['text', 'start', 'stop', 'length', 'left_spacer']) # should be a proper object with __len__ method
 
+@timer
 def tokenize(s):
     #patterns derived from python nltk library http://www.nltk.org/_modules/nltk/tokenize/punkt.html#PunktLanguageVars.word_tokenize
 
@@ -74,33 +106,3 @@ def tokenize(s):
         last_stop = stop
 
     return {'token_list':token_list, 'start_index':start_index, 'stop_index':stop_index}
-
-@contextmanager
-def cd(newdir):
-    '''
-    From: https://stackoverflow.com/questions/431684/how-do-i-change-directory-cd-in-python/24176022#24176022
-    '''
-
-    prevdir = os.getcwd()
-    os.chdir(os.path.expanduser(newdir))
-    try:
-        yield
-    finally:
-        os.chdir(prevdir)
-
-
-def timer(f):
-    '''
-    A decorator to print the execution time of a method.
-    Usage:
-        @timer
-        def some_function_to_profile(x, y, z):
-    '''
-    def t(*args, **kwargs):
-        start_time = time.time()
-        output = f(*args, **kwargs)
-        end_time = time.time()
-        delta_t = end_time - start_time
-        print("\nExec time for '{}': {:.3f}s".format(f.__name__, delta_t))
-        return output
-    return t
