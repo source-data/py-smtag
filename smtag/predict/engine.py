@@ -92,6 +92,7 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
+    @timer
     def __entity(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
@@ -174,7 +175,8 @@ class SmtagEngine:
 
         return output
 
-    def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml"):
+    @timer
+    def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml") -> List[str]:
         output.fuse_adjacent()
         ml = Serializer(tag=sdtag, format=format).serialize(output)
         return ml # engine works with single example
@@ -193,34 +195,35 @@ class SmtagEngine:
         return vectorized
 
     def __string_preprocess(self, input_strings: List[str]) -> Tuple[TString, List[List[Token]]]:
+        if isinstance(input_strings, str):
+            input_strings = [input_strings] # for backward compatibility
         input_t_strings = TString(StringList(input_strings)) # StringList makes sure all strings are of same length before stacking them into tensor format
         token_lists = [tokenize(s)['token_list'] for s in input_strings]
         return input_t_strings, token_lists
     
+    @timer
     def __preprocess(self, input_strings: List[str], imgs) -> Tuple[TString, List[List[Token]], List[torch.Tensor]]:
         input_t_strings, token_lists = self.__string_preprocess(input_strings)
         viz_contexts = self.__img_preprocess(imgs)
         return input_t_strings, token_lists, viz_contexts
 
-    @timer
+
     def entity(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs) # input_t_strings, token_lists, viz_contexts
         pred = self.__entity(*prepro)
         return self.__serialize(pred, sdtag, format)
 
-    @timer
+    
     def tag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs)
         pred = self.__entity_and_role(*prepro)
         return self.__serialize(pred, sdtag, format)
 
-    @timer
     def smtag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs)
         pred = self.__all(*prepro)
         return self.__serialize(pred, sdtag, format)
 
-    @timer
     def role(self, input_xml_strings: List[str], imgs, sdtag)  -> List[bytes]:
         input_xmls = [fromstring(s) for s in input_xml_strings]
         viz_contexts = self.__img_preprocess(imgs)
@@ -229,7 +232,6 @@ class SmtagEngine:
         updated_xml_bytes = [tostring(x) for x in updated_xml] # tostring() returns bytes...
         return updated_xml_bytes
 
-    @timer
     def panelizer(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs)
         pred = self.__panels(*prepro)
