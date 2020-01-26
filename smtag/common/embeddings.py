@@ -20,8 +20,8 @@ class Embedding:
 if config.embeddings_model:
     embedding_model = load_model(config.embeddings_model, config.embeddings_dir, CatStack)
     if torch.cuda.is_available():
-        print(torch.cuda.device_count(), "GPUs available for embeddings.")
-        gpu_model.cuda()
+        print(f"{torch.cuda.device_count()} GPUs available for embeddings.")
+        embedding_model = embedding_model.cuda()
         gpu_model = nn.DataParallel(embedding_model)
         gpu_model.hp = embedding_model.hp # not sure if necessary
         embedding_model = gpu_model
