@@ -176,7 +176,7 @@ class AbstractTagger:
 
                         for group in decoded.semantic_groups:
                             concept = decoded.concepts[n][group][pos]
-                            current_scores[group] = decoded.scores[n][group][pos].item()
+                            current_scores[group] = decoded.scores[n][group][pos]
                             if need_to_open[group]: # CHANGED
                                 current_concepts[group] = concept
                                 need_to_open[group] = False

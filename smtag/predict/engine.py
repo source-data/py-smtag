@@ -138,6 +138,13 @@ class SmtagEngine:
             encoded.unsqueeze_(0) # 3D byteTensor!
             encoded_list.append(encoded)
         encoded_cat = torch.cat(encoded_list, 0)
+        # add a feature for untagged characters; necessary for softmax classification
+        no_tag_feature = encoded_cat.sum(1) # 3D 1 x C x L, is superposition of all features so far
+        no_tag_feature.unsqueeze_(0)
+        no_tag_feature = 1 - no_tag_feature # sets to 1 for char not tagged and to 0 for tagged characters
+        B = encoded_cat.size(0)
+        no_tag_feature = no_tag_feature.repeat([B, 1, 1])
+        encoded_cat = torch.cat((encoded_cat, no_tag_feature.byte()), 1)
         semantic_groups = OrderedDict([('entities', Catalogue.standard_channels)])
         semantic_groups['entities'].append(Catalogue.UNTAGGED)
         entities = Decoder(StringList(input_strings), encoded_cat.float(), semantic_groups)
