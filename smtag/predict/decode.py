@@ -92,18 +92,10 @@ class Decoder:
         '''
 
         def compute_score(p):
-            l = p.tolist()
-            score = sum(l)/len(l)
-            # score = p.mean()
-            # if len(p) > 2:
-            #     return p[2]
-            # else:
-            #     return p[0]
+            # l = p.tolist()
+            # score = sum(l)/len(l)
+            score = p.sum()
             return score
-
-        def slice_from_token(p, k, token):
-            sl = p[k, token.start:token.stop]
-            return sl
 
         def get_max_scores(token):
             max_score_value = 0

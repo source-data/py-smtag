@@ -125,7 +125,7 @@ class ContextualPredictor(Predictor):
             prediction = torch.exp(prediction) # to get 0..1 positive scores
             self.model.train()
         if torch.cuda.is_available():
-            prediction = prediction.float()
+            prediction = prediction.cpu()
 
         # RESTORE ORIGINAL LENGTH 
         prediction = prediction[ : , : , padding_length : len(inp)+padding_length]
