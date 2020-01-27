@@ -91,7 +91,6 @@ class Decoder:
         '''
 
         def mean_score(p):
-            print(f"size of prediction slice = {p.size()}")
             sl = list(p)
             score = sum(list(sl))/len(sl)
             return score
@@ -100,13 +99,8 @@ class Decoder:
             sl = p[k, start:stop]
             return sl
 
-        L = prediction.size(1)
-        N = len(token_list)
-        nf= prediction.size(0)
-        scores = torch.zeros(nf, N)
-        codes = [0] * N
-        token_level_scores = [0] * N
-        for i, token in enumerate(token_list):
+        def get_scores(prediction, scores, nf):
+            
             max_score_value = 0
             max_score_index = 0
             for k in range(nf):
@@ -117,8 +111,16 @@ class Decoder:
                 if scores[k, i] > max_score_value:
                     max_score_value = scores[k, i]
                     max_score_index = k
-            codes[i] = max_score_index
-            token_level_scores[i] = max_score_value
+            return max_score_index, max_score_value
+
+        L = prediction.size(1)
+        N = len(token_list)
+        nf= prediction.size(0)
+        scores = torch.zeros(nf, N)
+        codes = [0] * N
+        token_level_scores = [0] * N
+        for i, token in enumerate(token_list):
+            codes[i],  token_level_scores[i] = get_scores(prediction, scores, nf)
         # trying to use numpy to see if argmax works faster
         # scores = scores.numpy()
         # codes = scores.argmax(0) # the codes are the indices of features with maximum score
