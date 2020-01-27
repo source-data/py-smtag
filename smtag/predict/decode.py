@@ -14,11 +14,13 @@ from .. import config
 
 from time import time
 import cProfile
+from functools import lru_cache
 
 FUSION_THRESHOLD = config.fusion_threshold
 
 Tensor3D = torch.Tensor
 Tensor2D = torch.Tensor
+
 
 class Decoder:
     '''
@@ -91,16 +93,16 @@ class Decoder:
         '''
 
         def compute_score(p):
-            # sl = list(p)
-            # score = sum(list(sl))/len(sl)
-            score = p[0]
+            l = list(p)
+            score = sum(l)/len(l)
+            # score = p.mean()
             return score
 
         def slice_from_token(p, k, token):
             sl = p[k, token.start:token.stop]
             return sl
 
-        def get_max_scores(prediction, token, nf):
+        def get_max_scores(prediction, i, token, nf):
             max_score_value = 0
             max_score_index = 0
             for k in range(nf):
@@ -117,7 +119,7 @@ class Decoder:
             codes = [0] * N
             token_level_scores = [0] * N
             for i, token in enumerate(token_list):
-                codes[i],  token_level_scores[i] = get_max_scores(prediction, token, nf)
+                codes[i],  token_level_scores[i] = get_max_scores(prediction, i, token, nf)
             return codes, token_level_scores
 
         L = prediction.size(1)
