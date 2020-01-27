@@ -91,7 +91,9 @@ class Decoder:
         '''
 
         def mean_score(p):
-            score = sum(p)/len(p)
+            print(f"size of prediction slice = {p.size()}")
+            sl = list(p)
+            score = sum(list(sl))/len(sl)
             return score
 
         def slice_token(p, k, start, stop):
@@ -110,7 +112,6 @@ class Decoder:
             for k in range(nf):
                 # decompositing for profiling
                 sl = slice_token(prediction, k, token.start, token.stop)
-                sl = list(sl)
                 scores[k, i] = mean_score(sl)
                 # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
                 if scores[k, i] > max_score_value:
