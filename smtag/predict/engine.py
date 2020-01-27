@@ -20,7 +20,7 @@ from .markup import Serializer
 from .updatexml import updatexml_list
 from ..common.viz import Show
 from .. import config
-
+import cProfile
 
 class CombinedModel(nn.Module):
     '''
@@ -84,7 +84,6 @@ class SmtagEngine:
         self.panelize_model = cartridge.panelize_model
         self.viz_context_processor = cartridge.viz_preprocessor
 
-    @timer
     def __panels(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> CharLevelDecoder:
         decoded = CharLevelPredictor(self.panelize_model).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
@@ -93,7 +92,6 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    @timer
     def __entity(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
@@ -102,7 +100,6 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    @timer
     def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
@@ -111,7 +108,6 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    @timer
     def __context(self, entities: Decoder, viz_context) -> Decoder: # entities carries the copy of the input_string and token_list
         decoded = ContextualPredictor(self.context_models).predict(entities, viz_context)
         if self.DEBUG:
@@ -178,7 +174,6 @@ class SmtagEngine:
 
         return output
 
-    @timer
     def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml") -> List[str]:
         output.fuse_adjacent()
         ml = Serializer(tag=sdtag, format=format).serialize(output)
@@ -203,20 +198,17 @@ class SmtagEngine:
         input_t_strings = TString(StringList(input_strings)) # StringList makes sure all strings are of same length before stacking them into tensor format
         token_lists = [tokenize(s)['token_list'] for s in input_strings]
         return input_t_strings, token_lists
-    
-    @timer
+
     def __preprocess(self, input_strings: List[str], imgs) -> Tuple[TString, List[List[Token]], List[torch.Tensor]]:
         input_t_strings, token_lists = self.__string_preprocess(input_strings)
         viz_contexts = self.__img_preprocess(imgs)
         return input_t_strings, token_lists, viz_contexts
-
 
     def entity(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs) # input_t_strings, token_lists, viz_contexts
         pred = self.__entity(*prepro)
         return self.__serialize(pred, sdtag, format)
 
-    
     def tag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs)
         pred = self.__entity_and_role(*prepro)
