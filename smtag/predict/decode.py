@@ -91,6 +91,7 @@ class Decoder:
         '''
 
         def mean_score(p):
+            p = list(p)
             score = p.mean()
             return score
 
@@ -104,7 +105,7 @@ class Decoder:
             max_score_value = 0
             max_score_index = 0
             for k in range(nf):
-                scores[k, i] = mean_score(prediction[k, token.start:token.stop])
+                # scores[k, i] = mean_score(prediction[k, token.start:token.stop])
                 # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
                 scores[k, i] = prediction[k, token.start] # trying to see impact on speed
                 if scores[k, i] > max_score_value:
@@ -112,7 +113,6 @@ class Decoder:
                     max_score_index = k
             codes[i] = max_score_index
             token_level_scores[i] = max_score_value
-        #### THIS IS A PERFORMANCE BOTTLENECK:
         # trying to use numpy to see if argmax works faster
         # scores = scores.numpy()
         # codes = scores.argmax(0) # the codes are the indices of features with maximum score
