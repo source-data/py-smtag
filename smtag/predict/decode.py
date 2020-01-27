@@ -96,7 +96,10 @@ class Decoder:
             for k in range(nf):
                 scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
         codes = scores.argmax(0) # the codes are the indices of features with maximum score
-        token_level_scores = scores[codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
+        #### THIS IS A PERFORMANCE BOTTLENECK
+        #token_level_scores = scores[codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
+        #import pdb; pdb.set_trace()
+        token_level_scores = torch.zeros(N)
         token_level_concepts = [semantic_concepts[code] for code in codes]
         char_level_concepts = [Catalogue.UNTAGGED for _ in range(L)] # initialize as untagged
         for token, concept in zip(token_list, semantic_concepts):
