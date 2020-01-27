@@ -89,6 +89,11 @@ class Decoder:
             a 1D N Tensor with the score of each token
 
         '''
+
+        def mean_score(p):
+            score = p.mean()
+            return score
+
         L = prediction.size(1)
         N = len(token_list)
         nf= prediction.size(0)
@@ -99,7 +104,8 @@ class Decoder:
             max_score_value = 0
             max_score_index = 0
             for k in range(nf):
-                scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
+                scores[k, i] = mean_score(prediction[k, token.start:token.stop])
+                # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
                 if scores[k, i] > max_score_value:
                     max_score_value = scores[k, i]
                     max_score_index = k
