@@ -96,17 +96,16 @@ class Decoder:
             score = p[0]
             return score
 
-        def slice_token(p, k, start, stop):
-            sl = p[k, start:stop]
+        def slice_from_token(p, k, token):
+            sl = p[k, token.start:token.stop]
             return sl
 
         def get_scores(prediction, token, scores, nf):
-
             max_score_value = 0
             max_score_index = 0
             for k in range(nf):
                 # decompositing for profiling
-                sl = slice_token(prediction, k, token.start, token.stop)
+                sl = slice_from_token(prediction, k, token)
                 scores[k, i] = compute_score(sl)
                 # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
                 if scores[k, i] > max_score_value:
@@ -114,14 +113,19 @@ class Decoder:
                     max_score_index = k
             return max_score_index, max_score_value
 
+        def scan_token_list(prediction, token_list, N, nf):
+            scores = torch.zeros(nf, N)
+            codes = [0] * N
+            token_level_scores = [0] * N
+            for i, token in enumerate(token_list):
+                codes[i],  token_level_scores[i] = get_scores(prediction, token, scores, nf)
+            return codes, token_level_scores
+
         L = prediction.size(1)
         N = len(token_list)
         nf= prediction.size(0)
-        scores = torch.zeros(nf, N)
-        codes = [0] * N
-        token_level_scores = [0] * N
-        for i, token in enumerate(token_list):
-            codes[i],  token_level_scores[i] = get_scores(prediction, token, scores, nf)
+
+        codes, token_level_scores = scan_token_list(prediction, token_list, N, nf)
         # trying to use numpy to see if argmax works faster
         # scores = scores.numpy()
         # codes = scores.argmax(0) # the codes are the indices of features with maximum score
