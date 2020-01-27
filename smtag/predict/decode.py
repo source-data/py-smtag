@@ -106,6 +106,7 @@ class Decoder:
             for k in range(nf):
                 scores[k, i] = mean_score(prediction[k, token.start:token.stop])
                 # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
+                scores[k, i] = prediction[k, token.start] # trying to see impact on speed
                 if scores[k, i] > max_score_value:
                     max_score_value = scores[k, i]
                     max_score_index = k
