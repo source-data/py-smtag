@@ -68,15 +68,14 @@ class Decoder:
             for group in self.semantic_groups:
                 semantics = self.semantic_groups[group]
                 nf = len(semantics) # as many features as semantic output elements
-                prediction_slice = self.prediction[n, start_feature:start_feature+nf, : ] # Tensor2D!
-                start_feature += nf 
-                char_level_concepts[group], concepts[group] , scores[group] = self.pred2concepts(token_list, prediction_slice, self.semantic_groups[group])
+                # prediction_slice = self.prediction[n, start_feature:start_feature+nf, : ] # Tensor2D! 
+                char_level_concepts[group], concepts[group] , scores[group] = self.pred2concepts(n, start_feature, start_feature+nf, token_list, self.semantic_groups[group])
+                start_feature += nf
             self.char_level_concepts.append(char_level_concepts)
             self.concepts.append(concepts)
             self.scores.append(scores)
 
-    @staticmethod
-    def pred2concepts(token_list: List[Token], prediction: Tensor2D, semantic_concepts: List[Concept]):
+    def pred2concepts(self, example_index, starting_feature, last_feature, token_list: List[Token], semantic_concepts: List[Concept]):
         '''
         Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
         A feature code is the index of the feature with maximum score.
@@ -102,31 +101,32 @@ class Decoder:
             sl = p[k, token.start:token.stop]
             return sl
 
-        def get_max_scores(prediction, i, token, nf):
+        def get_max_scores(token):
             max_score_value = 0
             max_score_index = 0
             for k in range(nf):
-                # decompositing for profiling
-                sl = slice_from_token(prediction, k, token)
-                score = compute_score(sl)
+                try:
+                    score = compute_score(self.prediction[example_index, starting_feature+k, token.start:token.stop])
+                except:
+                    import pdb; pdb.set_trace()
                 # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
                 if score > max_score_value:
                     max_score_value = score
                     max_score_index = k
             return max_score_index, max_score_value
 
-        def scan_token_list(prediction, token_list, N, nf):
+        def scan_token_list():
             codes = [0] * N
             token_level_scores = [0] * N
             for i, token in enumerate(token_list):
-                codes[i],  token_level_scores[i] = get_max_scores(prediction, i, token, nf)
+                codes[i],  token_level_scores[i] = get_max_scores(token)
             return codes, token_level_scores
 
-        L = prediction.size(1)
+        L = self.prediction.size(2)
         N = len(token_list)
-        nf= prediction.size(0)
+        nf= self.prediction.size(1)
 
-        codes, token_level_scores = scan_token_list(prediction, token_list, N, nf)
+        codes, token_level_scores = scan_token_list()
         # trying to use numpy to see if argmax works faster
         # scores = scores.numpy()
         # codes = scores.argmax(0) # the codes are the indices of features with maximum score
