@@ -92,10 +92,13 @@ class Decoder:
         '''
 
         def compute_score(p):
-            l = list(p)
-            score = sum(l)/len(l)
-            # score = p.mean()
-            return score
+            # l = list(p)
+            # score = sum(l)/len(l)
+            # # score = p.mean()
+            if len(p) > 2:
+                return p[2]
+            else:
+                return p[0]
 
         def slice_from_token(p, k, token):
             sl = p[k, token.start:token.stop]
