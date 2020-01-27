@@ -84,6 +84,7 @@ class SmtagEngine:
         self.panelize_model = cartridge.panelize_model
         self.viz_context_processor = cartridge.viz_preprocessor
 
+    @timer
     def __panels(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> CharLevelDecoder:
         decoded = CharLevelPredictor(self.panelize_model).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
@@ -92,6 +93,7 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
+    @timer
     def __entity(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
@@ -99,7 +101,7 @@ class SmtagEngine:
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded
-
+    @timer
     def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists, viz_contexts)
         if self.DEBUG:
@@ -108,6 +110,7 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
+    @timer
     def __context(self, entities: Decoder, viz_context) -> Decoder: # entities carries the copy of the input_string and token_list
         decoded = ContextualPredictor(self.context_models).predict(entities, viz_context)
         if self.DEBUG:

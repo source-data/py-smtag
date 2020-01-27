@@ -92,20 +92,16 @@ class Decoder:
         '''
 
         def compute_score(p):
-            # l = p.tolist()
-            # score = sum(l)/len(l)
-            score = p.sum()
+            l = p.tolist()
+            score = sum(l)/len(l) # faster than tensor.mean()
+            # score = p.mean() # slow!
             return score
 
         def get_max_scores(token):
             max_score_value = 0
             max_score_index = 0
             for k in range(nf):
-                try:
-                    score = compute_score(self.prediction[example_index, starting_feature+k, token.start:token.stop])
-                    # score = self.prediction[example_index, starting_feature+k, token.start].item()
-                except:
-                    import pdb; pdb.set_trace()
+                score = compute_score(self.prediction[example_index, starting_feature+k, token.start:token.stop])
                 # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
                 if score > max_score_value:
                     max_score_value = score

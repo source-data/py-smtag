@@ -73,19 +73,14 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
     def decode(self, input_strings: StringList, token_lists: List[List[Token]], prediction: torch.Tensor, semantic_groups: List[Concept]):
         decoded = Decoder(input_strings, prediction, self.model.semantic_groups)
         #######
-        cProfile.runctx('decoded.decode(token_lists)', None, locals())
+        # cProfile.runctx('decoded.decode(token_lists)', None, locals())
         #######
+        decoded.decode(token_lists)
         return decoded
 
     def predict(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts: torch.Tensor) -> Decoder:
-        print(f"inside predictor.predict() with {input_t_strings.depth} examples at t0")
-        t0 = time()
         prediction = self.forward(input_t_strings, viz_contexts)
-        t1 = time()
-        print(f"time for predict.forward: {t1-t0:.3f}s")
         decoded = self.decode(input_t_strings.toStringList(), token_lists, prediction, self.model.semantic_groups)
-        t2 = time()
-        print(f"time for predict.decode: {t2-t1:.3f}s")
         return decoded
 
 class ContextualPredictor(Predictor):
