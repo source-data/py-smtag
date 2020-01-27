@@ -214,21 +214,25 @@ class SmtagEngine:
         viz_contexts = self.__img_preprocess(imgs)
         return input_t_strings, token_lists, viz_contexts
 
+    @timer
     def entity(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs) # input_t_strings, token_lists, viz_contexts
         pred = self.__entity(*prepro)
         return self.__serialize(pred, sdtag, format)
 
+    @timer
     def tag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs)
         pred = self.__entity_and_role(*prepro)
         return self.__serialize(pred, sdtag, format)
 
+    @timer
     def smtag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs)
         pred = self.__all(*prepro)
         return self.__serialize(pred, sdtag, format)
 
+    @timer
     def role(self, input_xml_strings: List[str], imgs, sdtag)  -> List[bytes]:
         input_xmls = [fromstring(s) for s in input_xml_strings]
         viz_contexts = self.__img_preprocess(imgs)
@@ -237,6 +241,7 @@ class SmtagEngine:
         updated_xml_bytes = [tostring(x) for x in updated_xml] # tostring() returns bytes...
         return updated_xml_bytes
 
+    @timer
     def panelizer(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings, imgs)
         pred = self.__panels(*prepro)
