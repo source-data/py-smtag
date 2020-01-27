@@ -69,13 +69,13 @@ class Decoder:
                 semantics = self.semantic_groups[group]
                 nf = len(semantics) # as many features as semantic output elements
                 # prediction_slice = self.prediction[n, start_feature:start_feature+nf, : ] # Tensor2D! 
-                char_level_concepts[group], concepts[group] , scores[group] = self.pred2concepts(n, start_feature, start_feature+nf, token_list, self.semantic_groups[group])
+                char_level_concepts[group], concepts[group] , scores[group] = self.pred2concepts(n, start_feature, nf, token_list, self.semantic_groups[group])
                 start_feature += nf
             self.char_level_concepts.append(char_level_concepts)
             self.concepts.append(concepts)
             self.scores.append(scores)
 
-    def pred2concepts(self, example_index, starting_feature, last_feature, token_list: List[Token], semantic_concepts: List[Concept]):
+    def pred2concepts(self, example_index, starting_feature, nf, token_list: List[Token], semantic_concepts: List[Concept]):
         '''
         Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
         A feature code is the index of the feature with maximum score.
@@ -116,15 +116,14 @@ class Decoder:
             return max_score_index, max_score_value
 
         def scan_token_list():
-            codes = [0] * N
-            token_level_scores = [0] * N
+            index_of_max_score = [0] * N
+            max_scores = [0] * N
             for i, token in enumerate(token_list):
-                codes[i],  token_level_scores[i] = get_max_scores(token)
-            return codes, token_level_scores
+                index_of_max_score[i],  max_scores[i] = get_max_scores(token)
+            return index_of_max_score, max_scores
 
         L = self.prediction.size(2)
         N = len(token_list)
-        nf= self.prediction.size(1)
 
         codes, token_level_scores = scan_token_list()
         # trying to use numpy to see if argmax works faster
@@ -220,19 +219,19 @@ class Decoder:
 
 class CharLevelDecoder(Decoder):
 
-    @staticmethod
-    def pred2concepts(token_list: List[Token], prediction: Tensor2D, semantic_concepts: List[Concept]):
+    def pred2concepts(self, example_index, starting_feature, nf, token_list: List[Token], semantic_concepts: List[Concept]):
         '''
         Here we take first the argmax at character level to obtain the classification of each character. 
         '''
         N = len(token_list)
-        nf = prediction.size(0)
-        char_level_codes = prediction.argmax(0)
+
+        char_level_codes = self.prediction[example_index, starting_feature:starting_feature+nf, : ] # 2D slice!
+        char_level_codes = char_level_codes.argmax(0)
         char_level_concepts = [semantic_concepts[code] for code in char_level_codes]
         scores = torch.zeros(nf, N)
         for i, token in enumerate(token_list):
             for k in range(nf):
-                scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
+                scores[k, i] = self.prediction[example_index, starting_feature+k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
         token_level_codes = scores.argmax(0) # the codes are the indices of features with maximum score
         token_level_scores = scores[token_level_codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
         token_level_concepts = [semantic_concepts[code] for code in token_level_codes]
