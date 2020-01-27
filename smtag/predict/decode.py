@@ -100,8 +100,8 @@ class Decoder:
             sl = p[k, start:stop]
             return sl
 
-        def get_scores(prediction, scores, nf):
-            
+        def get_scores(prediction, token, scores, nf):
+
             max_score_value = 0
             max_score_index = 0
             for k in range(nf):
@@ -121,7 +121,7 @@ class Decoder:
         codes = [0] * N
         token_level_scores = [0] * N
         for i, token in enumerate(token_list):
-            codes[i],  token_level_scores[i] = get_scores(prediction, scores, nf)
+            codes[i],  token_level_scores[i] = get_scores(prediction, token, scores, nf)
         # trying to use numpy to see if argmax works faster
         # scores = scores.numpy()
         # codes = scores.argmax(0) # the codes are the indices of features with maximum score
