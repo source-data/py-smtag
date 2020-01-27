@@ -78,7 +78,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         return decoded
 
     def predict(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts: torch.Tensor) -> Decoder:
-        print(f"inside predictor.predict() with {input_t_trings.depth} examples at t0")
+        print(f"inside predictor.predict() with {input_t_strings.depth} examples at t0")
         t0 = time()
         prediction = self.forward(input_t_strings, viz_contexts)
         t1 = time()
