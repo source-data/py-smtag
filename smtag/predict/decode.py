@@ -93,14 +93,23 @@ class Decoder:
         N = len(token_list)
         nf= prediction.size(0)
         scores = torch.zeros(nf, N)
+        codes = [0] * N
+        token_level_scores = [0] * N
         for i, token in enumerate(token_list):
+            max_score_value = 0
+            max_score_index = 0
             for k in range(nf):
                 scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
+                if scores[k, i] > max_score_value:
+                    max_score_value = scores[k, i]
+                    max_score_index = k
+            codes[i] = max_score_index
+            token_level_scores[i] = max_score_value
         #### THIS IS A PERFORMANCE BOTTLENECK:
         # trying to use numpy to see if argmax works faster
-        scores = scores.numpy()
-        codes = scores.argmax(0) # the codes are the indices of features with maximum score
-        token_level_scores = scores[codes, range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
+        # scores = scores.numpy()
+        # codes = scores.argmax(0) # the codes are the indices of features with maximum score
+        # token_level_scores = scores[codes, range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
         token_level_concepts = [semantic_concepts[code] for code in codes]
         char_level_concepts = [Catalogue.UNTAGGED for _ in range(L)] # initialize as untagged
         for token, concept in zip(token_list, semantic_concepts):
