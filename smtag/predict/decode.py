@@ -92,7 +92,7 @@ class Decoder:
 
         def mean_score(p):
             p = list(p)
-            score = p.sum()/len(p)
+            score = sum(p)/len(p)
             return score
 
         def slice_token(p, k, start, stop):
