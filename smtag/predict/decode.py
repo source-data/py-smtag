@@ -109,7 +109,8 @@ class Decoder:
             max_score_index = 0
             for k in range(nf):
                 try:
-                    score = compute_score(self.prediction[example_index, starting_feature+k, token.start:token.stop])
+                    # score = compute_score(self.prediction[example_index, starting_feature+k, token.start:token.stop])
+                    score = self.prediction[example_index, starting_feature+k, token.start].item()
                 except:
                     import pdb; pdb.set_trace()
                 # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
