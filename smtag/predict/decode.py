@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 import torch
+import numpy as np
 import re
 from typing import List, Tuple
 from collections import OrderedDict
@@ -95,11 +96,11 @@ class Decoder:
         for i, token in enumerate(token_list):
             for k in range(nf):
                 scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
+        #### THIS IS A PERFORMANCE BOTTLENECK:
+        # trying to use numpy to see if argmax works faster
+        scores = scores.numpy()
         codes = scores.argmax(0) # the codes are the indices of features with maximum score
-        #### THIS IS A PERFORMANCE BOTTLENECK
-        #token_level_scores = scores[codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
-        #import pdb; pdb.set_trace()
-        token_level_scores = torch.zeros(N)
+        token_level_scores = scores[codes, range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
         token_level_concepts = [semantic_concepts[code] for code in codes]
         char_level_concepts = [Catalogue.UNTAGGED for _ in range(L)] # initialize as untagged
         for token, concept in zip(token_list, semantic_concepts):
