@@ -184,6 +184,7 @@ class SmtagEngine:
 
         return output
 
+    @timer
     def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml") -> List[str]:
         output.fuse_adjacent()
         ml = Serializer(tag=sdtag, format=format).serialize(output)
@@ -202,6 +203,7 @@ class SmtagEngine:
             vectorized = torch.Tensor(0) # the model will then skip the Context module and only uses the unet with the text
         return vectorized
 
+
     def __string_preprocess(self, input_strings: List[str]) -> Tuple[TString, List[List[Token]]]:
         if isinstance(input_strings, str):
             input_strings = [input_strings] # for backward compatibility
@@ -209,6 +211,7 @@ class SmtagEngine:
         token_lists = [tokenize(s)['token_list'] for s in input_strings]
         return input_t_strings, token_lists
 
+    @timer
     def __preprocess(self, input_strings: List[str], imgs) -> Tuple[TString, List[List[Token]], List[torch.Tensor]]:
         input_t_strings, token_lists = self.__string_preprocess(input_strings)
         viz_contexts = self.__img_preprocess(imgs)
