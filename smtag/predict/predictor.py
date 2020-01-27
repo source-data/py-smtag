@@ -63,8 +63,8 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
             prediction = self.model(x, viz_contexts) #.float() # prediction is 3D 1 x C x L
             prediction = torch.exp(prediction) # to get 0..1 positive scores
             self.model.train()
-        if torch.cuda.is_available():
-            prediction = prediction.float()
+        # if torch.cuda.is_available():
+        #     prediction = prediction.float()
 
         # RESTORE ORIGINAL LENGTH 
         prediction = prediction[ : , : , padding_length : len(safely_padded)-padding_length]
