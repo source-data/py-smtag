@@ -198,7 +198,7 @@ class Decoder:
             self.concepts[n].update(other.concepts[n])
             self.scores[n].update(other.scores[n])
             self.char_level_concepts[n].update(other.char_level_concepts[n])
-            self.prediction = torch.cat([self.prediction, other.prediction], 1)
+        self.prediction = torch.cat([self.prediction, other.prediction], 1)
 
     def clone(self) -> 'Decoder':
         other = Decoder(self.input_strings.clone(), self.prediction.clone(), deepcopy(self.semantic_groups))
