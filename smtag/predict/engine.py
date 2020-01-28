@@ -188,7 +188,7 @@ class SmtagEngine:
     def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml") -> List[str]:
         output.fuse_adjacent()
         ml = Serializer(tag=sdtag, format=format).serialize(output)
-        return ml # engine works with single example
+        return ml
 
     def __img_preprocess(self, img):
         # what does get_context return if img is None? or torch.Tensor(0)?

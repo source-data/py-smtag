@@ -75,6 +75,30 @@ class Decoder:
             self.concepts.append(concepts)
             self.scores.append(scores)
 
+    @staticmethod
+    def compute_score(p):
+        l = p.tolist()
+        score = sum(l)/len(l) # faster than tensor.mean()
+        # score = p.mean() # slow!
+        return score
+
+    def get_max_scores(self, token, example_index, starting_feature, nf):
+        max_score_value = 0
+        max_score_index = 0
+        for k in range(nf):
+            score = self.compute_score(self.prediction[example_index, starting_feature+k, token.start:token.stop])
+            if score > max_score_value:
+                max_score_value = score
+                max_score_index = k
+        return max_score_index, max_score_value
+
+    def scan_token_list(self, N, token_list, example_index, starting_feature, nf):
+        index_of_max_score = [0] * N
+        max_scores = [0] * N
+        for i, token in enumerate(token_list):
+            index_of_max_score[i],  max_scores[i] = self.get_max_scores(token, example_index, starting_feature, nf)
+        return index_of_max_score, max_scores
+    
     def pred2concepts(self, example_index, starting_feature, nf, token_list: List[Token], semantic_concepts: List[Concept]):
         '''
         Tranforms a character level multi-feature tensor into a token-level feature-code tensor.
@@ -91,38 +115,10 @@ class Decoder:
 
         '''
 
-        def compute_score(p):
-            l = p.tolist()
-            score = sum(l)/len(l) # faster than tensor.mean()
-            # score = p.mean() # slow!
-            return score
-
-        def get_max_scores(token):
-            max_score_value = 0
-            max_score_index = 0
-            for k in range(nf):
-                score = compute_score(self.prediction[example_index, starting_feature+k, token.start:token.stop])
-                # scores[k, i] = prediction[k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
-                if score > max_score_value:
-                    max_score_value = score
-                    max_score_index = k
-            return max_score_index, max_score_value
-
-        def scan_token_list():
-            index_of_max_score = [0] * N
-            max_scores = [0] * N
-            for i, token in enumerate(token_list):
-                index_of_max_score[i],  max_scores[i] = get_max_scores(token)
-            return index_of_max_score, max_scores
-
         L = self.prediction.size(2)
         N = len(token_list)
 
-        codes, token_level_scores = scan_token_list()
-        # trying to use numpy to see if argmax works faster
-        # scores = scores.numpy()
-        # codes = scores.argmax(0) # the codes are the indices of features with maximum score
-        # token_level_scores = scores[codes, range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
+        codes, token_level_scores = self.scan_token_list(N, token_list, example_index, starting_feature, nf)
         token_level_concepts = [semantic_concepts[code] for code in codes]
         char_level_concepts = [Catalogue.UNTAGGED for _ in range(L)] # initialize as untagged
         for token, concept in zip(token_list, semantic_concepts):
@@ -222,13 +218,7 @@ class CharLevelDecoder(Decoder):
         char_level_codes = self.prediction[example_index, starting_feature:starting_feature+nf, : ] # 2D slice!
         char_level_codes = char_level_codes.argmax(0)
         char_level_concepts = [semantic_concepts[code] for code in char_level_codes]
-        scores = torch.zeros(nf, N)
-        for i, token in enumerate(token_list):
-            for k in range(nf):
-                l = self.prediction[example_index, starting_feature+k, token.start:token.stop].tolist()
-                scores[k, i] = sum(l) / len(l) # calculate score for the token by averaging the prediction over the corresponding fragment
-        token_level_codes = scores.argmax(0) # the codes are the indices of features with maximum score
-        token_level_scores = scores[token_level_codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
-        token_level_concepts = [semantic_concepts[code] for code in token_level_codes]
+        codes, token_level_scores = self.scan_token_list(N, token_list, example_index, starting_feature, nf)
+        token_level_concepts = [semantic_concepts[code] for code in codes]
         return char_level_concepts, token_level_concepts, token_level_scores
 
