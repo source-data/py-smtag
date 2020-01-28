@@ -144,7 +144,8 @@ class Decoder:
                     scores_spacer = OrderedDict()
                     for index, key in enumerate(self.scores[n]):
                         if next_t.start - t.stop > 0:
-                            scores_spacer[key] = self.prediction[n, index, t.stop:next_t.start].mean().item()
+                            l = self.prediction[n, index, t.stop:next_t.start].tolist()
+                            scores_spacer[key] = sum(l) / len(l)
                         else: # otherwise cannot take mean() of empty tensor
                             scores_spacer[key] = 1.0 # default such that fusion test not limited
                     fuse = True
@@ -224,7 +225,8 @@ class CharLevelDecoder(Decoder):
         scores = torch.zeros(nf, N)
         for i, token in enumerate(token_list):
             for k in range(nf):
-                scores[k, i] = self.prediction[example_index, starting_feature+k, token.start:token.stop].mean() # calculate score for the token by averaging the prediction over the corresponding fragment
+                l = self.prediction[example_index, starting_feature+k, token.start:token.stop].tolist()
+                scores[k, i] = sum(l) / len(l) # calculate score for the token by averaging the prediction over the corresponding fragment
         token_level_codes = scores.argmax(0) # the codes are the indices of features with maximum score
         token_level_scores = scores[token_level_codes.long(), range(N)] # THIS IS A BIT UNINTUITIVE: THE SCORE IS RELATIVE TO THE CLASS/CODE
         token_level_concepts = [semantic_concepts[code] for code in token_level_codes]
