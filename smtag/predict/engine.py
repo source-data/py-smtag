@@ -225,10 +225,7 @@ class SmtagEngine:
 
     @timer
     def tag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
-        def f(*prepro):
-            return self.__entity_and_role(*prepro)
         prepro = self.__preprocess(input_strings, imgs)
-        cProfile.runctx('f(*prepro)', None, locals())
         pred = self.__entity_and_role(*prepro)
         return self.__serialize(pred, sdtag, format)
 
