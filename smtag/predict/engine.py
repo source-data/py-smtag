@@ -187,7 +187,9 @@ class SmtagEngine:
     @timer
     def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml") -> List[str]:
         output.fuse_adjacent()
-        ml = Serializer(tag=sdtag, format=format).serialize(output)
+        s = Serializer(tag=sdtag, format=format)
+        cProfile.runctx('s.serialize(output)', None, locals())
+        ml = s.serialize(output)
         return ml # engine works with single example
 
     def __img_preprocess(self, img):
