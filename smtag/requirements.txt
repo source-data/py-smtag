@@ -1,3 +1,4 @@
+pillow==6.2.1 # 7.0.0 breaks torchvision
 #tensorflow==1.8.0 # works on dgx not on Mac... 
 tensorflow==1.14.0 # works on Mac not on dgx...
 docopt==0.6.2
@@ -14,5 +15,5 @@ opencv-python==3.4.2.16 # mac
 scikit-learn == 0.20.1
 python-dotenv==0.10.1 # to load .env file
 # vsearch==0.2.1 # update with git submodule update --remote
-#-e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
+# -e git+git@github.com:source-data/vsearch.git@multihead#egg=vsearch
 -e git+git@github.com:source-data/catstack.git#egg=catstack
