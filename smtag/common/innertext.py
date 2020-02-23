@@ -7,7 +7,7 @@ from xml.etree.ElementTree import Element, fromstring, tostring, ParseError
 def innertext(element: Element) -> str:
     return "".join([t for t in element.itertext()])
 
-def special_innertext(element:Element, add_after = ['.//sd-panel/strong[1]', './/sd-panel/b[1]'], add_before=['.//sd-panel']) -> str:
+def restorative_innertext(element:Element, add_after = ['.//sd-panel/strong[1]', './/sd-panel/b[1]'], add_before=['.//sd-panel']) -> str:
     def add_space_after(element: Element):
         for xpath in add_after:
             for e in element.findall(xpath):

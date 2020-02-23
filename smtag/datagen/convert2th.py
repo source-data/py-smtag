@@ -18,17 +18,15 @@ from xml.etree.ElementTree  import XML, parse, fromstring, tostring, XMLParser, 
 from nltk import PunktSentenceTokenizer
 from random import choice, randrange, random, shuffle
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_STORED
+from toolbox.converter import TString, StringList
 
 from ..common.mapper import Catalogue, index2concept, concept2index, NUMBER_OF_ENCODED_FEATURES
-from ..common.converter import TString
 from ..common.utils import cd, timer, tokenize, Token, cleanup, xml_escape
-from ..common.innertext import special_innertext, innertext
+from ..common.innertext import restorative_innertext, innertext
 from ..common.progress import progress
 from ..common.embeddings import EMBEDDINGS
 from .encoder import XMLEncoder, BratEncoder
-from .ocr import OCREncoder
 from .brat import BratImport
-from .context import VisualContext
 from .. import config
 
 
@@ -37,16 +35,12 @@ class EncodedExample:
     text_filename = 'text.txt'
     textcoded_filename = 'textcoded.pyth'
     provenance_filename = 'provenance.txt'
-    ocr_context_filename = 'ocr_context.pyth'
-    viz_context_filename = 'viz_context.pyth'
 
-    def __init__(self, provenance, text, features, textcoded=None, ocr_context=None, viz_context=None):
+    def __init__(self, provenance, text, features, textcoded=None):
         self.provenance = provenance
         self.text = text
         self.features = features
         self.textcoded = textcoded
-        self.ocr_context = ocr_context
-        self.viz_context = viz_context
 
 class Sampler():
 
@@ -121,7 +115,6 @@ class Augment():
         self.verbose = verbose
         self.length = length # desired length of snippet
         self.number_of_features = NUMBER_OF_ENCODED_FEATURES # includes the virtual geneprod feature
-        self.ocr_cxt_features = config.img_grid_size ** 2 + 2 # square grid + vertical + horizontal
 
     def sample_and_save(self, path_to_encoded, encoded_example: EncodedExample, iterations):
         """
@@ -135,8 +128,6 @@ class Augment():
             textcoded4th: a 3D Tensor (1 x NBITS x full length) with the fragment text encoded
             provenance4th: the id of the example from which the sample was taken
             tensor4th: a 3D Tensor with the encoded features corresponding to the fragment
-            ocr_context4th: a 3D Tensor with location features of text elements extracted from the illustration
-            viz_context4th: a 3D Tensor perceptual vision features
         """
 
         def sample(j, encoded_example):
@@ -154,7 +145,6 @@ class Augment():
                     textcoded4th = EMBEDDINGS(textcoded4th)
                 else:
                     textcoded4th = TString(padded_frag, dtype=torch.uint8).toTensor()
-                    #assert str(TString(textcoded4th)) == padded_frag, f"\n'{str(TString(textcoded4th))}'\n is different from original \n'{padded_frag}'"
                 # the encoded features of the fragment are selected and padded
                 try:
                     features4th = Sampler.slice_and_pad(self.length, encoded_example.features, start, stop, self.min_padding, left_padding, right_padding)
@@ -165,23 +155,16 @@ class Augment():
                     raise e
                 # for conveniance, adding a computed feature to represent fused GENE and PROTEIN featres
                 features4th[ : , concept2index[Catalogue.GENEPROD],  : ] = features4th[ : , concept2index[Catalogue.GENE],  : ] + features4th[ : ,  concept2index[Catalogue.PROTEIN], : ]
-                # the encoded ocr context features is formatted the same way to stay in register
-                ocr_context4th = None
-                if encoded_example.ocr_context is not None:
-                    ocr_context4th = Sampler.slice_and_pad(self.length, encoded_example.ocr_context, start, stop, self.min_padding, left_padding, right_padding)
-                # the visual context features are independent of the position of the text fragment
-                viz_context4th = encoded_example.viz_context
-                #provenance, text, features, textcoded=None, ocr_context=None, viz_context=None
-                processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th, ocr_context4th, viz_context4th)
-                self.save(full_path, processed_example) # tried to use .clone() does not alleviate threading problems...
+                processed_example = EncodedExample(encoded_example.provenance, padded_frag, features4th, textcoded4th)
+                self.save(full_path, processed_example)
                 if self.verbose:
-                    Augment.display(padded_frag, features4th, ocr_context4th, viz_context4th)
+                    Augment.display(padded_frag, features4th)
 
         L = len(encoded_example.text)
+        # the number of iterations is adjusted somewhat to be increased for long text examples
         adaptive_iterations = min(2, int(max(1.0, L / self.length))) * iterations
         for j in range(adaptive_iterations): # j is index of sampling iteration
             sample(j, encoded_example)
-                
 
 
     def save(self, full_path, encoded_example:EncodedExample):
@@ -195,14 +178,10 @@ class Augment():
                 f.write(encoded_example.text)
             torch.save(encoded_example.textcoded, os.path.join(full_path, encoded_example.textcoded_filename))
             torch.save(encoded_example.features, os.path.join(full_path, encoded_example.features_filename))
-            if encoded_example.ocr_context is not None:
-                torch.save(encoded_example.ocr_context, os.path.join(full_path, encoded_example.ocr_context_filename))
-            if encoded_example.viz_context is not None:
-                torch.save(encoded_example.viz_context, os.path.join(full_path, encoded_example.viz_context_filename))
 
 
     @staticmethod
-    def display(text4th, tensor4th, ocr_context4th, viz_context4th):
+    def display(text4th, tensor4th):
         """
         Display text fragments and extracted features to the console.
         """
@@ -215,15 +194,7 @@ class Augment():
             feature = str(index2concept[j])
             track = [int(tensor4th[0, j, k]) for k in range(L)]
             print(''.join([['-','+'][x] for x in track]), feature)
-        if ocr_context4th is not None:
-            for j in range(ocr_context4th.size(1)):
-                feature = 'ocr_' + str(j)
-                track = [int(ocr_context4th[0, j, k]) for k in range(L)]
-                print(''.join([['-','+'][ceil(x)] for x in track]), feature)
-        if viz_context4th is not None:
-            feature = 'viz_' + str(j)
-            track = [int(x) for x in viz_context4th]
-            print(''.join([str(x) for x in track]), feature)
+
 
 class DataPreparator(object):
     """
@@ -244,9 +215,6 @@ class DataPreparator(object):
         self.exclusive_xpath = options['exclusive']
         # self.XPath_to_fig_title = options['Xpath_to_fig_title'] # './/fig/caption/title
         self.XPath_to_examples = options['XPath_to_examples'] # './/fig/caption' or './/sd-panel'
-        self.XPath_to_assets = options['XPath_to_assets'] # './/sd-panel/graphic' or './/fig/caption/graphic'
-        self.ocr = options['ocr']
-        self.viz = options['viz']
 
     @timer
     def encode_examples(self, subset, examples):
@@ -254,13 +222,10 @@ class DataPreparator(object):
         Encodes examples provided as XML Elements and writes them to disk.
         """
 
-        if self.ocr:
-            ocr = OCREncoder(config.image_dir)
         augmenter = Augment(self.length, self.sampling_mode, self.random_shifting, self.min_padding, self.verbose)
         N = len(examples)
         for i, ex in enumerate(examples):
             processed_xml = ex['processed']
-            graphic_filename = ex['graphic']
             prov = ex['provenance']
             original_text = ex['original_text']
             processed_text = ex['processed_text']
@@ -269,25 +234,8 @@ class DataPreparator(object):
             if original_text:
                 # ENCODING XML
                 encoded_features = XMLEncoder.encode(processed_xml)
-
-                # OCR and percetpual vision features
-                ocr_context = None
-                viz_context = None
-                if self.viz or self.ocr:
-                    if (graphic_filename is None or not os.path.exists(os.path.join(config.image_dir, graphic_filename))):
-                        print("\nskipped example prov={}: graphic file not available".format(prov))
-                    else:
-                        if self.ocr:
-                            ocr_context = ocr.encode(original_text, graphic_filename) # returns a tensor
-                        if self.viz:
-                            viz_context_filename = os.path.basename(graphic_filename)
-                            viz_context_filename = os.path.splitext(viz_context_filename)[0] + '.pyth'
-                            viz_context = torch.load(os.path.join(config.image_dir, viz_context_filename))
-                        encoded_example = EncodedExample(prov, processed_text, encoded_features, None, ocr_context, viz_context)
-                        augmenter.sample_and_save(path_to_encoded, encoded_example, self.iterations)
-                else:
-                    encoded_example = EncodedExample(prov, processed_text, encoded_features, None, ocr_context, viz_context)
-                    augmenter.sample_and_save(path_to_encoded, encoded_example, self.iterations)
+                encoded_example = EncodedExample(prov, processed_text, encoded_features, None)
+                augmenter.sample_and_save(path_to_encoded, encoded_example, self.iterations)
             else:
                 print("\nskipping an example without text in document with id=", prov)
 
@@ -366,27 +314,16 @@ class DataPreparator(object):
                         excluded.append(provenance)
                     else:
                         filtered_xml = self.exclusive(e, self.exclusive_xpath)
-                        original_text = special_innertext(filtered_xml) # restores missing spaces and updates the xml accordingly
+                        original_text = restorative_innertext(filtered_xml) # restores missing spaces and updates the xml accordingly
                         processed_xml = self.anonymize(filtered_xml, self.anonymization_xpath)
                         processed_text = innertext(processed_xml)
                         assert len(processed_text) == len(original_text), f"{len(processed_text)} != {len(original_text)}, \n {original_text}"
-                        g = e.find(self.XPath_to_assets) # Note: XPath_to_assets is to find graphic element *within* the example; NOT within the whole xml document!
-                        if g is not None:
-                            url = g.get('href')
-                            id = re.search(r'(panel_id|figure_id)=(\d+)', url)
-                            prefix = id.group(1)
-                            number = id.group(2)
-                            graphic_filename = prefix + "_" + number +".jpg"
-                        else:
-                            print('\nno graphic element found in the xml')
-                            graphic_filename = None
                         examples.append({
                             'xml': e,
                             'processed': processed_xml,
                             'original_text': original_text,
                             'processed_text': processed_text,
-                            'provenance': provenance,
-                            'graphic': graphic_filename
+                            'provenance': provenance
                         })
             print("\nnumber of examples excluded because of enrichment: {}".format(len(excluded)))
         return examples
@@ -402,7 +339,7 @@ class DataPreparator(object):
         print("config.data_dir", config.data_dir, os.getcwd())
         with cd(config.data_dir):
             subsets = os.listdir(self.compendium)
-            subsets = [s for s in subsets if s != '.DS_Store']
+            subsets = [s for s in subsets if s not in ['.DS_Store', '__MACOSX']]
 
         with cd(config.data4th_dir):
             if not os.path.isdir(self.namebase):
@@ -498,7 +435,6 @@ class DecoyDataPreparator(DataPreparator):
                 provenance = os.path.splitext(filename)[0]
                 if self.decoy_tags == ['notag']:
                     tagged = f"<article>{xml_escape(text)}</article>"
-                    
                 else:
                     tagged = self.random_tag(text, p=0.02, tagset = self.decoy_tags)
                 try:
@@ -514,8 +450,7 @@ class DecoyDataPreparator(DataPreparator):
                 examples.append({
                     'xml': tagged_xml,
                     'processed': processed,
-                    'provenance': provenance,
-                    'graphic': None
+                    'provenance': provenance
                 })
         return examples
 
@@ -529,17 +464,14 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='verbosity')
     parser.add_argument('-L', '--length', default=150, type=int, help='length of the text snippets used as example')
     parser.add_argument('-S', '--start', action='store_true', help='switches to mode where fig legends are simply taken from the start of the text and truncated appropriately')
-    parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text')
+    parser.add_argument('-d', '--disable_shifting', action='store_true', help='disable left random padding which is used by default to shift randomly text examples when augmenting dataset.')
     parser.add_argument('-g', '--padding', default=config.min_padding, help='minimum padding added to text')
     parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be processed. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-e', '--exclusive', default='', help='Xpath expressions to keep only specific tags. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-E', '--example', default='.//sd-panel', help='Xpath to extract examples from XML documents')
-    parser.add_argument('-G', '--graphic', default='.//graphic', help='Xpath to find link to graphic element in an example.')
     parser.add_argument('--decoy', default='', help='List of tags to use in order to generate a randomly tagged decoy dataset. Use "--decoy notag" to generate a decoy without tags')
-    parser.add_argument('--noocr', action='store_true', default=False, help='Set this flag to prevent use of image-based OCR data.')
-    parser.add_argument('--noviz', action='store_true', default=False, help='Set this flag to prevent use of image-based visual context data.')
-
+  
     args = parser.parse_args()
 
     options = {}
@@ -549,10 +481,7 @@ def main():
     options['verbose'] = args.verbose
     options['length'] = args.length
     options['path'] = args.path
-    options['ocr'] = not args.noocr
-    options['viz'] = not args.noviz
     options['XPath_to_examples'] = args.example
-    options['XPath_to_assets'] = args.graphic
     if args.start:
         options['sampling_mode'] = 'start'
     else:
@@ -567,8 +496,6 @@ def main():
     if args.brat:
         prep = BratDataPreparator(options)
     elif args.decoy:
-        options['viz'] = False
-        options['ocr'] = False
         prep = DecoyDataPreparator(options)
     else:
         prep = DataPreparator(options)
