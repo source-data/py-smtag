@@ -1,25 +1,36 @@
-# -*- coding: utf-8 -*-
-#T. Lemberger, 2018
+# © Thomas Lemberger 2020
 
+import math
+import os
+from typing import List, Tuple, NewType
+from random import shuffle
+from collections import namedtuple
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-import math
-import os
-from typing import List
-from random import shuffle
-from functools import lru_cache
 from ..common.mapper import Catalogue, concept2index
+from ..datagen.convert2th import EncodedExample
 from ..common.progress import progress
 from ..common.utils import tokenize, cd
-from ..datagen.convert2th import EncodedExample
 from .. import config
+
+# symbolic class for 3D Tensor in the Batch x Channel x Length format
+BxCxL = NewType('BxCxL', torch.Tensor)
+
+# symbolic class for 2D ByteTensors in Batch x Length format
+BxL = NewType('BxL', torch.Tensor)
+
+# items return by __get_item__() from Datasets
+Item = namedtuple('Item', ['text', 'provenance', 'input', 'output', 'target_class'])
+
+# minibatches returned after collating a list of Item()
+Minibatch = namedtuple('Minibatch', ['text', 'provenance', 'input', 'output', 'target_class'])
 
 
 class Data4th(Dataset):
 
     def __init__(self, opt: 'Options', subdir_list: List[str]):
-        # use a list of data_dir_path to aggregate several training set
+        # use a list of data_dir_path to aggregate several training sets
         data_dir_path_list = []
         for subdir in subdir_list:
             data_dir_path_list += [os.path.join(config.data4th_dir, dir, subdir) for dir in opt.data_path_list]
@@ -30,68 +41,65 @@ class Data4th(Dataset):
         self.N = len(self.path_list)
         self.opt = opt
         self.opt.L = self.sniff()
-        self.millefeuille = Assembler(self.opt)
+        self.millefeuille = Millefeuille(self.opt)
         self.tokenized = []
         print(f"listed {len(self.path_list)} data packages")
 
-    def sniff(self):
+    def sniff(self) -> int:
         sample_input = torch.load(os.path.join(self.path_list[0], EncodedExample.textcoded_filename))
         L = sample_input.size(2)
         return L
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.N
 
-    #@lru_cache(maxsize=config.cache_dataset)
-    def __getitem__(self, i):
+    def __getitem__(self, i: int) -> Item:
         path = self.path_list[i]
         textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename)).float()
         features = torch.load(os.path.join(path, EncodedExample.features_filename)).float()
-        ocr_context = None
-        if self.opt.use_ocr_context and os.path.isfile(os.path.join(path, EncodedExample.ocr_context_filename)):
-            ocr_context = torch.load(os.path.join(path, EncodedExample.ocr_context_filename)).float()
-        viz_context = torch.Tensor(0) # empty tensor
-        if self.opt.viz_context_table and os.path.isfile(os.path.join(path, EncodedExample.viz_context_filename)):
-            viz_context = torch.load(os.path.join(path, EncodedExample.viz_context_filename)).float()
-            viz_context = viz_context.view(1, -1) # vectorize to 1 x V; can be concatenated into batches torch.cat(vector_list, 0) and used in nn.Linear()
         with open(os.path.join(path, EncodedExample.text_filename), 'r') as f:
             text = f.read()
         with open(os.path.join(path, EncodedExample.provenance_filename), 'r') as f:
             provenance = f.read()
-        encoded_example = EncodedExample(provenance, text, features, textcoded, ocr_context, viz_context)
-        input, output = self.millefeuille.assemble(encoded_example)
-        return (text, provenance, input, output, viz_context)
+        encoded_example = EncodedExample(provenance, text, features, textcoded)
+        input, output, target_class = self.millefeuille.assemble(encoded_example)
+        return Item(text, provenance, input, output, target_class)
 
 
-class Assembler:
+class Millefeuille:
 
     def __init__(self, opt: 'Options'):
         self.opt = opt
 
-    def assemble(self, encoded_example):
+    def assemble(self, encoded_example: EncodedExample) -> Tuple[BxCxL, BxCxL]:
         
         # INPUT: ENCODED TEXT SAMPLES
         input = encoded_example.textcoded
 
-        # INPUT: IMAGE OCR FEATURES AS ADDITIONAL INPUT
-        ocr_features = None
-        if self.opt.use_ocr_context =='ocr1':
-            ocr_features = encoded_example.ocr_context[ : , -2, : ] + encoded_example.ocr_context[ : , -1, : ] # fuses vertical and horizontal features
-        elif self.opt.use_ocr_context =='ocr2':
-            ocr_features = encoded_example.ocr_context[ : , -2: , : ] # only vertical horizontal features
-        elif self.opt.use_ocr_context == 'ocrxy':
-            ocr_features = encoded_example.ocr_context
-
-        if ocr_features is not None:
-            input = torch.cat((input, ocr_features), 1)
-
         # OUTPUT SELECTION AND COMBINATION OF FEATURES
-        output = torch.cat([encoded_example.features[ : , concept2index[f], : ] for f in self.opt.selected_features], 0)
-        output.unsqueeze_(0)
+        selected_features_list = [encoded_example.features[ : , concept2index[f], : ] for f in self.opt.selected_features]
+        output = torch.cat(selected_features_list, 0) # 2D C x L
 
         # OUTPUT: add a feature for untagged characters; necessary for softmax classification
-        no_tag_feature = output.sum(1) # 3D 1 x C x L, is superposition of all features so far
-        no_tag_feature.unsqueeze_(0)
+        no_tag_feature = output.sum(1) # -> 1D L, is superposition of all features so far
+        no_tag_feature.unsqueeze_(0).unsqueeze_(0) # -> 3D 1 x 1 x L
         no_tag_feature = 1 - no_tag_feature # sets to 1 for char not tagged and to 0 for tagged characters
-        output = torch.cat((output, no_tag_feature), 1)
-        return input, output
+        output = torch.cat((output, no_tag_feature), 1) # 3D 1 x C x L
+        target_class = output.argmax(1) # when the output features are mutually exclusive, this allows cross_entropy or nll classification
+        return input, output, target_class
+
+def collate_fn(example_list: List[Item]) -> Minibatch:
+    """
+    Generates a minibatch by concatenating input and output tensors along the batch dimension. 
+    This function is used in the DataLoader object.
+    input and output tensors in Items should be 3D in B x C x L format.
+    target_class tensor should be in B x L format.
+    
+    Args:
+        example_list: list of Items() that form the minibatch. 
+    """
+
+    text, provenance, input, output, target_class = zip(*example_list)
+    input = torch.cat(input, 0)
+    output = torch.cat(output, 0)
+    return Minibatch(text=text, input=input, output=output, provenance=provenance, target_class=target_class)

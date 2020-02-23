@@ -6,10 +6,12 @@ import torch
 import argparse
 import numpy as np
 from random import randrange
+from typing import Tuple, Callable, NewType
 from torch.utils.data import DataLoader
 from torch import nn
-from .dataset import Data4th
-from .trainer import predict_fn, collate_fn
+from torch.nn import functional as F
+from ..train.dataset import Data4th, collate_fn, Minibatch, BxCxL, BxL
+from ..train.trainer import predict_fn
 from ..predict.decode import Decoder
 from ..common.progress import progress
 from ..common.importexport import load_model
@@ -19,36 +21,18 @@ from .. import config
 
 DEFAULT_THRESHOLD = config.default_threshold
 
+ByteTensor1D = NewType('ByteTensor', torch.ByteTensor)
+
 class Accuracy(object):
 
-    def __init__(self, model, minibatches, nf_output, tokenize=False):
+    def __init__(self, model, minibatches: DataLoader, nf_output: int):
         self.model = model
         self.minibatches = minibatches
         self.N = len(self.minibatches) * self.minibatches.batch_size
         self.nf = nf_output
-        self.tokenize  = tokenize
-        # self.target_concepts = []
-        # if torch.cuda.is_available(): # or torch.cuda.is_available() ?
-        #     self.cuda_on = True
-        # if self.tokenize:
-        #     for i, m in enumerate(self.minibatches):
-        #         progress(i, self.minibatches.minibatch_number, "tokenizing minibatch {}".format(i))
-        #         m_output = m.output
-        #         if self.cuda_on:
-        #             m_output = m_output.cuda()
-        #         m.add_token_lists()
-        #         d = Decoded(m.text, m_output, self.model.output_semantics)
-        #         d.decode_with_token(m.tokenized)
-        #         self.target_concepts.append(d.concepts)
-        # epsilon = 1e-12
-        # thresh = [concept.threshold for concept in self.model.output_semantics]
-        # self.thresholds = torch.Tensor(thresh).resize_(1, self.nf , 1 )
-        # if self.cuda_on:
-        #     self.thresholds = self.thresholds.cuda()
-        #     self.target_concepts = [b.cuda() for b in self.target_concepts]
 
     @timer
-    def run(self, predict_fn):
+    def run(self, predict_fn: Callable) -> Tuple[ByteTensor1D, ByteTensor1D,ByteTensor1D, torch.Tensor]:
         loss_avg = 0
         p_sum = torch.zeros(self.nf)
         tp_sum = torch.zeros(self.nf)
@@ -59,14 +43,12 @@ class Accuracy(object):
             fp_sum = fp_sum.cuda()
         for i, m in enumerate(self.minibatches):
             progress(i, len(self.minibatches), "\tevaluating model                              ")
-            x, y, y_hat, loss = predict_fn(self.model, m, eval=True)
-            # if self.tokenize:
-            #     prediction_decoded = Decoded(m.text, prediction, self.model.output_semantics)
-            #     prediction_decoded.decode_with_token(m.tokenized)
-            #     p, tp, fp = self.tpfp(prediction_decoded.concepts, self.target_concepts[i])
-            # else:
+            y_hat, loss = predict_fn(self.model, m, eval=True)
+            # training uses cross_entropy which combines log softmax with nll; here we need log_softmax before argmaxing for accuracy computation
+            # y_hat = F.log_softmax(y_hat) # necessary? monotonous does not change argmax
+            y_hat = y_hat.argmax(1)
             loss_avg += loss.cpu().data
-            p, tp, fp = self.tpfp(y_hat, y)
+            p, tp, fp = self.tpfp(y_hat, m.target_classes)
             p_sum += p
             tp_sum += tp
             fp_sum += fp
@@ -77,14 +59,19 @@ class Accuracy(object):
         return precision.cpu(), recall.cpu(), f1.cpu(), loss
 
     @staticmethod
-    def tpfp(prediction, target):
+    def tpfp(predicted_classes: BxL, target_classes: BxL) -> Tuple[ByteTensor1D, ByteTensor1D, ByteTensor1D]:
         """
+        Computing positives, true positives and false positives per feature.
+
         Args:
-            prediction (3D Tensor): predicted class features
-            target (3D Tensor): target classes
+            predicted_classes (2D BxL): predicted classes
+            target_classes (2D BxL): target classes
+
+        Returns:
+            positives (ByteTensor1D), true positives (ByteTensor1D), false positives (ByteTensor1D)
         """
 
-        nf = prediction.size(1)
+        nf = predicted_classes.size(0)
         cond_p = torch.zeros(nf).to(torch.float)
         pred_p = torch.zeros(nf).to(torch.float)
         tp = torch.zeros(nf).to(torch.float)
@@ -94,8 +81,6 @@ class Accuracy(object):
             pred_p = pred_p.cuda()
             tp = tp.cuda()
             fp = fp.cuda()
-        predicted_classes = prediction.argmax(1)
-        target_classes = target.argmax(1)
         for f in range(nf):
             cond_pos = (target_classes == f)
             pred_pos = (predicted_classes == f)
@@ -109,7 +94,7 @@ class Accuracy(object):
 
 class Benchmark():
 
-    def __init__(self, model_basename, testset_basenames):#, tokenize):
+    def __init__(self, model_basename, testset_basenames):
         self.model_name = model_basename
         self.model = load_model(model_basename)
         self.output_semantics = self.model.output_semantics
@@ -120,11 +105,10 @@ class Benchmark():
             self.model.cuda()
             self.model.output_semantics = self.output_semantics
 
-        # self.tokenize = tokenize
         self.opt.data_path_list = [os.path.join(config.data4th_dir, f) for f in testset_basenames] # it has to be a list (to allow joint training on multiple datasets)
         testset = Data4th(self.opt, ['test'])
         testset = DataLoader(testset, batch_size=self.opt.minibatch_size, shuffle=True, collate_fn=collate_fn, num_workers=0, drop_last=True, timeout=60)
-        benchmark = Accuracy(self.model, testset, self.opt.nf_output)#, tokenize=self.tokenize)
+        benchmark = Accuracy(self.model, testset, self.opt.nf_output)
         self.precision, self.recall, self.f1, self.loss = benchmark.run(predict_fn)
 
     def display(self):

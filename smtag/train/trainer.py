@@ -2,6 +2,7 @@
 #T. Lemberger, 2018
 
 import sys
+import os
 import resource
 from collections import namedtuple
 from random import randrange
@@ -11,102 +12,83 @@ from torch.utils.data import DataLoader
 from torch import nn, optim
 from torch.nn import functional as F
 from random import shuffle
-import logging
-from ..common.importexport import export_model, file_with_suffix
+from typing import Tuple
+from tensorboardX import SummaryWriter
+from ..common.importexport import export_model
+from ..train.builder import SmtagModel
+from ..train.dataset import collate_fn, BxCxL, BxL, Minibatch, Data4th
 from ..common.viz import Show, Plotter
 from ..common.progress import progress
 from .. import config
 
 
-Minibatch = namedtuple('Minibatch', ['text', 'input', 'output', 'viz_context', 'provenance'])
+def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[BxCxL, BxL, BxCxL, torch.Tensor]:
+    """
+    Prediction function used during training or evaluation of a model. 
 
-def predict_fn(model, batch, eval=False): # embeddings
+    Artgs:
+        model (SmtagModel): the model to be used for the prediction.
+        batch (Minibatch): a minibatch of examples with input, output, target_class and provenance.
+        eval (bool): flag to specify if the model is used in training or evaluation mode.
+    
+    Returns:
+        input tensor (BxCxL), target class tensor (BxL), predicted tensor (BxCxL), loss (torch.Tensor)
+    """
     x = batch.input
-    y = batch.output
-    viz_context = batch.viz_context
+    y = batch.target_class
     if torch.cuda.is_available():
         x = x.cuda()
         y = y.cuda()
-        viz_context = viz_context.cuda()
-    # x = embedding(x)
     if eval:
         with torch.no_grad():
             model.eval()
-            y_hat = model(x, viz_context)
+            y_hat = model(x)
             model.train()
     else:
-        y_hat = model(x, viz_context)
-    loss = F.nll_loss(y_hat, y.argmax(1))
-    # loss = F.binary_cross_entropy(y_hat, y)
-    return x, y, y_hat, loss
+        y_hat = model(x)
+    loss = F.cross_entropy(y_hat, y) # y is a target class tensor BxL
+    return y_hat, loss
 
-def collate_fn(example_list):
-    text, provenance, input, output, viz_context = zip(*example_list)
-    minibatch = Minibatch(
-        input = torch.cat(input, 0),
-        output = torch.cat(output, 0),
-        viz_context = torch.cat(viz_context, 0), 
-        provenance = provenance,
-        text = text
-    )
-    return minibatch
-
-from .evaluator import Accuracy # Accuracy needs predict_fn and collate_fn as well
-
+from .evaluator import Accuracy # Imported only now because Accuracy needs predict_fn().
 
 class Trainer:
 
-    def __init__(self, trainset, validation, model): # , embeddings
+    def __init__(self, trainset: Data4th, validation: Data4th, model: SmtagModel):
         self.model = model
-        #self.embeddings = embeddings
-        # we copy the options opt and output_semantics to the trainer itself
-        # in case we will need them during accuracy monitoring (for example to binarize output with feature-specific thresholds)
-        # on a GPU machine, the model is wrapped into a nn.DataParallel object and the opt and output_semantics attributes would not be directly accessible
-        self.opt = model.opt
-        self.output_semantics = model.output_semantics
-        # N = len(training_minibatches)
-        # B, C, L = training_minibatches[0].output.size()
-        # freq = [0] * C 
-        # for m in training_minibatches:
-        #     for j in range(C):
-        #         f = m.output[ : , j, : ]
-        #         freq[j] += f.sum()
-        # freq = [f/(N*B*L) for f in freq]
-        # self.weight = torch.Tensor([1/f for f in freq])
-        print(self.opt)
+        # assigning model.opt to self.opt because on a GPU machine, the model is wrapped into a nn.DataParallel object and its opt attribute would not be directly accessible
+        self.opt = self.model.opt
+        self.namebase = "_".join([str(f) for f in self.opt.selected_features]) # used to save models to disk
+        print(self.model.opt)
         # wrap model into nn.DataParallel if we are on a GPU machine
         self.num_workers = 0
         if torch.cuda.is_available():
             print(torch.cuda.device_count(), "GPUs available.")
-            self.model = nn.DataParallel(self.model)
-            self.model.cuda()
-            self.model.output_semantics = self.output_semantics
-            # self.weight = self.weight.cuda()
-            self.num_workers = 16
-            
-        self.plot = Plotter() # to visualize training with some plotting device (using now TensorboardX)
+            gpu_model = self.model.cuda()
+            gpu_model = nn.DataParallel(gpu_model)
+            self.model = gpu_model
+            self.num_workers = os.cpu_count()
         self.batch_size = self.opt.minibatch_size
         self.trainset = trainset
         self.validation = validation
         self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=self.num_workers, drop_last=True, timeout=60)
         self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=self.num_workers, drop_last=True, timeout=60)
-        self.evaluator = Accuracy(self.model, self.validation_minibatches, self.opt.nf_output, tokenize=False)
-        self.console = Show('console')
+        self.evaluator = Accuracy(self.model, self.validation_minibatches, self.opt.nf_output)
+        self.plot = SummaryWriter() # to visualize training
+        self.console = Show('console') # to output training progress to the console
 
-    def train(self):
+    def train(self) -> Tuple(SmtagModel, float):
         self.learning_rate = self.opt.learning_rate
         self.epochs = self.opt.epochs
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
         self.plot.add_text('parameters', str(self.opt))
-        N = len(self.trainset) // self.batch_size
-        f1_max = 0
+        N = len(self.trainset_minibatches) # the number of minibatches
+        best_f1 = 0 # keeps record of best f1 statistics achieved during training
         for e in range(self.epochs):
             avg_train_loss = 0 # loss averaged over all minibatches
-
             for i, batch in enumerate(self.trainset_minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
-                x, y, y_hat, loss = predict_fn(self.model, batch)
+                y_hat, loss = predict_fn(self.model, batch)
                 loss.backward()
                 avg_train_loss += loss.cpu().item() # important otherwise not freed from the graph
                 self.optimizer.step()
@@ -115,17 +97,16 @@ class Trainer:
             print("\n")
             avg_train_loss = avg_train_loss / N
             precision, recall, f1, avg_validation_loss = self.evaluator.run(predict_fn)
-            self.plot.add_scalars("losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
-            self.plot.add_scalars("f1", {str(i): f1[i] for i in range(self.opt.nf_output)}, e)
-            self.plot.add_scalars("precision", {str(i): precision[i] for i in range(self.opt.nf_output)}, e)
-            self.plot.add_scalars("recall", {str(i): recall[i] for i in range(self.opt.nf_output)}, e)
-            self.plot.add_progress("progress", avg_train_loss, f1, self.output_semantics, e)
-            print(self.console.example(self.validation_minibatches, self.model))
-            # self.plot.add_example("examples", self.markdown.example(self.validation_minibatches, self.model, e)
-            if f1.mean() > f1_max:
-                f1_max = f1.mean()
-                export_model(self.model, custom_name = file_with_suffix(self.opt.namebase, self.opt.selected_features) + f'_epoch_{e}')
+            self.plot.add_scalars("data/losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
+            self.plot.add_scalars("data/f1", {str(i): f1[i] for i in range(self.opt.nf_output)}, e)
+            self.plot.add_scalars("data/precision", {str(i): precision[i] for i in range(self.opt.nf_output)}, e)
+            self.plot.add_scalars("data/recall", {str(i): recall[i] for i in range(self.opt.nf_output)}, e)
+            self.console.example(self.validation, self.model)
+            # save the new model only if it achieves a better performance
+            if f1.mean() > best_f1:
+                best_f1 = f1.mean()
+                best_model_name = self.namebase + f'_epoch_{e}'
+                export_model(self.model, best_model_name)
         self.plot.close()
         print("\n")
-        return avg_train_loss, avg_validation_loss, precision, recall, f1
-
+        return best_model_name, best_f1

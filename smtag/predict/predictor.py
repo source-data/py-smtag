@@ -15,7 +15,7 @@ from ..common.embeddings import EMBEDDINGS
 from ..common.mapper import Concept
 from .. import config
 
-import cProfile
+# import cProfile
 from time import time
 
 PADDING_CHAR = config.padding_char
@@ -61,7 +61,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(x, viz_contexts) #.float() # prediction is 3D 1 x C x L
-            prediction = torch.exp(prediction) # to get 0..1 positive scores
+            prediction = torch.softmax(prediction) # to get 0..1 positive scores
             self.model.train()
         if torch.cuda.is_available():
             prediction = prediction.cpu()
@@ -117,7 +117,7 @@ class ContextualPredictor(Predictor):
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(x_list, viz_contexts) # ContextCombinedModel takes List[torch.Tensor] as input and -> prediction is 3D N x C x L
-            prediction = torch.exp(prediction) # to get 0..1 positive scores
+            prediction = torch.softmax(prediction) # to get 0..1 positive scores
             self.model.train()
         if torch.cuda.is_available():
             prediction = prediction.cpu()
