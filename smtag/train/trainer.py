@@ -17,7 +17,6 @@ from tensorboardX import SummaryWriter
 from ..common.importexport import export_model
 from ..train.builder import SmtagModel
 from ..train.dataset import collate_fn, BxCxL, BxL, Minibatch, Data4th
-from ..common.viz import Show, Plotter
 from ..common.progress import progress
 from .. import config
 
@@ -50,6 +49,7 @@ def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[B
     return y_hat, loss
 
 from .evaluator import Accuracy # Imported only now because Accuracy needs predict_fn().
+from ..common.viz import Show
 
 class Trainer:
 
@@ -76,7 +76,7 @@ class Trainer:
         self.plot = SummaryWriter() # to visualize training
         self.console = Show('console') # to output training progress to the console
 
-    def train(self) -> Tuple(SmtagModel, float):
+    def train(self) -> Tuple[SmtagModel, float]:
         self.learning_rate = self.opt.learning_rate
         self.epochs = self.opt.epochs
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)

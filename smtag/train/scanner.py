@@ -53,15 +53,10 @@ class HyperScan():
         self.scanned_models_path = os.path.join(self.dir_name, 'models')
 
 
-    def append(self, model, perf, opt, id):
-        perf['precision'] = perf['precision'].mean()
-        perf['recall'] = perf['recall'].mean()
-        perf['f1'] = perf['f1'].mean()
-        perf['train_loss'] = perf['train_loss'].mean()
-        perf['valid_loss'] = perf['valid_loss'].mean()
+    def append(self, model_name, perf, opt, id):
+        perf['best model'] = perf['best_model_name']
+        perf['f1'] = perf['f1']
         self.append_to_csv(perf, opt, self.perf_path)
-        model_filename = 'scanned_model_' + str(id)
-        export_model(model, model_filename, model_dir = self.scanned_models_path)
 
     @staticmethod
     def append_to_csv(row, opt, mypath):

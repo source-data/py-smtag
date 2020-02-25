@@ -22,7 +22,7 @@ class EngineTest(SmtagTestCase):
     def repeated_run(self, method, examples, n=2):
         ml_old = []
         for i in range(n):
-            ml = method(examples, [], sdtag='sd-tag', format='xml')
+            ml = method(examples, sdtag='sd-tag', format='xml')
             print(ml)
             self.assertIsInstance(ml, list)
             self.assertIsInstance(ml[0], str)
@@ -46,7 +46,7 @@ class EngineTest(SmtagTestCase):
 
     def test_role(self):
         pretagged = '<smtag>We analyzed <sd-tag type="tissue" type_score="47">brain</sd-tag> and <sd-tag type="tissue" type_score="44">muscle</sd-tag> from <sd-tag type="geneprod" type_score="49" role_score="46">Creb1</sd-tag>-/- knockout <sd-tag type="organism" type_score="49">mice</sd-tag> after <sd-tag type="small_molecule" type_score="49">bafilomycin A</sd-tag> treatment.</smtag>'
-        ml = self.engine.role([pretagged]*2, [], sdtag='sd-tag')
+        ml = self.engine.role([pretagged]*2, sdtag='sd-tag')
         expected_inner_text = "".join([x for x in fromstring(pretagged).itertext()])
         self.assertEqual(len(ml), 2)
         self.assertIsInstance(ml[0], bytes)

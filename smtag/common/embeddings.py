@@ -1,7 +1,7 @@
 import os
 import torch
 from torch import nn
-from toolbox.importexport import load_model
+from .importexport import load_autoencoder
 from toolbox.models import Container1d, CatStack1d, HyperparametersCatStack
 from typing import ClassVar
 from .. import config
@@ -34,13 +34,10 @@ class Embedding:
         else:
             return x
 
-def load_embedding(path):
+def load_embedding(path, filename):
     embedding_model = None
-    container = load_model(path, Container1d, CatStack1d)
-    for sub_module in container.children():
-        if isinstance(sub_module, CatStack1d):
-            embedding_model = sub_module
-            break
+    autoencoder = load_autoencoder(path, filename)
+    embedding_model = dict(autoencoder.named_children())['embed']
     if embedding_model is None:
         raise EmbeddingSubModuleNoFoundError(CatStack1d)
     if torch.cuda.is_available() and embedding_model is not None:
@@ -53,7 +50,6 @@ def load_embedding(path):
 
 embedding_model = None
 if config.embeddings_model:
-    path = os.path.join(config.embeddings_dir, config.embeddings_model)
-    embedding_model = load_embedding(path)
+    embedding_model = load_embedding(config.prod_dir, config.embeddings_model)
 
 EMBEDDINGS = Embedding(embedding_model)

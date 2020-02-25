@@ -14,7 +14,7 @@ from ..train.dataset import Data4th, collate_fn, Minibatch, BxCxL, BxL
 from ..train.trainer import predict_fn
 from ..predict.decode import Decoder
 from ..common.progress import progress
-from ..common.importexport import load_model
+from ..common.importexport import load_container
 from ..common.utils import timer
 from ..common.options import Options
 from .. import config
@@ -48,7 +48,7 @@ class Accuracy(object):
             # y_hat = F.log_softmax(y_hat) # necessary? monotonous does not change argmax
             y_hat = y_hat.argmax(1)
             loss_avg += loss.cpu().data
-            p, tp, fp = self.tpfp(y_hat, m.target_classes)
+            p, tp, fp = self.tpfp(self.nf, y_hat, m.target_class)
             p_sum += p
             tp_sum += tp
             fp_sum += fp
@@ -59,11 +59,12 @@ class Accuracy(object):
         return precision.cpu(), recall.cpu(), f1.cpu(), loss
 
     @staticmethod
-    def tpfp(predicted_classes: BxL, target_classes: BxL) -> Tuple[ByteTensor1D, ByteTensor1D, ByteTensor1D]:
+    def tpfp(nf: int, predicted_classes: BxL, target_classes: BxL) -> Tuple[ByteTensor1D, ByteTensor1D, ByteTensor1D]:
         """
         Computing positives, true positives and false positives per feature.
 
         Args:
+            nf (int): number of features
             predicted_classes (2D BxL): predicted classes
             target_classes (2D BxL): target classes
 
@@ -71,7 +72,6 @@ class Accuracy(object):
             positives (ByteTensor1D), true positives (ByteTensor1D), false positives (ByteTensor1D)
         """
 
-        nf = predicted_classes.size(0)
         cond_p = torch.zeros(nf).to(torch.float)
         pred_p = torch.zeros(nf).to(torch.float)
         tp = torch.zeros(nf).to(torch.float)
@@ -96,7 +96,7 @@ class Benchmark():
 
     def __init__(self, model_basename, testset_basenames):
         self.model_name = model_basename
-        self.model = load_model(model_basename)
+        self.model = load_container(model_basename)
         self.output_semantics = self.model.output_semantics
         self.opt = self.model.opt
         if torch.cuda.is_available():

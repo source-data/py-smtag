@@ -50,7 +50,7 @@ class Config():
     _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
     _ocr_max_edit_dist = 0.1 # max edit distance per character length between ocr term and matching term in caption
     _ocr_min_overlap   = 2 # minimum length of overlap between ocr term and caption term
-    nbits             = 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
+    nbits             = int(os.getenv('NBITS')) # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
     _embedding_out_channels = 128 # the number of channels used for learned deep embeddings
     _marking_char      = '_' # Substitution special xml-compatible character used to mark anonymized entities.
     _masking_proba     = 1.0 # probability with wich an element selected to be potentially masked is effectively masked
@@ -62,23 +62,13 @@ class Config():
 
     ############################################################################
     # MODELS
-    #
-    # WITH VISUAL CONTEXT
-    # _model_entity_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-01-16-07.zip"
-    # _model_geneprod_role_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-20-14-52.zip"
-    # _model_molecule_role_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-15-17.zip"
-    # # no diseasee model with viz context because no traininset for this
-    # no reporter model with viz because viz does not help
-    # no panel_stop model with viz because viz does not help
-
-    # WITHOUT VISUAL CONTEXT
     _model_entity_no_viz = "10X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-10-27-09-28.zip"
     _model_geneprod_reporter_no_viz = "10X_L1200_article_embeddings_128_reporter_2019-10-28-00-43.zip"
     _model_geneprod_role_no_viz = "10X_L1200_anonym_not_reporter_article_embbeddings_128_intervention_assayed_2019-10-27-12-25.zip"
     _model_molecule_role_no_viz = "10X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-10-27-21-03.zip"
     _model_disease_no_viz = "10X_L1200_disease_article_embeddings_128-10X_L1200_figure_article_embeddings_128_disease_2019-10-28-06-44_epoch_10.zip"
     _model_panel_stop_no_viz = "10X_L1200_figure_emboj_2012_article_embeddings_128_panel_stop_2019-10-28-11-19.zip"
-    _embeddings_model = "article_embeddings_128.zip"
+    _embeddings_model = "2020-02-24-01-31_last_saved.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
@@ -157,12 +147,6 @@ class Config():
             os.mkdir(scans_dir)
         return scans_dir
     @property
-    def embeddings_dir(self):
-        embedd_dir = os.path.join(self.working_directory, self._embeddings_dir_name)
-        if not os.path.exists(embedd_dir):
-            os.mkdir(embedd_dir)
-        return embedd_dir
-    @property
     def embeddings_model(self):
         return self._embeddings_model
     @property
@@ -234,7 +218,6 @@ class Config():
         Probability with wich an element selected for potential masking will actually be masked.
         """
         return self._masking_proba
-    
     @property
     def padding_char(self):
         """

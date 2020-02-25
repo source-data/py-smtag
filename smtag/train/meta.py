@@ -21,7 +21,7 @@ from .trainer import Trainer
 from .scanner import HyperScan
 from .builder import SmtagModel
 from ..common.utils import cd
-from ..common.importexport import load_model
+from ..common.importexport import load_container
 from ..common.options import Options
 from ..common.embeddings import EMBEDDINGS
 from .. import config
@@ -42,7 +42,7 @@ class Meta():
     def _train(self, trainset, validation, opt):
         # check if previous model specified and load it with importmodel
         if opt.modelname:
-            model = load_model(opt.modelname) # load pre-trained pre-existing model
+            model = load_container(opt.modelname) # load pre-trained pre-existing model
         else:
             model = SmtagModel(opt)
             print(model)
@@ -64,16 +64,18 @@ class Meta():
 def main():
     parser = config.create_argument_parser_with_defaults(description='Top level module to manage training.')
     parser.add_argument('-f', '--files', default='', help='Namebase of dataset to import')
-    parser.add_argument('-E' , '--epochs',  default=200, help='Number of training epochs.')
-    parser.add_argument('-Z', '--minibatch_size', default=32, help='Minibatch size.')
+    parser.add_argument('-E' , '--epochs',  default=200, type=int, help='Number of training epochs.')
+    parser.add_argument('-Z', '--minibatch_size', default=32, type=int, help='Minibatch size.')
     parser.add_argument('-R', '--learning_rate', default=0.01, type=float, help='Learning rate.')
     parser.add_argument('-D', '--dropout_rate', default=0.1, type=float, help='Dropout rate.')
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
-    parser.add_argument('-n', '--nf_table', default="32,32,32", help='Number of features in each hidden super-layer.')
-    parser.add_argument('-k', '--kernel_table', default="7,7,7", help='Convolution kernel for each hidden layer.')
-    parser.add_argument('-g', '--padding_table',  default="3,3,3", help='Padding for each hidden layer (use quotes if comma+space delimited).')
+    parser.add_argument('-c', '--hidden_channels', default=32, type=int, help='Number of features in each hidden super-layer.')
+    parser.add_argument('-k', '--kernel', default=7, type=int, help='Convolution kernel for each hidden layer.')
+    parser.add_argument('-s', '--stride', default=1, type=int, help='Stride of the convolution.')
+    parser.add_argument('-g', '--padding',  default=3, type=int, help='Padding for each hidden layer (use quotes if comma+space delimited).')
+    parser.add_argument('-N', '--N_layers', default=3, type=int, help="Number of layers in the model.")
     parser.add_argument('--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
-    parser.add_argument('--iterations', default=25, help='Number of iterations for the hyperparameters scanning.')
+    parser.add_argument('--iterations', default=25, type=int, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('--production', action='store_true', help='Production mode, where train and valid are combined and test used to control for overfitting.')
     parser.add_argument('--model', default='', help='Load pre-trained model and continue training.')
     
@@ -85,14 +87,15 @@ def main():
     opt['namebase'] = "-".join(opt['data_path_list'])
     opt['modelname'] = arguments.model
     opt['learning_rate'] = float(arguments.learning_rate)
-    opt['dropout'] = float(arguments.dropout_rate)
-    opt['skip'] = not arguments.no_skip
-    opt['epochs'] = int(arguments.epochs)
-    opt['minibatch_size'] = int(arguments.minibatch_size)
+    opt['dropout_rate'] = float(arguments.dropout_rate)
+    opt['epochs'] = arguments.epochs
+    opt['minibatch_size'] = arguments.minibatch_size
     opt['selected_features'] = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
-    opt['nf_table'] = [int(x.strip()) for x in arguments.nf_table.split(',')]
-    opt['kernel_table'] = [int(x.strip()) for x in arguments.kernel_table.split(',')]
-    opt['padding_table'] = [int(x.strip()) for x in arguments.padding_table.split(',')]
+    opt['N_layers'] = arguments.N_layers
+    opt['hidden_channels'] = arguments.hidden_channels
+    opt['kernel'] = arguments.kernel
+    opt['padding'] = arguments.padding
+    opt['stride'] = arguments.stride
     if config.embeddings_model:
         opt['nf_input'] = EMBEDDINGS.model.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
     else:

@@ -71,7 +71,7 @@ class Millefeuille:
     def __init__(self, opt: 'Options'):
         self.opt = opt
 
-    def assemble(self, encoded_example: EncodedExample) -> Tuple[BxCxL, BxCxL]:
+    def assemble(self, encoded_example: EncodedExample) -> Tuple[BxCxL, BxCxL, BxL]:
         
         # INPUT: ENCODED TEXT SAMPLES
         input = encoded_example.textcoded
@@ -79,12 +79,12 @@ class Millefeuille:
         # OUTPUT SELECTION AND COMBINATION OF FEATURES
         selected_features_list = [encoded_example.features[ : , concept2index[f], : ] for f in self.opt.selected_features]
         output = torch.cat(selected_features_list, 0) # 2D C x L
-
+        output.unsqueeze_(0) # -> 3D 1 x C x L
         # OUTPUT: add a feature for untagged characters; necessary for softmax classification
-        no_tag_feature = output.sum(1) # -> 1D L, is superposition of all features so far
-        no_tag_feature.unsqueeze_(0).unsqueeze_(0) # -> 3D 1 x 1 x L
+        no_tag_feature = output.sum(1) # -> 2D 1 x L, is superposition of all features so far
+        no_tag_feature.unsqueeze_(0) # -> 3D 1 x 1 x L
         no_tag_feature = 1 - no_tag_feature # sets to 1 for char not tagged and to 0 for tagged characters
-        output = torch.cat((output, no_tag_feature), 1) # 3D 1 x C x L
+        output = torch.cat((output, no_tag_feature), 1) # 3D 1 x C+1 x L
         target_class = output.argmax(1) # when the output features are mutually exclusive, this allows cross_entropy or nll classification
         return input, output, target_class
 
@@ -102,4 +102,5 @@ def collate_fn(example_list: List[Item]) -> Minibatch:
     text, provenance, input, output, target_class = zip(*example_list)
     input = torch.cat(input, 0)
     output = torch.cat(output, 0)
+    target_class = torch.cat(target_class, 0)
     return Minibatch(text=text, input=input, output=output, provenance=provenance, target_class=target_class)

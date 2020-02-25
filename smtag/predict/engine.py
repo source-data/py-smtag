@@ -11,73 +11,21 @@ from xml.etree.ElementTree import tostring, fromstring, Element
 from ..common.utils import tokenize, Token, timer
 from ..common.converter import TString, StringList
 from ..common.mapper import Catalogue
-from ..common.importexport import load_model
 from ..datagen.encoder import XMLEncoder
-from ..datagen.context import VisualContext
 from .decode import CharLevelDecoder, Decoder
 from .predictor import Predictor, ContextualPredictor, CharLevelPredictor
 from .markup import Serializer
+from .cartridges import Cartridge, NO_VIZ
 from .updatexml import updatexml_list
 from ..common.viz import Show
 from .. import config
-import cProfile
-
-class CombinedModel(nn.Module):
-    '''
-    This module takes a list of SmtagModels and concatenates their output along the second dimension (feature axe).
-    The output_semantics keeps track of the semantics of each module in the right order.
-    '''
-
-    def __init__(self, models: OrderedDict):
-        super(CombinedModel, self).__init__()
-        self.semantic_groups = OrderedDict()
-        self.model_list = nn.ModuleDict(models)
-        self.semantic_groups = {g:models[g].output_semantics for g in models}
-
-    def forward(self, x, viz_context):
-        y_list = []
-        for group in self.semantic_groups:
-            model = self.model_list[group]
-            y_list.append(model(x, viz_context))
-        y = torch.cat(y_list, 1)        
-        return y
-
-class ContextCombinedModel(nn.Module):
-
-    def __init__(self, models: OrderedDict):
-        super(ContextCombinedModel, self).__init__()
-        self.semantic_groups = OrderedDict()
-        self.anonymize_with = []
-        self.model_list = nn.ModuleList()
-        for group in models:
-            model, anonymization = models[group]
-            self.anonymize_with.append(anonymization)
-            self.model_list.append(model)
-            self.semantic_groups[group] = model.output_semantics
-        #super(ContextCombinedModel, self).__init__(self.model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
-
-    def forward(self, x_list: List[torch.Tensor], viz_context) -> torch.Tensor: # takes a list of inputs each specifically anonymized for each context model
-        y_list = [] 
-        for m, x in zip(self.model_list, x_list):
-            y_list.append(m(x, viz_context))
-        y = torch.cat(y_list, 1)
-        return y
-
-class Cartridge():
-
-    def __init__(self, entity_models: CombinedModel, reporter_models: CombinedModel, context_models:CombinedModel, panelize_model:CombinedModel, viz_preprocessor:VisualContext):
-        self.entity_models = entity_models
-        self.reporter_models = reporter_models
-        self.context_models = context_models
-        self.panelize_model = panelize_model
-        self.viz_preprocessor = viz_preprocessor
 
 
 class SmtagEngine:
 
     DEBUG = False
 
-    def __init__(self, cartridge:Cartridge):
+    def __init__(self, cartridge: Cartridge):
         self.entity_models = cartridge.entity_models
         self.reporter_models = cartridge.reporter_models
         self.context_models = cartridge.context_models
@@ -85,8 +33,8 @@ class SmtagEngine:
         self.viz_context_processor = cartridge.viz_preprocessor
 
     @timer
-    def __panels(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> CharLevelDecoder:
-        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_strings, token_lists, viz_contexts)
+    def __panels(self, input_t_strings: TString, token_lists: List[List[Token]]) -> CharLevelDecoder:
+        decoded = CharLevelPredictor(self.panelize_model).predict(input_t_strings, token_lists)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
@@ -94,16 +42,16 @@ class SmtagEngine:
         return decoded
 
     @timer
-    def __entity(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
-        decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists, viz_contexts)
+    def __entity(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
+        decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded
     @timer
-    def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
-        decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists, viz_contexts)
+    def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
+        decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter reporter: {decoded.semantic_groups} {B}x{C}x{L}")
@@ -111,25 +59,25 @@ class SmtagEngine:
         return decoded
 
     @timer
-    def __context(self, entities: Decoder, viz_context) -> Decoder: # entities carries the copy of the input_string and token_list
-        decoded = ContextualPredictor(self.context_models).predict(entities, viz_context)
+    def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
+        decoded = ContextualPredictor(self.context_models).predict(entities)
         if self.DEBUG:
             B, C, L = decoded.prediction.size()
             print(f"\nafter context: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    def __entity_and_role(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts) -> Decoder:
-        output = self.__entity(input_t_strings, token_lists, viz_contexts)
+    def __entity_and_role(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
+        output = self.__entity(input_t_strings, token_lists)
         # output = entities.clone() # clone just in case, test if necessary...should not be
-        reporter = self.__reporter(input_t_strings, token_lists, viz_contexts)
+        reporter = self.__reporter(input_t_strings, token_lists)
         entities_less_reporter = output.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output.cat_(reporter)
-        context = self.__context(entities_less_reporter, viz_contexts)
+        context = self.__context(entities_less_reporter)
         output.cat_(context)
         return output
 
-    def __role_from_pretagged(self, input_xml_list: List[Element], viz_contexts) -> Decoder:
+    def __role_from_pretagged(self, input_xml_list: List[Element]) -> Decoder:
         input_strings = []
         for xml_str in input_xml_list:
             input_strings.append(''.join([s for s in xml_str.itertext()]))
@@ -152,29 +100,29 @@ class SmtagEngine:
         semantic_groups['entities'].append(Catalogue.UNTAGGED)
         entities = Decoder(StringList(input_strings), encoded_cat.float(), semantic_groups)
         entities.decode(token_lists)
-        reporter = self.__reporter(input_t_strings, token_lists, viz_contexts)
+        reporter = self.__reporter(input_t_strings, token_lists)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
         output = reporter # there was a clone() here??
-        context = self.__context(entities_less_reporter, viz_contexts)
+        context = self.__context(entities_less_reporter)
         output.cat_(context)
         return output
 
-    def __all(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts):
+    def __all(self, input_t_strings: TString, token_lists: List[List[Token]]):
         if self.DEBUG:
             print("\nText:")
             print("    "+str(input_t_strings))
 
-        panels = self.__panels(input_t_strings, token_lists, viz_contexts)
+        panels = self.__panels(input_t_strings, token_lists)
         output = panels
 
-        entities = self.__entity(input_t_strings, token_lists, viz_contexts)
+        entities = self.__entity(input_t_strings, token_lists)
         output.cat_(entities.clone())
 
-        reporter = self.__reporter(input_t_strings, token_lists, viz_contexts)
+        reporter = self.__reporter(input_t_strings, token_lists)
         output.cat_(reporter) # add reporter prediction to output features
 
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD)) # how ugly!
-        context = self.__context(entities_less_reporter, viz_contexts)
+        context = self.__context(entities_less_reporter)
         output.cat_(context)
 
         if self.DEBUG:
@@ -190,20 +138,6 @@ class SmtagEngine:
         ml = Serializer(tag=sdtag, format=format).serialize(output)
         return ml
 
-    def __img_preprocess(self, img):
-        # what does get_context return if img is None? or torch.Tensor(0)?
-        # context returns a black image if img is None
-        # the Context module returns an empty list if context is torch.Tensor(0)
-        # what to do if no img for _with_viz model
-        # what to do if img for _no_viz
-        if img:
-            viz_context = self.viz_context_processor.get_context(img)
-            vectorized = viz_context.view(1, -1) # WATCH OUT: torch.Tensor(0).view(1,-1).size() is torch.Size([1, 0])
-        else:
-            vectorized = torch.Tensor(0) # the model will then skip the Context module and only uses the unet with the text
-        return vectorized
-
-
     def __string_preprocess(self, input_strings: List[str]) -> Tuple[TString, List[List[Token]]]:
         if isinstance(input_strings, str):
             input_strings = [input_strings] # for backward compatibility
@@ -212,41 +146,39 @@ class SmtagEngine:
         return input_t_strings, token_lists
 
     @timer
-    def __preprocess(self, input_strings: List[str], imgs) -> Tuple[TString, List[List[Token]], List[torch.Tensor]]:
+    def __preprocess(self, input_strings: List[str]) -> Tuple[TString, List[List[Token]], List[torch.Tensor]]:
         input_t_strings, token_lists = self.__string_preprocess(input_strings)
-        viz_contexts = self.__img_preprocess(imgs)
-        return input_t_strings, token_lists, viz_contexts
+        return input_t_strings, token_lists
 
     @timer
-    def entity(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
-        prepro = self.__preprocess(input_strings, imgs) # input_t_strings, token_lists, viz_contexts
+    def entity(self, input_strings: List[str], sdtag, format) -> List[str]:
+        prepro = self.__preprocess(input_strings) # input_t_strings, token_lists, viz_contexts
         pred = self.__entity(*prepro)
         return self.__serialize(pred, sdtag, format)
 
     @timer
-    def tag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
-        prepro = self.__preprocess(input_strings, imgs)
+    def tag(self, input_strings: List[str], sdtag, format) -> List[str]:
+        prepro = self.__preprocess(input_strings)
         pred = self.__entity_and_role(*prepro)
         return self.__serialize(pred, sdtag, format)
 
     @timer
-    def smtag(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
-        prepro = self.__preprocess(input_strings, imgs)
+    def smtag(self, input_strings: List[str], sdtag, format) -> List[str]:
+        prepro = self.__preprocess(input_strings)
         pred = self.__all(*prepro)
         return self.__serialize(pred, sdtag, format)
 
     @timer
-    def role(self, input_xml_strings: List[str], imgs, sdtag)  -> List[bytes]:
+    def role(self, input_xml_strings: List[str], sdtag)  -> List[bytes]:
         input_xmls = [fromstring(s) for s in input_xml_strings]
-        viz_contexts = self.__img_preprocess(imgs)
-        pred = self.__role_from_pretagged(input_xmls, viz_contexts)
+        pred = self.__role_from_pretagged(input_xmls)
         updated_xml = updatexml_list(input_xmls, pred, pretag=fromstring('<'+sdtag+'/>')) # in place, xml Elements and List mutable
         updated_xml_bytes = [tostring(x) for x in updated_xml] # tostring() returns bytes...
         return updated_xml_bytes
 
     @timer
-    def panelizer(self, input_strings: List[str], imgs: List, sdtag, format) -> List[str]:
-        prepro = self.__preprocess(input_strings, imgs)
+    def panelizer(self, input_strings: List[str], sdtag, format) -> List[str]:
+        prepro = self.__preprocess(input_strings)
         pred = self.__panels(*prepro)
         return self.__serialize(pred, format=format)
 
@@ -283,20 +215,19 @@ def main():
 
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
-    # cv_img = torch.zeros(500, 500, 3).numpy()
     engine = SmtagEngine(NO_VIZ)
     engine.DEBUG = DEBUG
     
     if method == 'smtag':
-        print(engine.smtag([input_string], [], sdtag, format))
+        print(engine.smtag([input_string], sdtag, format))
     elif method == 'panelize':
-        print(engine.panelizer([input_string], [], sdtag, format))
+        print(engine.panelizer([input_string], sdtag, format))
     elif method == 'tag':
-        print(engine.tag([input_string], [], sdtag, format))
+        print(engine.tag([input_string], sdtag, format))
     elif method == 'entity':
-        print(engine.entity([input_string, input_string], [], sdtag, format))
+        print(engine.entity([input_string, input_string], sdtag, format))
     elif method == 'role':
-        print(engine.role([input_string], [], sdtag)) # can only be xml format
+        print(engine.role([input_string], sdtag)) # can only be xml format
     else:
         print("unknown method {}".format(method))
 

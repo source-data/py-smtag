@@ -48,7 +48,7 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         else:
             return EMBEDDINGS(x.tensor)
 
-    def forward(self, input_t_strings:TString, viz_contexts: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_t_strings:TString) -> torch.Tensor:
         # PADD TO MINIMAL LENGTH
         safely_padded, padding_length = self.padding(input_t_strings)
         
@@ -56,11 +56,9 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         x = self.embed(safely_padded)
 
         # PREDICTION
-        if torch.cuda.is_available():
-            viz_contexts = viz_contexts.cuda()
         with torch.no_grad():
             self.model.eval()
-            prediction = self.model(x, viz_contexts) #.float() # prediction is 3D 1 x C x L
+            prediction = self.model(x) #.float() # prediction is 3D 1 x C x L
             prediction = torch.softmax(prediction) # to get 0..1 positive scores
             self.model.train()
         if torch.cuda.is_available():
@@ -78,8 +76,8 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         decoded.decode(token_lists)
         return decoded
 
-    def predict(self, input_t_strings: TString, token_lists: List[List[Token]], viz_contexts: torch.Tensor) -> Decoder:
-        prediction = self.forward(input_t_strings, viz_contexts)
+    def predict(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
+        prediction = self.forward(input_t_strings)
         decoded = self.decode(input_t_strings.toStringList(), token_lists, prediction, self.model.semantic_groups)
         return decoded
 
@@ -102,7 +100,7 @@ class ContextualPredictor(Predictor):
             res_list.append(res)
         return TString(StringList(res_list))
 
-    def forward(self, input_t_strings_list: List[TString], viz_contexts):
+    def forward(self, input_t_strings_list: List[TString]):
         # PADDING AND EMBEDDING OF THE *LIST* OF TStrings THAT WERE EACH ANONMYMIZED IN A DIFFERENT WAY
         safely_padded = []
         for inp in input_t_strings_list:
@@ -111,12 +109,11 @@ class ContextualPredictor(Predictor):
 
         if torch.cuda.is_available():
             x_list = [EMBEDDINGS(p.tensor.cuda()) for p in safely_padded]
-            viz_contexts = viz_contexts.cuda()
         else:
             x_list = [EMBEDDINGS(p.tensor) for p in safely_padded]
         with torch.no_grad():
             self.model.eval()
-            prediction = self.model(x_list, viz_contexts) # ContextCombinedModel takes List[torch.Tensor] as input and -> prediction is 3D N x C x L
+            prediction = self.model(x_list) # ContextCombinedModel takes List[torch.Tensor] as input and -> prediction is 3D N x C x L
             prediction = torch.softmax(prediction) # to get 0..1 positive scores
             self.model.train()
         if torch.cuda.is_available():
@@ -126,7 +123,7 @@ class ContextualPredictor(Predictor):
         prediction = prediction[ : , : , padding_length : len(inp)+padding_length]
         return prediction
 
-    def predict(self, for_anonymization: Decoder, viz_contexts) -> Decoder:
+    def predict(self, for_anonymization: Decoder) -> Decoder:
         input_t_strings_list = []
         for anonymization in self.model.anonymize_with:
             group = anonymization['group']
@@ -134,7 +131,7 @@ class ContextualPredictor(Predictor):
             anonymized_tstring = self.anonymize(for_anonymization, group, concept)
             input_t_strings_list.append(anonymized_tstring)
         
-        prediction = self.forward(input_t_strings_list, viz_contexts)
+        prediction = self.forward(input_t_strings_list)
         input_strings = for_anonymization.input_strings
         token_lists = for_anonymization.token_lists
         decoded = self.decode(input_strings, token_lists, prediction, self.model.semantic_groups)

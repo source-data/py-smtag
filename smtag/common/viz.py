@@ -79,16 +79,17 @@ class Show():
         nf_output = item.output.size(1)
         if model is not None:
             y_hat, loss = predict_fn(model, item, eval=True)
-        if nf_input > config.nbits:
-            out += "\nAdditional input features:"+self.nl+self.nl
-            out += "    "+self.print_pretty(item.input[[0], NBITS:nf_input, : ]) + self.nl + self.nl
+        # WRONG: EMBEDDING will be > NBITS
+        # if nf_input > config.nbits:
+        #     out += "\nAdditional input features:" + self.nl + self.nl
+        #     out += "    " + self.print_pretty(item.input[[0], config.nbits:nf_input, : ]) + self.nl + self.nl
         out+= "\n__Expected:__" + "({})".format(item.provenance.strip()) + self.nl + self.nl
         out += self.print_pretty_color(item.target_class, nf_output, item.text) + self.nl + self.nl
         out += self.print_pretty(item.output) + self.nl + self.nl
         if model is not None:
             out += "__Predicted:__" + self.nl + self.nl
             out += self.print_pretty_color(y_hat.argmax(1), nf_output, item.text) + self.nl + self.nl
-            out += self.print_pretty(y_hat) + self.nl + self.nl
+            out += self.print_pretty(torch.sigmoid(y_hat)) + self.nl + self.nl
         out += ""
         print(out)
         return out
@@ -101,21 +102,22 @@ class Show():
         B = features.size(0)
         C = features.size(1)
         L = features.size(2)
-        
-        for n in range(B):
-            track = f"Example {n}" + self.nl + self.nl
-            for i in range(C):
-                track += f"Tagging track {i}" + self.nl
-                for j in range(L):
-                    k = min(N-1, math.floor(N*features[n, i, j])) # 0 -> 0; 0.2 -> 1; 0.4 -> 2; 0.6 -> 3; 0.8 -> 4; 1.0 -> 4
-                    track += Show.SYMBOLS[k]
-                track += self.nl + self.nl
-            out += track + self.nl + self.nl
+        assert B==1
+        track = f"Example" + self.nl + self.nl
+        for i in range(C):
+            track += f"Tagging track {i}" + self.nl
+            for j in range(L):
+                k = min(N-1, math.floor(N*features[0, i, j])) # 0 -> 0; 0.2 -> 1; 0.4 -> 2; 0.6 -> 3; 0.8 -> 4; 1.0 -> 4
+                track += Show.SYMBOLS[k]
+            track += self.nl + self.nl
+        out += track + self.nl + self.nl
         return out
 
     def print_pretty_color(self, features: BxL, nf_features: int, text: str):
         text = text.replace(config.marking_char, '#')
         colored_track = "    "
-        for code, c in zip(features, text):
+        B = features.size(0)
+        assert B==1
+        for code, c in zip(features[0], text):
             colored_track += f"{self.col[nf_features - 1 - int(code.item())]}{c}{self.close}"
         return colored_track
