@@ -42,12 +42,12 @@ class Meta():
     def _train(self, trainset, validation, opt):
         # check if previous model specified and load it with importmodel
         if opt.modelname:
-            model = load_container(opt.modelname) # load pre-trained pre-existing model
+            model = load_container(config.model_dir, opt.modelname) # load pre-trained pre-existing model
         else:
             model = SmtagModel(opt)
             print(model)
-        last_model, best_f1 = Trainer(trainset, validation, model).train() # best models saved to disk
-        return  last_model, best_f1
+        model, precision, recall, f1, avg_validation_loss = Trainer(trainset, validation, model).train() # best models saved to disk
+        return  model, precision, recall, f1, avg_validation_loss
 
     def simple_training(self):
         self._train(self.trainset, self.validation, self.opt) # models are saved to disk during training
@@ -58,7 +58,7 @@ class Meta():
     #         scan = HyperScan(self.opt, scan_name)
     #         for i in range(iterations):
     #             self.opt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
-    #             best_model_name, best_f1 = self._train(self.trainset, self.validation, self.opt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
+    #             model, precision, recall, f1, avg_validation_loss = self._train(self.trainset, self.validation, self.opt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
     #             scan.append(best_model_name, best_f1, self.opt, i)
 
 def main():

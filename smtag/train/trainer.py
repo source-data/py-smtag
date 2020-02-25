@@ -82,7 +82,6 @@ class Trainer:
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
         self.plot.add_text('parameters', str(self.opt))
         N = len(self.trainset_minibatches) # the number of minibatches
-        best_f1 = 0 # keeps record of best f1 statistics achieved during training
         for e in range(self.epochs):
             avg_train_loss = 0 # loss averaged over all minibatches
             for i, batch in enumerate(self.trainset_minibatches):
@@ -102,11 +101,7 @@ class Trainer:
             self.plot.add_scalars("data/precision", {str(i): precision[i] for i in range(self.opt.nf_output)}, e)
             self.plot.add_scalars("data/recall", {str(i): recall[i] for i in range(self.opt.nf_output)}, e)
             self.console.example(self.validation, self.model)
-            # save the new model only if it achieves a better performance
-            if f1.mean() > best_f1:
-                best_f1 = f1.mean()
-                best_model_name = self.namebase + f'_epoch_{e}'
-                export_model(self.model, best_model_name)
+            export_model(self.model, self.namebase + f"_epoch_{e:03d}")
         self.plot.close()
         print("\n")
-        return best_model_name, best_f1
+        return self.model, precision, recall, f1, avg_validation_loss

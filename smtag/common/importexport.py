@@ -16,8 +16,7 @@ from ..train.builder import SmtagModel
 from .options import Options
 
 def export_model(model: SmtagModel, filename: str, model_dir: str=config.model_dir):
-    path = os.path.join(model_dir, filename)
-    model_io.export_model(model, path, filename)
+    model_io.export_model(model, model_dir, filename)
 
 def load_autoencoder(model_dir:str, filename:str):
     path = os.path.join(model_dir, filename)
