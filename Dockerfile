@@ -16,5 +16,9 @@ COPY . /workspace/py-smtag
 #RUN --mount=type=ssh git clone --branch multihead git@github.com:source-data/vsearch
 RUN pip install --upgrade pip setuptools && \
     pip install -e /workspace/py-smtag && \
+    pip install -r /workspace/py-smtag/smtag/requirements.txt && \
+    # pip install tensorflow==1.8.0 && \
+    # pip install tensorboardX==1.6 && \
+    # smtag-meta --help -w /workspace/py-smtag/resources && \
     rm -Rf /workspace/py-smtag
 
