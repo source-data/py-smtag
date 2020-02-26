@@ -14,7 +14,7 @@ from torch.nn import functional as F
 from random import shuffle
 from typing import Tuple
 from tensorboardX import SummaryWriter
-from ..common.importexport import export_model
+from ..common.importexport import export_smtag_model
 from ..train.builder import SmtagModel
 from ..train.dataset import collate_fn, BxCxL, BxL, Minibatch, Data4th
 from ..common.progress import progress
@@ -101,7 +101,7 @@ class Trainer:
             self.plot.add_scalars("data/precision", {str(i): precision[i] for i in range(self.opt.nf_output)}, e)
             self.plot.add_scalars("data/recall", {str(i): recall[i] for i in range(self.opt.nf_output)}, e)
             self.console.example(self.validation, self.model)
-            export_model(self.model, self.namebase + f"_epoch_{e:03d}")
+            export_smtag_model(self.model, self.namebase + f"_epoch_{e:03d}")
         self.plot.close()
         print("\n")
         return self.model, precision, recall, f1, avg_validation_loss
