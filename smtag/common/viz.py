@@ -98,7 +98,7 @@ class Show():
         C = features.size(1)
         L = features.size(2)
         assert B==1
-        track = f"Example" + self.nl + self.nl
+        track = self.nl + self.nl
         for i in range(C):
             track += f"Tagging track {i}" + self.nl
             for j in range(L):

@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from typing import List
-from ..common.importexport import load_model
+from ..common.importexport import load_smtag_model
 from ..common.mapper import Catalogue
 from collections import OrderedDict
 from .. import config
@@ -59,12 +59,12 @@ class Cartridge():
 
 
 models = {
-    'reporter':             load_model(config.model_geneprod_reporter_no_viz, config.prod_dir),
-    'panel':                load_model(config.model_panel_stop_no_viz,        config.prod_dir),
-    'entity_no_viz':        load_model(config.model_entity_no_viz,            config.prod_dir),
-    'geneprod_role_no_viz': load_model(config.model_geneprod_role_no_viz,     config.prod_dir),
-    'molecule_role_no_viz': load_model(config.model_molecule_role_no_viz,     config.prod_dir),
-    'disease':              load_model(config.model_disease_no_viz,           config.prod_dir),
+    'reporter':             load_smtag_model(config.model_geneprod_reporter_no_viz, config.prod_dir),
+    'panel':                load_smtag_model(config.model_panel_stop_no_viz,        config.prod_dir),
+    'entity_no_viz':        load_smtag_model(config.model_entity_no_viz,            config.prod_dir),
+    'geneprod_role_no_viz': load_smtag_model(config.model_geneprod_role_no_viz,     config.prod_dir),
+    'molecule_role_no_viz': load_smtag_model(config.model_molecule_role_no_viz,     config.prod_dir),
+    'disease':              load_smtag_model(config.model_disease_no_viz,           config.prod_dir),
 }
 
 # put models on GPU DataParallel when possible

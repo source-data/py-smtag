@@ -43,8 +43,9 @@ def export_smtag_model(model: SmtagModel, filename: str, model_dir: str=config.m
             os.remove(model_path)
             myzip.write(opt_path)
             os.remove(opt_path)
+        print(f"\nModel {filename} saved to {archive_path}.")
     except Exception as e: 
-        print(f"MODEL NOT SAVED: {filename}, {path}")
+        print(f"\nMODEL NOT SAVED: {filename}, {path}")
         print(e)
     return archive_path
 
