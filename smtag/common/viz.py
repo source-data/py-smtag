@@ -75,14 +75,9 @@ class Show():
         out = ""
         rand_i = math.floor(len(dataset) * random())
         item = dataset[rand_i]
-        nf_input = item.input.size(1)
         nf_output = item.output.size(1)
         if model is not None:
-            y_hat, loss = predict_fn(model, item, eval=True)
-        # WRONG: EMBEDDING will be > NBITS
-        # if nf_input > config.nbits:
-        #     out += "\nAdditional input features:" + self.nl + self.nl
-        #     out += "    " + self.print_pretty(item.input[[0], config.nbits:nf_input, : ]) + self.nl + self.nl
+            y, y_hat, loss = predict_fn(model, item, eval=True)
         out+= "\n__Expected:__" + "({})".format(item.provenance.strip()) + self.nl + self.nl
         out += self.print_pretty_color(item.target_class, nf_output, item.text) + self.nl + self.nl
         out += self.print_pretty(item.output) + self.nl + self.nl
