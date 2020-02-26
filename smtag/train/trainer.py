@@ -62,7 +62,7 @@ class Trainer:
         # wrap model into nn.DataParallel if we are on a GPU machine
         self.num_workers = 0
         if torch.cuda.is_available():
-            print(torch.cuda.device_count(), "GPUs available.")
+            print(torch.cuda.device_count(), "GPUs available for training.")
             gpu_model = self.model.cuda()
             gpu_model = nn.DataParallel(gpu_model)
             self.model = gpu_model

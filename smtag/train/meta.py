@@ -97,7 +97,7 @@ def main():
     opt['padding'] = arguments.padding
     opt['stride'] = arguments.stride
     if config.embeddings_model:
-        opt['nf_input'] = EMBEDDINGS.model.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
+        opt['nf_input'] = EMBEDDINGS.model.hp.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
     else:
         opt['nf_input'] = config.nbits
     production_mode = arguments.production
