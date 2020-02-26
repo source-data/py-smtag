@@ -35,9 +35,9 @@ def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[B
     """
     x = batch.input
     y = batch.target_class
-    if torch.cuda.is_available():
-        x = x.cuda()
-        y = y.cuda()
+    # if torch.cuda.is_available():
+    #     x = x.cuda()
+    #     y = y.cuda()
     if eval:
         with torch.no_grad():
             model.eval()

@@ -44,6 +44,7 @@ class Data4th(Dataset):
         self.millefeuille = Millefeuille(self.opt)
         self.tokenized = []
         print(f"listed {len(self.path_list)} data packages")
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     def sniff(self) -> int:
         sample_input = torch.load(os.path.join(self.path_list[0], EncodedExample.textcoded_filename))
@@ -55,8 +56,8 @@ class Data4th(Dataset):
 
     def __getitem__(self, i: int) -> Item:
         path = self.path_list[i]
-        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename), map_location='cpu').float()
-        features = torch.load(os.path.join(path, EncodedExample.features_filename), map_location='cpu').float()
+        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename), map_location=self.device).float()
+        features = torch.load(os.path.join(path, EncodedExample.features_filename), map_location=self.device).float()
         with open(os.path.join(path, EncodedExample.text_filename), 'r') as f:
             text = f.read()
         with open(os.path.join(path, EncodedExample.provenance_filename), 'r') as f:
