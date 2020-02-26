@@ -96,7 +96,7 @@ class Benchmark():
 
     def __init__(self, model_basename, testset_basenames):
         self.model_name = model_basename
-        self.model = load_container(model_basename)
+        self.model = load_container(config.model_dir, model_basename)
         self.output_semantics = self.model.output_semantics
         self.opt = self.model.opt
         if torch.cuda.is_available():
