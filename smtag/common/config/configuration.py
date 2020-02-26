@@ -44,14 +44,7 @@ class Config():
     #
     _cache_dataset     = 1024 # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
     _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
-    _allowed_img       = ['.jpg', '.jpeg', '.png']
-    _img_grid_size     = 7 # grid size used to encode the location of elements on images
-    _resized_img_size  = 512 # size of the resized image used for visual context
-    _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
-    _ocr_max_edit_dist = 0.1 # max edit distance per character length between ocr term and matching term in caption
-    _ocr_min_overlap   = 2 # minimum length of overlap between ocr term and caption term
     nbits             = int(os.getenv('NBITS')) # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
-    _embedding_out_channels = 128 # the number of channels used for learned deep embeddings
     _marking_char      = '_' # Substitution special xml-compatible character used to mark anonymized entities.
     _masking_proba     = 1.0 # probability with wich an element selected to be potentially masked is effectively masked
     _padding_char      = '`' # " " # character used to padd strings; would be smarter to use character different from space
