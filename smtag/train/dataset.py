@@ -56,8 +56,8 @@ class Data4th(Dataset):
 
     def __getitem__(self, i: int) -> Item:
         path = self.path_list[i]
-        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename), map_location="cpu").float()
-        features = torch.load(os.path.join(path, EncodedExample.features_filename), map_location="cpu").float()
+        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename), map_location="cuda:0").float()
+        features = torch.load(os.path.join(path, EncodedExample.features_filename), map_location="cuda:0").float()
         with open(os.path.join(path, EncodedExample.text_filename), 'r') as f:
             text = f.read()
         with open(os.path.join(path, EncodedExample.provenance_filename), 'r') as f:
