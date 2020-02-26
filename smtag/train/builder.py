@@ -13,11 +13,12 @@ from ..common.options import Options
 from ..common.mapper import Concept, Catalogue
 from .. import config
 
+
 class SmtagModel(Container1d):
 
     def __init__(self, opt: Options):
         # map options to attributes of standard Hyperparameter object from toolbox
-        hp = HyperparametersCatStack(
+        self.hp = HyperparametersCatStack(
             in_channels = opt.nf_input,
             hidden_channels = opt.hidden_channels,
             out_channels = opt.nf_output,
@@ -25,9 +26,9 @@ class SmtagModel(Container1d):
             N_layers = opt.N_layers,
             kernel = opt.kernel,
             padding = opt.padding,
-            stride = opt.stride,
+            stride = opt.stride
         )
-        super().__init__(hp, CatStack1d)
+        super().__init__(self.hp, CatStack1d)
         self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
         self.output_semantics.append(Catalogue.UNTAGGED) # because softmax (as included in cross_entropy loss) needs untagged class when classifying entities.
         self.opt = opt

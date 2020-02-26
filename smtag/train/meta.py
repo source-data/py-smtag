@@ -21,7 +21,7 @@ from .trainer import Trainer
 from .scanner import HyperScan
 from .builder import SmtagModel
 from ..common.utils import cd
-from ..common.importexport import load_container
+from ..common.importexport import load_smtag_model
 from ..common.options import Options
 from ..common.embeddings import EMBEDDINGS
 from .. import config
@@ -42,7 +42,7 @@ class Meta():
     def _train(self, trainset, validation, opt):
         # check if previous model specified and load it with importmodel
         if opt.modelname:
-            model = load_container(config.model_dir, opt.modelname) # load pre-trained pre-existing model
+            model = load_smtag_model(opt.modelname, config.model_dir) # load pre-trained pre-existing model
         else:
             model = SmtagModel(opt)
             print(model)
