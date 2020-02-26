@@ -26,7 +26,7 @@ def export_smtag_model(model: SmtagModel, filename: str, model_dir: str=config.m
         model_dir (str): the path to the directory where the mode should be saved (default: config.model_dir)
     """
 
-    path = None
+    path = model_dir
     try:
         if torch.cuda.is_available():
             model = deepcopy(model.module) # model.module.state_dict() the use map_location='cpu' or 'cuda:0' appropriately?
