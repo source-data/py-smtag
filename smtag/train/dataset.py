@@ -56,14 +56,17 @@ class Data4th(Dataset):
 
     def __getitem__(self, i: int) -> Item:
         path = self.path_list[i]
-        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename), map_location=self.device).float()
-        features = torch.load(os.path.join(path, EncodedExample.features_filename), map_location=self.device).float()
+        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename), map_location="cpu").float()
+        features = torch.load(os.path.join(path, EncodedExample.features_filename), map_location="cpu").float()
         with open(os.path.join(path, EncodedExample.text_filename), 'r') as f:
             text = f.read()
         with open(os.path.join(path, EncodedExample.provenance_filename), 'r') as f:
             provenance = f.read()
         encoded_example = EncodedExample(provenance, text, features, textcoded)
         input, output, target_class = self.millefeuille.assemble(encoded_example)
+        input = input.to(self.device)
+        output = output.to(self.device)
+        target_class = target_class.to(self.device)
         return Item(text, provenance, input, output, target_class)
 
 
