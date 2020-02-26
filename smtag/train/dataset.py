@@ -64,9 +64,13 @@ class Data4th(Dataset):
             provenance = f.read()
         encoded_example = EncodedExample(provenance, text, features, textcoded)
         input, output, target_class = self.millefeuille.assemble(encoded_example)
-        input = input.to(self.device)
-        output = output.to(self.device)
-        target_class = target_class.to(self.device)
+        if torch.cuda.is_available():
+            input = input.cuda()
+            output = output.cuda()
+            target_class = target_class.cuda()
+        # input = input.to(self.device)
+        # output = output.to(self.device)
+        # target_class = target_class.to(self.device)
         return Item(text, provenance, input, output, target_class)
 
 
