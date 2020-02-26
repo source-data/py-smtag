@@ -17,6 +17,15 @@ from .options import Options
 
 
 def export_smtag_model(model: SmtagModel, filename: str, model_dir: str=config.model_dir):
+    """
+    Saving a SmtagMode, including its Options.
+
+    Args:
+        model (SmtagModel): the model whose parameters should be saved.
+        filename (str): the filename of the archive.
+        model_dir (str): the path to the directory where the mode should be saved (default: config.model_dir)
+    """
+
     path = None
     try:
         if torch.cuda.is_available():
@@ -35,7 +44,7 @@ def export_smtag_model(model: SmtagModel, filename: str, model_dir: str=config.m
             myzip.write(opt_path)
             os.remove(opt_path)
     except Exception as e: 
-        print(f"MODEL NOT SAVED: {filename}, {model_path}")
+        print(f"MODEL NOT SAVED: {filename}, {path}")
         print(e)
     return archive_path
 
