@@ -6,7 +6,6 @@ import math
 from random import randint, uniform
 from copy import copy
 from datetime import datetime
-from ..common.importexport import export_model
 from ..common.utils import cd
 
 NL = "\n"
