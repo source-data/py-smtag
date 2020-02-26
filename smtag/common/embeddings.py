@@ -44,7 +44,7 @@ def load_embedding(path, filename):
         print(f"{torch.cuda.device_count()} GPUs available for embeddings.")
         gpu_model = embedding_model.cuda()
         gpu_model = nn.DataParallel(gpu_model)
-        # gpu_model.hp = embedding_model.hp
+        gpu_model.hp = embedding_model.hp
         embedding_model = gpu_model
     return embedding_model
 
