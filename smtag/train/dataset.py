@@ -44,7 +44,6 @@ class Data4th(Dataset):
         self.millefeuille = Millefeuille(self.opt)
         self.tokenized = []
         print(f"listed {len(self.path_list)} data packages")
-        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     def sniff(self) -> int:
         sample_input = torch.load(os.path.join(self.path_list[0], EncodedExample.textcoded_filename))
@@ -56,21 +55,14 @@ class Data4th(Dataset):
 
     def __getitem__(self, i: int) -> Item:
         path = self.path_list[i]
-        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename), map_location="cuda:0").float()
-        features = torch.load(os.path.join(path, EncodedExample.features_filename), map_location="cuda:0").float()
+        textcoded = torch.load(os.path.join(path, EncodedExample.textcoded_filename), map_location="cpu").float()
+        features = torch.load(os.path.join(path, EncodedExample.features_filename), map_location="cpu").float()
         with open(os.path.join(path, EncodedExample.text_filename), 'r') as f:
             text = f.read()
         with open(os.path.join(path, EncodedExample.provenance_filename), 'r') as f:
             provenance = f.read()
         encoded_example = EncodedExample(provenance, text, features, textcoded)
         input, output, target_class = self.millefeuille.assemble(encoded_example)
-        if torch.cuda.is_available():
-            input = input.cuda()
-            output = output.cuda()
-            target_class = target_class.cuda()
-        # input = input.to(self.device)
-        # output = output.to(self.device)
-        # target_class = target_class.to(self.device)
         return Item(text, provenance, input, output, target_class)
 
 
@@ -111,4 +103,8 @@ def collate_fn(example_list: List[Item]) -> Minibatch:
     input = torch.cat(input, 0)
     output = torch.cat(output, 0)
     target_class = torch.cat(target_class, 0)
+    if torch.cuda.is_available():
+        input = input.cuda()
+        output = output.cuda()
+        target_class = target_class.cuda()
     return Minibatch(text=text, input=input, output=output, provenance=provenance, target_class=target_class)
