@@ -43,12 +43,12 @@ class Accuracy(object):
             fp_sum = fp_sum.cuda()
         for i, m in enumerate(self.minibatches):
             progress(i, len(self.minibatches), "\tevaluating model                              ")
-            y_hat, loss = predict_fn(self.model, m, eval=True)
+            y, y_hat, loss = predict_fn(self.model, m, eval=True)
             # training uses cross_entropy which combines log softmax with nll; here we need log_softmax before argmaxing for accuracy computation
             # y_hat = F.log_softmax(y_hat) # necessary? monotonous does not change argmax
             y_hat = y_hat.argmax(1)
             loss_avg += loss.cpu().data
-            p, tp, fp = self.tpfp(self.nf, y_hat, m.target_class)
+            p, tp, fp = self.tpfp(self.nf, y_hat, y)
             p_sum += p
             tp_sum += tp
             fp_sum += fp

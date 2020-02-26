@@ -46,7 +46,7 @@ def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[B
     else:
         y_hat = model(x)
     loss = F.cross_entropy(y_hat, y) # y is a target class tensor BxL
-    return y_hat, loss
+    return y, y_hat, loss
 
 from .evaluator import Accuracy # Imported only now because Accuracy needs predict_fn().
 from ..common.viz import Show
@@ -87,7 +87,7 @@ class Trainer:
             for i, batch in enumerate(self.trainset_minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
-                y_hat, loss = predict_fn(self.model, batch)
+                y, y_hat, loss = predict_fn(self.model, batch)
                 loss.backward()
                 avg_train_loss += loss.cpu().item() # important otherwise not freed from the graph
                 self.optimizer.step()
