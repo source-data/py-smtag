@@ -103,8 +103,8 @@ def collate_fn(example_list: List[Item]) -> Minibatch:
     input = torch.cat(input, 0)
     output = torch.cat(output, 0)
     target_class = torch.cat(target_class, 0)
-    if torch.cuda.is_available():
-        input = input.cuda()
-        output = output.cuda()
-        target_class = target_class.cuda()
+    # if torch.cuda.is_available():
+    #     input = input.cuda()
+    #     output = output.cuda()
+    #     target_class = target_class.cuda()
     return Minibatch(text=text, input=input, output=output, provenance=provenance, target_class=target_class)
