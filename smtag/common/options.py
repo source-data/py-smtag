@@ -2,8 +2,8 @@ from .mapper import Catalogue, concept2index
 from toolbox.models import HyperparametersCatStack
 from .. import config
 
-
-class Options():
+# TODO: derive this by extending toolbox.models.Hyperparameters class
+class HyperparemetersSmtagModel(HyperparametersCatStack):
 
     def __init__(self, opt=None):
         self.descriptor = "undefined"
@@ -37,15 +37,15 @@ class Options():
     def __str__(self):
         return self.descriptor
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        return state
+    # def __getstate__(self):
+    #     state = self.__dict__.copy()
+    #     return state
     
-    def __setstate__(self, state):
-        self.__dict__.update(state)
+    # def __setstate__(self, state):
+    #     self.__dict__.update(state)
 
-    def state_dict(self):
-        return self.__getstate__()
+    # def state_dict(self):
+    #     return self.__getstate__()
 
-    def load_state_dict(self, state):
-        self.__setstate__(state)
+    # def load_state_dict(self, state):
+    #     self.__setstate__(state)

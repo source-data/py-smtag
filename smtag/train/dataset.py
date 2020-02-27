@@ -8,8 +8,9 @@ from collections import namedtuple
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from ..common.mapper import Catalogue, concept2index
+from ..common.mapper import Catalogue, concept2index, Concept
 from ..datagen.convert2th import EncodedExample
+from .builder import HyperparemetersSmtagModel
 from ..common.progress import progress
 from ..common.utils import tokenize, cd
 from .. import config
@@ -29,19 +30,19 @@ Minibatch = namedtuple('Minibatch', ['text', 'provenance', 'input', 'output', 't
 
 class Data4th(Dataset):
 
-    def __init__(self, opt: 'Options', subdir_list: List[str]):
+    def __init__(self, hp: HyperparemetersSmtagModel, subdir_list: List[str]):
         # use a list of data_dir_path to aggregate several training sets
         data_dir_path_list = []
         for subdir in subdir_list:
-            data_dir_path_list += [os.path.join(config.data4th_dir, dir, subdir) for dir in opt.data_path_list]
+            data_dir_path_list += [os.path.join(config.data4th_dir, dir, subdir) for dir in hp.data_path_list]
         self.path_list = []
         for data_dir_path in data_dir_path_list:
             new_list = [os.path.join(data_dir_path, d) for d in os.listdir(data_dir_path) if d not in config.dirignore]
             self.path_list += new_list
         self.N = len(self.path_list)
-        self.opt = opt
-        self.opt.L = self.sniff()
-        self.millefeuille = Millefeuille(self.opt)
+        self.hp = hp
+        self.hp.L = self.sniff()
+        self.millefeuille = Millefeuille(self.hp.selected_features)
         self.tokenized = []
         print(f"listed {len(self.path_list)} data packages")
 
@@ -68,8 +69,8 @@ class Data4th(Dataset):
 
 class Millefeuille:
 
-    def __init__(self, opt: 'Options'):
-        self.opt = opt
+    def __init__(self, selected_features: List[Concept]):
+        self.selected_features = selected_features
 
     def assemble(self, encoded_example: EncodedExample) -> Tuple[BxCxL, BxCxL, BxL]:
         
@@ -77,7 +78,7 @@ class Millefeuille:
         input = encoded_example.textcoded
 
         # OUTPUT SELECTION AND COMBINATION OF FEATURES
-        selected_features_list = [encoded_example.features[ : , concept2index[f], : ] for f in self.opt.selected_features]
+        selected_features_list = [encoded_example.features[ : , concept2index[f], : ] for f in self.selected_features]
         output = torch.cat(selected_features_list, 0) # 2D C x L
         output.unsqueeze_(0) # -> 3D 1 x C x L
         # OUTPUT: add a feature for untagged characters; necessary for softmax classification

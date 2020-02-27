@@ -14,7 +14,7 @@ from torch.nn import functional as F
 from random import shuffle
 from typing import Tuple
 from tensorboardX import SummaryWriter
-from ..common.importexport import export_smtag_model
+from ..common.importexport import load_smtag_model, export_smtag_model
 from ..train.builder import SmtagModel
 from ..train.dataset import collate_fn, BxCxL, BxL, Minibatch, Data4th
 from ..common.progress import progress
@@ -56,9 +56,9 @@ class Trainer:
     def __init__(self, trainset: Data4th, validation: Data4th, model: SmtagModel):
         self.model = model
         # assigning model.opt to self.opt because on a GPU machine, the model is wrapped into a nn.DataParallel object and its opt attribute would not be directly accessible
-        self.opt = self.model.opt
-        self.namebase = "_".join([str(f) for f in self.opt.selected_features]) # used to save models to disk
-        print(self.model.opt)
+        self.hp = self.model.hp
+        self.namebase = "_".join([str(f) for f in self.hp.selected_features]) # used to save models to disk
+        print(self.model.hp)
         # wrap model into nn.DataParallel if we are on a GPU machine
         self.num_workers = 0
         if torch.cuda.is_available():
@@ -67,20 +67,20 @@ class Trainer:
             gpu_model = nn.DataParallel(gpu_model)
             self.model = gpu_model
             self.num_workers = os.cpu_count()
-        self.batch_size = self.opt.minibatch_size
+        self.batch_size = self.hp.minibatch_size
         self.trainset = trainset
         self.validation = validation
         self.trainset_minibatches = DataLoader(trainset, batch_size=self.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=self.num_workers, drop_last=True, timeout=60)
         self.validation_minibatches = DataLoader(validation, batch_size=self.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=self.num_workers, drop_last=True, timeout=60)
-        self.evaluator = Accuracy(self.model, self.validation_minibatches, self.opt.nf_output)
+        self.evaluator = Accuracy(self.model, self.validation_minibatches, self.hp.out_channels)
         self.plot = SummaryWriter() # to visualize training
         self.console = Show('console') # to output training progress to the console
 
     def train(self) -> Tuple[SmtagModel, float]:
-        self.learning_rate = self.opt.learning_rate
-        self.epochs = self.opt.epochs
+        self.learning_rate = self.hp.learning_rate
+        self.epochs = self.hp.epochs
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.learning_rate)
-        self.plot.add_text('parameters', str(self.opt))
+        self.plot.add_text('parameters', str(self.hp))
         N = len(self.trainset_minibatches) # the number of minibatches
         for e in range(self.epochs):
             avg_train_loss = 0 # loss averaged over all minibatches
@@ -97,9 +97,9 @@ class Trainer:
             avg_train_loss = avg_train_loss / N
             precision, recall, f1, avg_validation_loss = self.evaluator.run(predict_fn)
             self.plot.add_scalars("data/losses", {'train': avg_train_loss, 'valid': avg_validation_loss}, e) # log the losses for tensorboardX
-            self.plot.add_scalars("data/f1", {str(i): f1[i] for i in range(self.opt.nf_output)}, e)
-            self.plot.add_scalars("data/precision", {str(i): precision[i] for i in range(self.opt.nf_output)}, e)
-            self.plot.add_scalars("data/recall", {str(i): recall[i] for i in range(self.opt.nf_output)}, e)
+            self.plot.add_scalars("data/f1", {str(i): f1[i] for i in range(self.hp.out_channels)}, e)
+            self.plot.add_scalars("data/precision", {str(i): precision[i] for i in range(self.hp.out_channels)}, e)
+            self.plot.add_scalars("data/recall", {str(i): recall[i] for i in range(self.hp.out_channels)}, e)
             self.console.example(self.validation, self.model)
             export_smtag_model(self.model, self.namebase + f"_epoch_{e:03d}")
         self.plot.close()

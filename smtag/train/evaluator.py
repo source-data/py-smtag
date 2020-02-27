@@ -16,7 +16,6 @@ from ..predict.decode import Decoder
 from ..common.progress import progress
 from ..common.importexport import load_smtag_model
 from ..common.utils import timer
-from ..common.options import Options
 from .. import config
 
 DEFAULT_THRESHOLD = config.default_threshold
@@ -25,11 +24,11 @@ ByteTensor1D = NewType('ByteTensor', torch.ByteTensor)
 
 class Accuracy(object):
 
-    def __init__(self, model, minibatches: DataLoader, nf_output: int):
+    def __init__(self, model, minibatches: DataLoader, out_channels: int):
         self.model = model
         self.minibatches = minibatches
         self.N = len(self.minibatches) * self.minibatches.batch_size
-        self.nf = nf_output
+        self.nf = out_channels
 
     @timer
     def run(self, predict_fn: Callable) -> Tuple[ByteTensor1D, ByteTensor1D,ByteTensor1D, torch.Tensor]:
@@ -96,24 +95,24 @@ class Benchmark():
 
     def __init__(self, model_basename, testset_basenames):
         self.model_name = model_basename
-        self.model = load_smtag_model(model_basename, config.model_dir, )
+        self.model = load_smtag_model(model_basename)
         self.output_semantics = self.model.output_semantics
-        self.opt = self.model.opt
+        self.hp = self.model.hp
         if torch.cuda.is_available():
             print(torch.cuda.device_count(), "GPUs available.")
             self.model = nn.DataParallel(self.model)
             self.model.cuda()
             self.model.output_semantics = self.output_semantics
 
-        self.opt.data_path_list = [os.path.join(config.data4th_dir, f) for f in testset_basenames] # it has to be a list (to allow joint training on multiple datasets)
-        testset = Data4th(self.opt, ['test'])
-        testset = DataLoader(testset, batch_size=self.opt.minibatch_size, shuffle=True, collate_fn=collate_fn, num_workers=0, drop_last=True, timeout=60)
-        benchmark = Accuracy(self.model, testset, self.opt.nf_output)
+        self.hp.data_path_list = [os.path.join(config.data4th_dir, f) for f in testset_basenames] # it has to be a list (to allow joint training on multiple datasets)
+        testset = Data4th(self.hp, ['test'])
+        testset = DataLoader(testset, batch_size=self.hp.minibatch_size, shuffle=True, collate_fn=collate_fn, num_workers=0, drop_last=True, timeout=60)
+        benchmark = Accuracy(self.model, testset, self.hp.out_channels)
         self.precision, self.recall, self.f1, self.loss = benchmark.run(predict_fn)
 
     def display(self):
         print("\n\n\033[31;1m========================================================\033[0m")
-        print(f"\n\033[31;1m Data: {' + '.join(self.opt.data_path_list)}\033[0m")
+        print(f"\n\033[31;1m Data: {' + '.join(self.hp.data_path_list)}\033[0m")
         print(f"\n\033[31;1m Model: {self.model_name}\033[0m")
         print("\n Global stats: \033[1m\n")
         print(f"\t\033[32;1mprecision\033[0m = {self.precision.mean()}")

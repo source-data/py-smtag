@@ -19,38 +19,37 @@ from json import JSONEncoder
 from .dataset import Data4th
 from .trainer import Trainer
 from .scanner import HyperScan
-from .builder import SmtagModel
+from .builder import SmtagModel, HyperparemetersSmtagModel
 from ..common.utils import cd
 from ..common.importexport import load_smtag_model
-from ..common.options import Options
 from ..common.embeddings import EMBEDDINGS
 from .. import config
 
 
 class Meta():
 
-    def __init__(self, opt, production_mode=False):
-        self.opt = opt
+    def __init__(self, hp: HyperparemetersSmtagModel, production_mode=False):
+        self.hp = hp
         if production_mode:
-            self.trainset = Data4th(opt, ['train','valid'])
-            self.validation = Data4th(opt, ['test'])
+            self.trainset = Data4th(hp, ['train','valid'])
+            self.validation = Data4th(hp, ['test'])
         else:
-            self.trainset = Data4th(opt, ['train'])
-            self.validation = Data4th(opt, ['valid'])
-        self.opt.L = self.trainset.opt.L
+            self.trainset = Data4th(hp, ['train'])
+            self.validation = Data4th(hp, ['valid'])
+        self.hp.L = self.trainset.hp.L
 
-    def _train(self, trainset, validation, opt):
+    def _train(self, trainset: Data4th, validation: Data4th, hp: HyperparemetersSmtagModel):
         # check if previous model specified and load it with importmodel
-        if opt.modelname:
-            model = load_smtag_model(opt.modelname, config.model_dir) # load pre-trained pre-existing model
+        if hp.modelname:
+            model = load_smtag_model(hp.modelname, config.model_dir) # load pre-trained pre-existing model
         else:
-            model = SmtagModel(opt)
+            model = SmtagModel(hp)
             print(model)
         model, precision, recall, f1, avg_validation_loss = Trainer(trainset, validation, model).train() # best models saved to disk
         return  model, precision, recall, f1, avg_validation_loss
 
     def simple_training(self):
-        self._train(self.trainset, self.validation, self.opt) # models are saved to disk during training
+        self._train(self.trainset, self.validation, self.hp) # models are saved to disk during training
 
     def hyper_scan(self, iterations, hyperparams, scan_name):
         pass
@@ -97,13 +96,13 @@ def main():
     opt['padding'] = arguments.padding
     opt['stride'] = arguments.stride
     if config.embeddings_model:
-        opt['nf_input'] = EMBEDDINGS.model.hp.out_channels # config.nbits # WARNING: this should change when using EMBEDDINGS
+        opt['nf_input'] = EMBEDDINGS.model.hp.out_channels
     else:
         opt['nf_input'] = config.nbits
     production_mode = arguments.production
-    options = Options(opt)
+    hp = HyperparemetersSmtagModel(opt)
 
-    metatrainer = Meta(options, production_mode)
+    metatrainer = Meta(hp, production_mode)
     if not hyperparams:
         metatrainer.simple_training()
     else:
