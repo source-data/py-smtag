@@ -4,20 +4,19 @@
 import re
 from torch import nn
 import torch
-from docopt import docopt
 from collections import OrderedDict
 from typing import List, Tuple
 from xml.etree.ElementTree import tostring, fromstring, Element
 from ..common.utils import tokenize, Token, timer
 from ..common.converter import TString, StringList
 from ..common.mapper import Catalogue
+from ..common.viz import Show
 from ..datagen.encoder import XMLEncoder
 from .decode import CharLevelDecoder, Decoder
 from .predictor import Predictor, ContextualPredictor, CharLevelPredictor
 from .markup import Serializer
-from .cartridges import Cartridge, NO_VIZ
+from .cartridges import Cartridge, CARTRIDGE
 from .updatexml import updatexml_list
-from ..common.viz import Show
 from .. import config
 
 
@@ -30,7 +29,6 @@ class SmtagEngine:
         self.reporter_models = cartridge.reporter_models
         self.context_models = cartridge.context_models
         self.panelize_model = cartridge.panelize_model
-        self.viz_context_processor = cartridge.viz_preprocessor
 
     @timer
     def __panels(self, input_t_strings: TString, token_lists: List[List[Token]]) -> CharLevelDecoder:
@@ -152,7 +150,7 @@ class SmtagEngine:
 
     @timer
     def entity(self, input_strings: List[str], sdtag, format) -> List[str]:
-        prepro = self.__preprocess(input_strings) # input_t_strings, token_lists, viz_contexts
+        prepro = self.__preprocess(input_strings) # input_t_strings, token_lists
         pred = self.__entity(*prepro)
         return self.__serialize(pred, sdtag, format)
 
@@ -198,7 +196,7 @@ def main():
     DEMO = arguments.demo
     sdtag = arguments.tag
     format = arguments.format
-    from .cartridges import NO_VIZ
+    from .cartridges import CARTRIDGE
     
     if DEMO:
         input_string = '''The indicated panel of cell lines was exposed to either normoxia (20% O2) or hypoxia (1% O2) for up to 48 h prior to RNA and protein extraction.
@@ -215,7 +213,7 @@ def main():
 
     input_string = re.sub("[\n\r\t]", " ", input_string)
     input_string = re.sub(" +", " ", input_string)
-    engine = SmtagEngine(NO_VIZ)
+    engine = SmtagEngine(CARTRIDGE)
     engine.DEBUG = DEBUG
     
     if method == 'smtag':

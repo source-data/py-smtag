@@ -13,12 +13,42 @@ from .markup import Serializer
 from ..common.utils import tokenize, timer, Token
 from ..common.embeddings import EMBEDDINGS
 from ..common.mapper import Concept
+from ..train.dataset import Minibatch, BxCxL, BxL
+from ..train.builder import SmtagModel
 from .. import config
 
 # import cProfile
 from time import time
 
 PADDING_CHAR = config.padding_char
+
+def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[BxCxL, BxL, BxCxL, torch.Tensor]:
+    """
+    Prediction function used during training or evaluation of a model. 
+
+    Artgs:
+        model (SmtagModel): the model to be used for the prediction.
+        batch (Minibatch): a minibatch of examples with input, output, target_class and provenance.
+        eval (bool): flag to specify if the model is used in training or evaluation mode.
+    
+    Returns:
+        input tensor (BxCxL), target class tensor (BxL), predicted tensor (BxCxL), loss (torch.Tensor)
+    """
+    x = batch.input
+    y = batch.target_class
+    if torch.cuda.is_available():
+        x = x.cuda()
+        y = y.cuda()
+    if eval:
+        with torch.no_grad():
+            model.eval()
+            y_hat = model(x)
+            model.train()
+    else:
+        y_hat = model(x)
+    loss = F.cross_entropy(y_hat, y) # y is a target class tensor BxL
+    return y, y_hat, loss
+
 
 class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagModel class and subclassed
 
@@ -56,10 +86,11 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         x = self.embed(safely_padded)
 
         # PREDICTION
+        # prediction = predict_fn(self.model, Minibatch(input=x, output=None, target_class=None, text=None, provenance=None))
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(x) #.float() # prediction is 3D 1 x C x L
-            prediction = torch.softmax(prediction) # to get 0..1 positive scores
+            prediction = prediction.softmax(1)
             self.model.train()
         if torch.cuda.is_available():
             prediction = prediction.cpu()
@@ -114,7 +145,7 @@ class ContextualPredictor(Predictor):
         with torch.no_grad():
             self.model.eval()
             prediction = self.model(x_list) # ContextCombinedModel takes List[torch.Tensor] as input and -> prediction is 3D N x C x L
-            prediction = torch.softmax(prediction) # to get 0..1 positive scores
+            prediction = prediction.softmax(1)
             self.model.train()
         if torch.cuda.is_available():
             prediction = prediction.cpu()

@@ -9,7 +9,7 @@ from .converter import TString
 # from ..train.evaluator import Accuracy
 from ..train.builder import SmtagModel
 from ..train.dataset import Data4th, BxL, BxCxL
-from ..train.trainer import predict_fn
+from ..predict.predictor import predict_fn
 from .. import config
 
 NBITS = config.nbits
@@ -84,7 +84,7 @@ class Show():
         if model is not None:
             out += "__Predicted:__" + self.nl + self.nl
             out += self.print_pretty_color(y_hat.argmax(1), nf_output, item.text) + self.nl + self.nl
-            out += self.print_pretty(torch.sigmoid(y_hat)) + self.nl + self.nl
+            out += self.print_pretty(y_hat.softmax(1)) + self.nl + self.nl
         out += ""
         print(out)
         return out

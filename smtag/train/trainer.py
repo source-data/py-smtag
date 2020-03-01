@@ -17,37 +17,9 @@ from tensorboardX import SummaryWriter
 from ..common.importexport import load_smtag_model, export_smtag_model
 from ..train.builder import SmtagModel
 from ..train.dataset import collate_fn, BxCxL, BxL, Minibatch, Data4th
+from ..predict.predictor import predict_fn
 from ..common.progress import progress
 from .. import config
-
-
-def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[BxCxL, BxL, BxCxL, torch.Tensor]:
-    """
-    Prediction function used during training or evaluation of a model. 
-
-    Artgs:
-        model (SmtagModel): the model to be used for the prediction.
-        batch (Minibatch): a minibatch of examples with input, output, target_class and provenance.
-        eval (bool): flag to specify if the model is used in training or evaluation mode.
-    
-    Returns:
-        input tensor (BxCxL), target class tensor (BxL), predicted tensor (BxCxL), loss (torch.Tensor)
-    """
-    x = batch.input
-    y = batch.target_class
-    if torch.cuda.is_available():
-        x = x.cuda()
-        y = y.cuda()
-    if eval:
-        with torch.no_grad():
-            model.eval()
-            y_hat = model(x)
-            model.train()
-    else:
-        y_hat = model(x)
-    loss = F.cross_entropy(y_hat, y) # y is a target class tensor BxL
-    return y, y_hat, loss
-
 from .evaluator import Accuracy # Imported only now because Accuracy needs predict_fn().
 from ..common.viz import Show
 

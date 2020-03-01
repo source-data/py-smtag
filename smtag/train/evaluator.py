@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch import nn
 from torch.nn import functional as F
 from ..train.dataset import Data4th, collate_fn, Minibatch, BxCxL, BxL
-from ..train.trainer import predict_fn
+from ..predict.predictor import predict_fn
 from ..predict.decode import Decoder
 from ..common.progress import progress
 from ..common.importexport import load_smtag_model

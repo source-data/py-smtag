@@ -206,27 +206,28 @@ class Config():
         """
         return self._fusion_threshold
 
-    def model_entity_no_viz(self):
+    @property
+    def model_entity(self):
         return self._model_entity
 
     @property
-    def model_geneprod_role_no_viz(self):
+    def model_geneprod_role(self):
         return self._model_geneprod_role
 
     @property
-    def model_geneprod_reporter_no_viz(self):
+    def model_geneprod_reporter(self):
         return self._model_geneprod_reporter
 
     @property
-    def model_molecule_role_no_viz(self):
+    def model_molecule_role(self):
         return self._model_molecule_role
 
     @property
-    def model_panel_stop_no_viz(self):
+    def model_panel_stop(self):
         return self._model_panel_stop
 
     @property
-    def model_disease_no_viz(self):
+    def model_disease(self):
         return self._model_disease
 
     def create_argument_parser_with_defaults(self, description=None):

@@ -19,11 +19,11 @@ class CombinedModel(nn.Module):
         self.model_list = nn.ModuleDict(models)
         self.semantic_groups = {g:models[g].output_semantics for g in models}
 
-    def forward(self, x, viz_context):
+    def forward(self, x):
         y_list = []
         for group in self.semantic_groups:
             model = self.model_list[group]
-            y_list.append(model(x, viz_context))
+            y_list.append(model(x))
         y = torch.cat(y_list, 1)        
         return y
 
@@ -41,10 +41,10 @@ class ContextCombinedModel(nn.Module):
             self.semantic_groups[group] = model.output_semantics
         #super(ContextCombinedModel, self).__init__(self.model_list) # PROBABLY WRONG: each model needs to be run on different anonymization input
 
-    def forward(self, x_list: List[torch.Tensor], viz_context) -> torch.Tensor: # takes a list of inputs each specifically anonymized for each context model
+    def forward(self, x_list: List[torch.Tensor]) -> torch.Tensor: # takes a list of inputs each specifically anonymized for each context model
         y_list = [] 
         for m, x in zip(self.model_list, x_list):
-            y_list.append(m(x, viz_context))
+            y_list.append(m(x))
         y = torch.cat(y_list, 1)
         return y
 
@@ -59,12 +59,12 @@ class Cartridge():
 
 
 models = {
-    'reporter':             load_smtag_model(config.model_geneprod_reporter_no_viz, config.prod_dir),
-    'panel':                load_smtag_model(config.model_panel_stop_no_viz,        config.prod_dir),
-    'entity_no_viz':        load_smtag_model(config.model_entity_no_viz,            config.prod_dir),
-    'geneprod_role_no_viz': load_smtag_model(config.model_geneprod_role_no_viz,     config.prod_dir),
-    'molecule_role_no_viz': load_smtag_model(config.model_molecule_role_no_viz,     config.prod_dir),
-    'disease':              load_smtag_model(config.model_disease_no_viz,           config.prod_dir),
+    'reporter':             load_smtag_model(config.model_geneprod_reporter, config.prod_dir),
+    'panel':                load_smtag_model(config.model_panel_stop,        config.prod_dir),
+    'entity':               load_smtag_model(config.model_entity,            config.prod_dir),
+    'geneprod_role':        load_smtag_model(config.model_geneprod_role,     config.prod_dir),
+    'molecule_role':        load_smtag_model(config.model_molecule_role,     config.prod_dir),
+    'disease':              load_smtag_model(config.model_disease,           config.prod_dir),
 }
 
 # put models on GPU DataParallel when possible
@@ -76,9 +76,9 @@ if torch.cuda.is_available():
         gpu_model.output_semantics = models[m].output_semantics
         models[m] = gpu_model
 
-NO_VIZ = Cartridge(
+CARTRIDGE = Cartridge(
     entity_models = CombinedModel(OrderedDict([
-        ('entities', models['entity_no_viz']),
+        ('entities', models['entity']),
         ('diseases', models['disease']),
     ])),
     reporter_models = CombinedModel(OrderedDict([
@@ -86,10 +86,10 @@ NO_VIZ = Cartridge(
     ])),
     context_models = ContextCombinedModel(OrderedDict([
         ('geneprod_roles',
-             (models['geneprod_role_no_viz'], {'group': 'entities', 'concept': Catalogue.GENEPROD}),
+             (models['geneprod_role'], {'group': 'entities', 'concept': Catalogue.GENEPROD}),
         ),
         ('small_molecule_role',
-            (models['molecule_role_no_viz'], {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE}),
+            (models['molecule_role'], {'group': 'entities', 'concept': Catalogue.SMALL_MOLECULE}),
         ),
     ])),
     panelize_model = CombinedModel(OrderedDict([
