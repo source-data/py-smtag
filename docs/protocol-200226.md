@@ -358,4 +358,4 @@ Transfer of production models to local rack
 
        scp -i ~/.ssh/id_rsa.pub lemberge@embo-dgx01:/raid/lemberge/py-smtag/resources/models/2020-03-01-08-49_disease_epoch_020.zip .
 
-       scp -i ~/.ssh/id_rsa.pub lemberge@embo-dgx01:/raid/lemberge/py-smtag/resources/models/
+       scp -i ~/.ssh/id_rsa.pub lemberge@embo-dgx01:/raid/lemberge/py-smtag/resources/models/2020-03-01-09-21_panel_stop_epoch_012.zip .
