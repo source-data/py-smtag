@@ -55,12 +55,12 @@ class Config():
 
     ############################################################################
     # MODELS
-    _model_entity_no_viz = "10X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-10-27-09-28.zip"
-    _model_geneprod_reporter_no_viz = "10X_L1200_article_embeddings_128_reporter_2019-10-28-00-43.zip"
-    _model_geneprod_role_no_viz = "10X_L1200_anonym_not_reporter_article_embbeddings_128_intervention_assayed_2019-10-27-12-25.zip"
-    _model_molecule_role_no_viz = "10X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-10-27-21-03.zip"
-    _model_disease_no_viz = "10X_L1200_disease_article_embeddings_128-10X_L1200_figure_article_embeddings_128_disease_2019-10-28-06-44_epoch_10.zip"
-    _model_panel_stop_no_viz = "10X_L1200_figure_emboj_2012_article_embeddings_128_panel_stop_2019-10-28-11-19.zip"
+    _model_entity = "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
+    _model_geneprod_role = "2020-02-29-22-47_intervention_assayed_epoch_019.zip"
+    _model_molecule_role = "2020-03-01-01-29_intervention_assayed_epoch_019.zip"
+    _model_geneprod_reporter = "2020-03-01-08-07_reporter_epoch_004.zip"
+    _model_disease = "2020-03-01-08-49_disease_epoch_020.zip"
+    _model_panel_stop = "2020-03-01-09-21_panel_stop_epoch_012.zip"
     _embeddings_model = "2020-02-24-01-31_last_saved.zip"
 
     def __init__(self):
@@ -93,24 +93,21 @@ class Config():
         if not os.path.exists(image_dir):
             os.mkdir(image_dir)
         return image_dir
+
     @property
     def data_dir(self):
         data_dir = os.path.join(self.working_directory, self._data_dir_name)
         if not os.path.exists(data_dir):
             os.mkdir(data_dir)
         return data_dir
+
     @property
     def data4th_dir(self):
         data4th_dir = os.path.join(self.working_directory, self._data4th_dir_name)
         if not os.path.exists(data4th_dir):
             os.mkdir(data4th_dir)
         return data4th_dir
-    @property
-    def encoded_dir(self):
-        encoded_dir = os.path.join(self.working_directory, self._encoded_dir_name)
-        if not os.path.exists(encoded_dir):
-            os.mkdir(encoded_dir)
-        return encoded_dir
+
     @property
     def model_dir(self):
         model_dir = os.path.join(self.working_directory, self._model_dir_name)
@@ -124,6 +121,7 @@ class Config():
         if not os.path.exists(runs_log_dir):
             os.mkdir(runs_log_dir)
         return runs_log_dir
+
     @property
     def log_dir(self):
         log_dir = os.path.join(self.working_directory, self._log_dir_name)
@@ -131,6 +129,7 @@ class Config():
             os.mkdir(log_dir)
         return log_dir
     @property
+
     def scans_dir(self):
         """
         Path to results of hyperparameter scans.
@@ -139,135 +138,96 @@ class Config():
         if not os.path.exists(scans_dir):
             os.mkdir(scans_dir)
         return scans_dir
+
     @property
     def embeddings_model(self):
         return self._embeddings_model
+
     @property
     def cache_dataset(self):
         """
         Size of the cache used in Dataset
         """
         return self._cache_dataset
+
     @property
     def dirignore(self):
         """
         List of directory names that should be ignored when scanning for datasets
         """
         return self._dirignore
-    @property
-    def allowed_img(self):
-        return self._allowed_img
-    @property
-    def img_grid_size(self):
-        """
-        Grid size used to encode the location of elements on images.
-        """
-        return self._img_grid_size
-    @property
-    def resized_img_size(self):
-        """
-        Size of the resized image used for visual context.
-        """
-        return self._resized_img_size
-    @property
-    def viz_cxt_features(self):
-        """
-        The number of visual context features used
-        """
-        return self._viz_context_features
-    @property
-    def ocr_max_edit_dist(self):
-        """
-        Max edit distance per character length between ocr term and matching term in caption
-        """
-        return self._ocr_max_edit_dist
-    @property
-    def ocr_min_overlap(self):
-        """
-        Minimum length of overlap between ocr term and caption term
-        """
-        return self._ocr_min_overlap
-    # @property
-    # def nbits(self):
-    #     """
-    #     Number of features used to encode a character.
-    #     """
-    #     return self._nbits
-    @property
-    def embedding_out_channels(self):
-        """
-        Number of channels used for learned deep embeddings.
-        """
-        return self._embedding_out_channels
+
     @property
     def marking_char(self):
         """
         Substitution special xml-compatible character used to mark anonymized entities.
         """
         return self._marking_char
+
     @property
     def masking_proba(self):
         """
         Probability with wich an element selected for potential masking will actually be masked.
         """
         return self._masking_proba
+
     @property
     def padding_char(self):
         """
         Special character used to pad strings.
         """
         return self._padding_char
+
     @property
     def min_padding(self):
         """
         The number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
         """
         return self._min_padding
+
     @property
     def min_size(self):
         """
         Input needs to be of minimal size to survive successive convergent convolutions; ideally, should be calculated analytically
         """
         return self._min_size
+
     @property
     def default_threshold(self):
         """
         Threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
         """
         return self._default_threshold
+
     @property
     def fusion_threshold(self):
         """
         Threshold to allow adjascent token with identical features to be fused
         """
         return self._fusion_threshold
-    # @property
-    # def model_entity_viz(self):
-    #     return self._model_entity_viz
-    @property
+
     def model_entity_no_viz(self):
-        return self._model_entity_no_viz
-    # @property
-    # def model_geneprod_role_viz(self):
-    #     return self._model_geneprod_role_viz
+        return self._model_entity
+
     @property
     def model_geneprod_role_no_viz(self):
-        return self._model_geneprod_role_no_viz
+        return self._model_geneprod_role
+
     @property
     def model_geneprod_reporter_no_viz(self):
-        return self._model_geneprod_reporter_no_viz
-    # @property
-    # def model_molecule_role_viz(self):
-    #     return self._model_molecule_role_viz
+        return self._model_geneprod_reporter
+
     @property
     def model_molecule_role_no_viz(self):
-        return self._model_molecule_role_no_viz
+        return self._model_molecule_role
+
     @property
     def model_panel_stop_no_viz(self):
-        return self._model_panel_stop_no_viz
+        return self._model_panel_stop
+
     @property
     def model_disease_no_viz(self):
-        return self._model_disease_no_viz
+        return self._model_disease
 
     def create_argument_parser_with_defaults(self, description=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
