@@ -43,7 +43,7 @@ class Config():
     # VARIABLES
     #
     _cache_dataset     = 1024 # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
-    _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
+    _dirignore         = ['.DS_Store', '__MACOSX'] # directories that should be ignored when scanning data or document compendia
     nbits             = int(os.getenv('NBITS')) # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
     _marking_char      = '_' # Substitution special xml-compatible character used to mark anonymized entities.
     _masking_proba     = 1.0 # probability with wich an element selected to be potentially masked is effectively masked
