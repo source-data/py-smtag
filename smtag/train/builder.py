@@ -21,7 +21,6 @@ class HyperparametersSmtagModel(HyperparametersCatStack):
         self.learning_rate = opt['learning_rate']
         self.epochs = opt['epochs']
         self.minibatch_size = opt['minibatch_size']
-        self.L = None # can only be update when loading dataset...
         self.in_channels = opt['nf_input']
         self.selected_features = Catalogue.from_list(opt['selected_features'])
         self.out_channels = len(self.selected_features)

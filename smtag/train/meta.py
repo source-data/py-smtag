@@ -36,7 +36,6 @@ class Meta():
         else:
             self.trainset = Data4th(hp, ['train'])
             self.validation = Data4th(hp, ['valid'])
-        self.hp.L = self.trainset.hp.L
 
     def _train(self, trainset: Data4th, validation: Data4th, hp: HyperparametersSmtagModel):
         # check if previous model specified and load it with importmodel

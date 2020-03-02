@@ -41,15 +41,14 @@ class Data4th(Dataset):
             self.path_list += new_list
         self.N = len(self.path_list)
         self.hp = hp
-        self.hp.L = self.sniff()
         self.millefeuille = Millefeuille(self.hp.selected_features)
         self.tokenized = []
         print(f"listed {len(self.path_list)} data packages")
 
-    def sniff(self) -> int:
-        sample_input = torch.load(os.path.join(self.path_list[0], EncodedExample.textcoded_filename))
-        L = sample_input.size(2)
-        return L
+    # def sniff(self) -> int:
+    #     sample_input = torch.load(os.path.join(self.path_list[0], EncodedExample.textcoded_filename))
+    #     L = sample_input.size(2)
+    #     return L
 
     def __len__(self) -> int:
         return self.N
