@@ -4,8 +4,10 @@
 import os
 import math
 from random import randint, uniform
-from copy import copy
+from copy import deepcopy
 from datetime import datetime
+from typing import List
+from .builder import HyperparametersSmtagModel
 from ..common.utils import cd
 
 NL = "\n"
@@ -13,7 +15,7 @@ SEP= "\t"
 
 class HyperScan():
 
-    def __init__(self, opt, dir_name):
+    def __init__(self, hp: HyperparametersSmtagModel, dir_name: str):
         """
         Hyperscan will create the following dir hierarchy:
         scans/
@@ -29,16 +31,8 @@ class HyperScan():
                 scanned_perf.scv
         """
 
-        # default hyperparam
-        self.default = {
-            'log_lr': math.log(opt['learning_rate'], 10),
-            'log_batch_size': math.log(opt['minibatch_size'], 2),
-            'depth': len(opt['kernel_table']),
-            'nf': opt['nf_table'][0],
-            'kernel': opt['kernel_table'][0],
-            'pooling': opt['pool_table'][0]
-        }
-        self.opt = opt
+        self.hp = hp
+
         timestamp = datetime.now().isoformat("-",timespec='minutes').replace(":", "-") # dir to save scan results
         self.dir_name = dir_name + "_" + timestamp 
         if not os.path.isdir(self.dir_name):
@@ -79,7 +73,7 @@ class HyperScan():
         os.chmod(mypath, mode=0o777)
 
 
-    def randopt(self, selected_hyperparam = {'log_lr'}):
+    def randopt(self, selected_hyperparam : List = ['log_lr']) -> HyperparametersSmtagModel:
         """
         Model and training hyperparameter are sampled randomly given the specified ranges.
 
@@ -90,20 +84,19 @@ class HyperScan():
             dict where selected hyperparameters where randomly sampled
         """
 
-        hparam = copy(self.default)
+        hparam = deepcopy(self.hp)
         #randomly sampling hyperparameters
         randparam = {
             'log_lr': uniform(-4, -1),
             'log_batch_size': uniform(4, 8),
-            'depth': randint(1,4),
-            'log_nf': randint(3, 6),
-            'kernel': randint(3,10),
-            'pooling': randint(1,3),
+            'N_layers': randint(1,4),
+            'log_hidden_channels': randint(3, 6),
         }
 
         for h in selected_hyperparam: 
             hparam[h] = randparam[h]
-        self.opt['learning_rate'] = 10 ** hparam['log_lr']
+        hp = deepcopy(self.hp)
+        hp.learning_rate = 10 ** hparam['log_lr']
         self.opt['minibatch_size'] =  int(2 ** hparam['log_batch_size'])
         nf_table = []
         kernel_table = []

@@ -19,7 +19,7 @@ from json import JSONEncoder
 from .dataset import Data4th
 from .trainer import Trainer
 from .scanner import HyperScan
-from .builder import SmtagModel, HyperparemetersSmtagModel
+from .builder import SmtagModel, HyperparametersSmtagModel
 from ..common.utils import cd
 from ..common.importexport import load_smtag_model
 from ..common.embeddings import EMBEDDINGS
@@ -28,7 +28,7 @@ from .. import config
 
 class Meta():
 
-    def __init__(self, hp: HyperparemetersSmtagModel, production_mode=False):
+    def __init__(self, hp: HyperparametersSmtagModel, production_mode=False):
         self.hp = hp
         if production_mode:
             self.trainset = Data4th(hp, ['train','valid'])
@@ -38,7 +38,7 @@ class Meta():
             self.validation = Data4th(hp, ['valid'])
         self.hp.L = self.trainset.hp.L
 
-    def _train(self, trainset: Data4th, validation: Data4th, hp: HyperparemetersSmtagModel):
+    def _train(self, trainset: Data4th, validation: Data4th, hp: HyperparametersSmtagModel):
         # check if previous model specified and load it with importmodel
         if hp.modelname:
             model = load_smtag_model(hp.modelname, config.model_dir) # load pre-trained pre-existing model
@@ -51,14 +51,14 @@ class Meta():
     def simple_training(self):
         self._train(self.trainset, self.validation, self.hp) # models are saved to disk during training
 
-    def hyper_scan(self, iterations, hyperparams, scan_name):
+    def hyper_scan(self, iterations, scan_params, scan_name):
         pass
-    #     with cd(config.scans_dir):
-    #         scan = HyperScan(self.opt, scan_name)
-    #         for i in range(iterations):
-    #             self.opt = scan.randopt(hyperparams) # obtain random sampling from selected hyperparam
-    #             model, precision, recall, f1, avg_validation_loss = self._train(self.trainset, self.validation, self.opt) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
-    #             scan.append(best_model_name, best_f1, self.opt, i)
+        with cd(config.scans_dir):
+            scan = HyperScan(self.hp, scan_name)
+            for i in range(iterations):
+                hp = scan.randopt(scan_params) # obtain random sampling from selected hyperparam
+                model, precision, recall, f1, avg_validation_loss = self._train(self.trainset, self.validation, hp) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
+                scan.append(best_model_name, best_f1, self.opt, i)
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Top level module to manage training.')
@@ -73,13 +73,13 @@ def main():
     parser.add_argument('-s', '--stride', default=1, type=int, help='Stride of the convolution.')
     parser.add_argument('-g', '--padding',  default=3, type=int, help='Padding for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-N', '--N_layers', default=3, type=int, help="Number of layers in the model.")
-    parser.add_argument('--hyperparams', default='', help='Perform a scanning of the hyperparameters selected.')
+    parser.add_argument('--hyperscan', default='', help='Perform a scanning of the selected hyperparameters.')
     parser.add_argument('--iterations', default=25, type=int, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('--production', action='store_true', help='Production mode, where train and valid are combined and test used to control for overfitting.')
     parser.add_argument('--model', default='', help='Load pre-trained model and continue training.')
     
     arguments = parser.parse_args()
-    hyperparams = [x.strip() for x in arguments.hyperparams.split(',') if x.strip()]
+    hyperscan = [x.strip() for x in arguments.hyperscan.split(',') if x.strip()]
     iterations = int(arguments.iterations)
     opt = {}
     opt['data_path_list'] = [dir.strip() for dir in arguments.files.split(',')]
@@ -100,16 +100,18 @@ def main():
     else:
         opt['nf_input'] = config.nbits
     production_mode = arguments.production
-    hp = HyperparemetersSmtagModel(opt)
+
+    # create the Hyperparameter object from the command line options
+    hp = HyperparametersSmtagModel(opt)
 
     metatrainer = Meta(hp, production_mode)
-    if not hyperparams:
+    if not hyperscan:
         metatrainer.simple_training()
     else:
         scan_name = 'scan_'
-        scan_name += "_".join([k for k in hyperparams])
+        scan_name += "_".join([k for k in hyperscan])
         scan_name += "_X"+str(iterations)
-        metatrainer.hyper_scan(iterations, hyperparams, scan_name)
+        metatrainer.hyper_scan(iterations, hyperscan, scan_name)
 
 if __name__ == '__main__':
     main()

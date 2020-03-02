@@ -3,7 +3,7 @@ from toolbox.models import HyperparametersCatStack
 from .. import config
 
 # TODO: derive this by extending toolbox.models.Hyperparameters class
-class HyperparemetersSmtagModel(HyperparametersCatStack):
+class HyperparametersSmtagModel(HyperparametersCatStack):
 
     def __init__(self, opt=None):
         self.descriptor = "undefined"
