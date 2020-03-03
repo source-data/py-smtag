@@ -73,7 +73,8 @@ class Trainer:
             self.plot.add_scalars("data/precision", {str(i): precision[i] for i in range(self.hp.out_channels)}, e)
             self.plot.add_scalars("data/recall", {str(i): recall[i] for i in range(self.hp.out_channels)}, e)
             self.console.example(self.validation, self.model)
-            export_smtag_model(self.model, self.namebase + f"_epoch_{e:03d}")
+            model_name = self.namebase + f"_epoch_{e:03d}"
+            export_smtag_model(self.model, model_name)
         self.plot.close()
         print("\n")
-        return self.model, precision, recall, f1, avg_validation_loss
+        return self.model, model_name, precision, recall, f1, avg_validation_loss

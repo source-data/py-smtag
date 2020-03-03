@@ -12,7 +12,7 @@ from toolbox.models import HyperparametersCatStack, CatStack1d, Container1d
 from ..common.mapper import Concept, Catalogue, concept2index
 from .. import config
 
-class HyperparametersSmtagModel(HyperparametersCatStack):
+class HyperparemetersSmtagModel(HyperparametersCatStack):
 
     def __init__(self, opt=None):
         self.namebase = opt['namebase']
@@ -38,7 +38,7 @@ class HyperparametersSmtagModel(HyperparametersCatStack):
 
 class SmtagModel(Container1d):
 
-    def __init__(self, hp: HyperparametersSmtagModel):
+    def __init__(self, hp: HyperparemetersSmtagModel):
         # map options to attributes of standard Hyperparameter object from toolbox
         self.hp = hp
         super().__init__(self.hp, CatStack1d)

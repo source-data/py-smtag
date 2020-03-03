@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import Dataset
 from ..common.mapper import Catalogue, concept2index, Concept
 from ..datagen.convert2th import EncodedExample
-from .builder import HyperparametersSmtagModel
+from .builder import HyperparemetersSmtagModel
 from ..common.progress import progress
 from ..common.utils import tokenize, cd
 from .. import config
@@ -30,7 +30,7 @@ Minibatch = namedtuple('Minibatch', ['text', 'provenance', 'input', 'output', 't
 
 class Data4th(Dataset):
 
-    def __init__(self, hp: HyperparametersSmtagModel, subdir_list: List[str]):
+    def __init__(self, hp: HyperparemetersSmtagModel, subdir_list: List[str]):
         # use a list of data_dir_path to aggregate several training sets
         data_dir_path_list = []
         for subdir in subdir_list:

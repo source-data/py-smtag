@@ -19,7 +19,7 @@ from json import JSONEncoder
 from .dataset import Data4th
 from .trainer import Trainer
 from .scanner import HyperScan
-from .builder import SmtagModel, HyperparametersSmtagModel
+from .builder import SmtagModel, HyperparemetersSmtagModel
 from ..common.utils import cd
 from ..common.importexport import load_smtag_model
 from ..common.embeddings import EMBEDDINGS
@@ -28,7 +28,7 @@ from .. import config
 
 class Meta():
 
-    def __init__(self, hp: HyperparametersSmtagModel, production_mode=False):
+    def __init__(self, hp: HyperparemetersSmtagModel, production_mode=False):
         self.hp = hp
         if production_mode:
             self.trainset = Data4th(hp, ['train','valid'])
@@ -37,15 +37,15 @@ class Meta():
             self.trainset = Data4th(hp, ['train'])
             self.validation = Data4th(hp, ['valid'])
 
-    def _train(self, trainset: Data4th, validation: Data4th, hp: HyperparametersSmtagModel):
+    def _train(self, trainset: Data4th, validation: Data4th, hp: HyperparemetersSmtagModel):
         # check if previous model specified and load it with importmodel
         if hp.modelname:
             model = load_smtag_model(hp.modelname, config.model_dir) # load pre-trained pre-existing model
         else:
             model = SmtagModel(hp)
             print(model)
-        model, precision, recall, f1, avg_validation_loss = Trainer(trainset, validation, model).train() # best models saved to disk
-        return  model, precision, recall, f1, avg_validation_loss
+        model, model_name, precision, recall, f1, avg_validation_loss = Trainer(trainset, validation, model).train() # best models saved to disk
+        return  model, model_name, precision, recall, f1, avg_validation_loss
 
     def simple_training(self):
         self._train(self.trainset, self.validation, self.hp) # models are saved to disk during training
@@ -53,11 +53,11 @@ class Meta():
     def hyper_scan(self, iterations, scan_params, scan_name):
         pass
         with cd(config.scans_dir):
-            scan = HyperScan(self.hp, scan_name)
+            scan = HyperScan(self.hp, scan_name, scan_params)
             for i in range(iterations):
-                hp = scan.randopt(scan_params) # obtain random sampling from selected hyperparam
-                model, precision, recall, f1, avg_validation_loss = self._train(self.trainset, self.validation, hp) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
-                scan.append(best_model_name, best_f1, self.opt, i)
+                hp = scan.randhp() # obtain random sampling from selected hyperparam
+                model, model_name, precision, recall, f1, avg_validation_loss = self._train(self.trainset, self.validation, hp) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
+                scan.append_to_csv({'model_name': model_name, 'f1': f1, 'avg_valid_loss': avg_validation_loss}, hp, i)
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Top level module to manage training.')
@@ -101,7 +101,7 @@ def main():
     production_mode = arguments.production
 
     # create the Hyperparameter object from the command line options
-    hp = HyperparametersSmtagModel(opt)
+    hp = HyperparemetersSmtagModel(opt)
 
     metatrainer = Meta(hp, production_mode)
     if not hyperscan:
