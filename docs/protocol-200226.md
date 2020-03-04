@@ -1,5 +1,39 @@
 # Protocol 26 Feb 2020
 
+# Preparation of context-aware embeddings
+
+
+Dataset: 
+
+    XPath = ".//abstract"
+    embedding_out_channels = 32
+    corruption_mode =  'token'
+    select_POS = ['CC', 'DT', 'IN', 'PDT', 'PRP', 'PRP$', 'RP', 'TO', 'WP','WP$', 'WRB']
+    proba_mask = 1
+
+on corpus/oapmc
+
+Hyperparameters:
+
+    HP = HyperparametersCatStack(
+        N_layers = 10,
+        in_channels = config.nbits,
+        out_channels = config.embedding_out_channels,
+        hidden_channels = 512,
+        kernel  = 7, # 3 # 7 # 9
+        padding = 3, # 1 # 3 # 4
+        stride = 1,
+        dropout_rate = 0.5,
+    )
+
+Training:
+
+    python -m vsearch.train datasets/oapmc-abstracts/ -E40 -Z32 -R0.001 # --> best: 2020-02-24-01-31_last_saved.zip, 0.88 recall 0.94 f1 after 21 epochs
+
+scp -i ~/.ssh/id_rsa.pub lemberge@embo-dgx01:/raid/lemberge/vsearch/models/2020-02-24-01-31_last_saved.zip ./models/
+cp models/2020-02-24-01-31_last_saved.zip ../py-smtag/rack/2020-02-24-01-31_last_saved.zip
+
+
 # Preparation of ready-to-train datasets
 
 ## __panel-level__
