@@ -35,6 +35,9 @@ def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[B
         input tensor (BxCxL), target class tensor (BxL), predicted tensor (BxCxL), loss (torch.Tensor)
     """
     x = batch.input
+    y = None
+    y_hat = None
+    loss = None
     if torch.cuda.is_available():
         x = x.cuda()
     if eval:
@@ -51,8 +54,6 @@ def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[B
         if torch.cuda.is_available():
             y = y.cuda()
         loss = F.cross_entropy(y_hat, y) # y is a target tensor BxL
-    else:
-        loss = None
     return y, y_hat, loss
 
 
