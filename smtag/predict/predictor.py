@@ -91,13 +91,8 @@ class Predictor:
         x = self.embed(safely_padded)
 
         # PREDICTION
-        prediction = predict_fn(self.model, Minibatch(input=x, output=None, target_class=None, text=None, provenance=None), eval=True)
+        _, prediction, _ = predict_fn(self.model, Minibatch(input=x, output=None, target_class=None, text=None, provenance=None), eval=True)
         prediction = prediction.softmax(1)
-        # with torch.no_grad():
-        #     self.model.eval()
-        #     prediction = self.model(x) #.float() # prediction is 3D 1 x C x L
-        #     prediction = prediction.softmax(1)
-        #     self.model.train()
         if torch.cuda.is_available():
             prediction = prediction.cpu()
 
