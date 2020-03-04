@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import Dataset
 from ..common.mapper import Catalogue, concept2index, Concept
 from ..datagen.convert2th import EncodedExample
-from .model import HyperparemetersSmtagModel
+from .builder import HyperparemetersSmtagModel
 from ..common.progress import progress
 from ..common.utils import tokenize, cd
 from .. import config

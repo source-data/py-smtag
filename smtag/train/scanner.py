@@ -7,7 +7,7 @@ from random import randint, uniform
 from copy import deepcopy
 from datetime import datetime
 from typing import List, Dict
-from .model import HyperparemetersSmtagModel
+from .builder import HyperparemetersSmtagModel
 from ..common.utils import cd
 
 

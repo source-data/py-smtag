@@ -19,7 +19,7 @@ from json import JSONEncoder
 from .dataset import Data4th
 from .trainer import Trainer
 from .scanner import HyperScan
-from .model import SmtagModel, HyperparemetersSmtagModel
+from .builder import SmtagModel, HyperparemetersSmtagModel
 from ..common.utils import cd
 from ..common.importexport import load_smtag_model
 from ..common.embeddings import EMBEDDINGS
