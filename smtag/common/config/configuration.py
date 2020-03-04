@@ -37,7 +37,6 @@ class Config():
     _log_dir_name        = "log" # general logging dir
     _runs_log_dir_name   = "runs" # dir for tensorboard logs
     _scans_dir_name      = "scans" # results of hyperparameter scans
-    _embeddings_dir_name = "embeddings" # pretrained networks generating context-aware character-level embeddings
 
     ############################################################################
     # VARIABLES
