@@ -12,7 +12,7 @@ import torch
 from toolbox import importexport as model_io
 from toolbox.models import Autoencoder1d, Container1d, CatStack1d
 from .. import config
-from ..train.model import SmtagModel, HyperparemetersSmtagModel
+from ..train.builder import SmtagModel, HyperparemetersSmtagModel
 
 
 def load_smtag_model(filename, model_dir:str = config.model_dir):

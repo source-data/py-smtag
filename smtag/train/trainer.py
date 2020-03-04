@@ -15,7 +15,7 @@ from random import shuffle
 from typing import Tuple
 from tensorboardX import SummaryWriter
 from ..common.importexport import load_smtag_model, export_smtag_model
-from ..train.model import SmtagModel
+from ..train.builder import SmtagModel
 from ..train.dataset import collate_fn, BxCxL, BxL, Minibatch, Data4th
 from ..predict.predictor import predict_fn
 from ..common.progress import progress
