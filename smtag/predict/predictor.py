@@ -35,10 +35,8 @@ def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[B
         input tensor (BxCxL), target class tensor (BxL), predicted tensor (BxCxL), loss (torch.Tensor)
     """
     x = batch.input
-    y = batch.target_class
     if torch.cuda.is_available():
         x = x.cuda()
-        y = y.cuda()
     if eval:
         with torch.no_grad():
             model.eval()
@@ -46,11 +44,19 @@ def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[B
             model.train()
     else:
         y_hat = model(x)
-    loss = F.cross_entropy(y_hat, y) # y is a target class tensor BxL
+    # when predic_fn() is used in production for inference, there is not target and loss should not be computed
+    # so we first verify if batch.target_class is defined, which indicates that the loss should be computed
+    if batch.target_class is not None:
+        y = batch.target_class
+        if torch.cuda.is_available():
+            y = y.cuda()
+        loss = F.cross_entropy(y_hat, y) # y is a target tensor BxL
+    else:
+        loss = None
     return y, y_hat, loss
 
 
-class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagModel class and subclassed
+class Predictor:
 
     def __init__(self, model: 'CombinedModel', tag='sd-tag', format='xml'):
         self.model = model
@@ -58,7 +64,6 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         self.format = format
 
     def padding(self, input_t_strings: TString) -> Tuple[TString, int]:
-        # MOVE THIS TO ENGINE PREPROCESS
         # 0123456789012345678901234567890
         #        this cat               len(input)==8, min_size==10, min_padding=5
         #       +this cat+              pad to bring to min_size
@@ -67,7 +72,6 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         min_padding = config.min_padding
         padding_length = ceil(max(min_size - len(input_t_strings), 0) / 2) + min_padding
         pad = TString(StringList([PADDING_CHAR * padding_length] * input_t_strings.depth))
-        # pad = padding_char_t.repeat(padding_length)
         padded_t_strings = pad + input_t_strings + pad
         return padded_t_strings, padding_length
 
@@ -86,12 +90,13 @@ class Predictor: #(SmtagModel?) # eventually this should be fused with SmtagMode
         x = self.embed(safely_padded)
 
         # PREDICTION
-        # prediction = predict_fn(self.model, Minibatch(input=x, output=None, target_class=None, text=None, provenance=None))
-        with torch.no_grad():
-            self.model.eval()
-            prediction = self.model(x) #.float() # prediction is 3D 1 x C x L
-            prediction = prediction.softmax(1)
-            self.model.train()
+        prediction = predict_fn(self.model, Minibatch(input=x, output=None, target_class=None, text=None, provenance=None), eval=True)
+        prediction = prediction.softmax(1)
+        # with torch.no_grad():
+        #     self.model.eval()
+        #     prediction = self.model(x) #.float() # prediction is 3D 1 x C x L
+        #     prediction = prediction.softmax(1)
+        #     self.model.train()
         if torch.cuda.is_available():
             prediction = prediction.cpu()
 

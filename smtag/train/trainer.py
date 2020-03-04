@@ -20,7 +20,7 @@ from ..train.dataset import collate_fn, BxCxL, BxL, Minibatch, Data4th
 from ..predict.predictor import predict_fn
 from ..common.progress import progress
 from .. import config
-from .evaluator import Accuracy # Imported only now because Accuracy needs predict_fn().
+from .evaluator import Accuracy
 from ..common.viz import Show
 
 class Trainer:
@@ -59,7 +59,7 @@ class Trainer:
             for i, batch in enumerate(self.trainset_minibatches):
                 progress(i, N, "\ttraining epoch {}".format(e))
                 self.optimizer.zero_grad()
-                y, y_hat, loss = predict_fn(self.model, batch)
+                y, y_hat, loss = predict_fn(self.model, batch, eval=False)
                 loss.backward()
                 avg_train_loss += loss.cpu().item() # important otherwise not freed from the graph
                 self.optimizer.step()
