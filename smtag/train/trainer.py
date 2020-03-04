@@ -15,7 +15,7 @@ from random import shuffle
 from typing import Tuple
 from tensorboardX import SummaryWriter
 from ..common.importexport import load_smtag_model, export_smtag_model
-from ..train.builder import SmtagModel
+from ..train.model import SmtagModel
 from ..train.dataset import collate_fn, BxCxL, BxL, Minibatch, Data4th
 from ..predict.predictor import predict_fn
 from ..common.progress import progress
@@ -74,7 +74,7 @@ class Trainer:
             self.plot.add_scalars("data/recall", {str(i): recall[i] for i in range(self.hp.out_channels)}, e)
             self.console.example(self.validation, self.model)
             model_name = self.namebase + f"_epoch_{e:03d}"
-            export_smtag_model(self.model, model_name)
+            model_path = export_smtag_model(self.model, model_name)
         self.plot.close()
         print("\n")
-        return self.model, model_name, precision, recall, f1, avg_validation_loss
+        return self.model, model_path, precision, recall, f1, avg_validation_loss

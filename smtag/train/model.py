@@ -39,7 +39,6 @@ class HyperparemetersSmtagModel(HyperparametersCatStack):
 class SmtagModel(Container1d):
 
     def __init__(self, hp: HyperparemetersSmtagModel):
-        # map options to attributes of standard Hyperparameter object from toolbox
         self.hp = hp
         super().__init__(self.hp, CatStack1d)
         self.output_semantics = deepcopy(self.hp.selected_features) # will be modified by adding <untagged>

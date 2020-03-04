@@ -14,7 +14,7 @@ from ..common.utils import tokenize, timer, Token
 from ..common.embeddings import EMBEDDINGS
 from ..common.mapper import Concept
 from ..train.dataset import Minibatch, BxCxL, BxL
-from ..train.builder import SmtagModel
+from ..train.model import SmtagModel
 from .. import config
 
 # import cProfile

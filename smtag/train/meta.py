@@ -19,7 +19,7 @@ from json import JSONEncoder
 from .dataset import Data4th
 from .trainer import Trainer
 from .scanner import HyperScan
-from .builder import SmtagModel, HyperparemetersSmtagModel
+from .model import SmtagModel, HyperparemetersSmtagModel
 from ..common.utils import cd
 from ..common.importexport import load_smtag_model
 from ..common.embeddings import EMBEDDINGS
@@ -51,13 +51,11 @@ class Meta():
         self._train(self.trainset, self.validation, self.hp) # models are saved to disk during training
 
     def hyper_scan(self, iterations, scan_params, scan_name):
-        pass
-        with cd(config.scans_dir):
-            scan = HyperScan(self.hp, scan_name, scan_params)
-            for i in range(iterations):
-                hp = scan.randhp() # obtain random sampling from selected hyperparam
-                model, model_name, precision, recall, f1, avg_validation_loss = self._train(self.trainset, self.validation, hp) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
-                scan.append_to_csv({'model_name': model_name, 'f1': f1, 'avg_valid_loss': avg_validation_loss}, hp, i)
+        scan = HyperScan(self.hp, config.scans_dir, scan_name, scan_params)
+        for i in range(iterations):
+            hp = scan.randhp() # obtain random sampling from selected hyperparam
+            model, model_path, precision, recall, f1, avg_validation_loss = self._train(self.trainset, self.validation, hp) # perf is  dict {'train_loss': train_loss, 'valid_loss': valid_loss, 'precision': precision, 'recall': recall, 'f1': f1}
+            scan.append_to_csv({'f1': f1, 'avg_valid_loss': avg_validation_loss, 'model_path': model_path}, hp, i)
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='Top level module to manage training.')
@@ -72,13 +70,13 @@ def main():
     parser.add_argument('-s', '--stride', default=1, type=int, help='Stride of the convolution.')
     parser.add_argument('-g', '--padding',  default=3, type=int, help='Padding for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('-N', '--N_layers', default=3, type=int, help="Number of layers in the model.")
-    parser.add_argument('--hyperscan', default='', help='Perform a scanning of the selected hyperparameters.')
+    parser.add_argument('--hyperscan', default='', nargs='+', choices=['learning_rate', 'minibatch_size','N_layers', 'hidden_channels'], help="Perform a scanning of the selected hyperparameters (learning_rate' | 'minibatch_size' | 'N_layers'| 'hidden_channels').")
     parser.add_argument('--iterations', default=25, type=int, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('--production', action='store_true', help='Production mode, where train and valid are combined and test used to control for overfitting.')
     parser.add_argument('--model', default='', help='Load pre-trained model and continue training.')
     
     arguments = parser.parse_args()
-    hyperscan = [x.strip() for x in arguments.hyperscan.split(',') if x.strip()]
+    hyperscan = [x.strip() for x in arguments.hyperscan]
     iterations = int(arguments.iterations)
     opt = {}
     opt['data_path_list'] = [dir.strip() for dir in arguments.files.split(',')]

@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from random import random
 from .converter import TString
 # from ..train.evaluator import Accuracy
-from ..train.builder import SmtagModel
+from ..train.model import SmtagModel
 from ..train.dataset import Data4th, BxL, BxCxL
 from ..predict.predictor import predict_fn
 from .. import config
