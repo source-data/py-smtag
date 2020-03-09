@@ -37,13 +37,13 @@ class XMLElementSerializer(AbstractElementSerializer):
             attribute_score = {}
             for group in concepts:
                 concept = concepts[group]
-                if concept != Catalogue.UNTAGGED:
-                    score = scores[group]
+                score = int(scores[group] * 100)
+                if concept != Catalogue.UNTAGGED and score > config.min_score_for_rendering:
                     attribute, value = concept.for_serialization
                     attribute_score[attribute] = score
                     attribute_list[attribute] = value
             xml_attributes = ' '.join(['{}="{}"'.format(a, attribute_list[a]) for a in attribute_list])
-            xml_scores = ' '.join(['{}_score="{}"'.format(a, str(int(100*attribute_score[a]))) for a in attribute_score])
+            xml_scores = ' '.join(['{}_score="{}"'.format(a, str(attribute_score[a])) for a in attribute_score])
             xml_string = "<{} {} {}>{}</{}>".format(tag, xml_attributes, xml_scores, inner_text, tag)
         return xml_string # because both HTML and XML handled, working with strings is easier than return ET.tostring(xml_string)
 
@@ -65,13 +65,13 @@ class HTMLElementSerializer(AbstractElementSerializer):
             attribute_score = {}
             for group in concepts:
                 concept = concepts[group]
-                if concept != Catalogue.UNTAGGED:
-                    score = scores[group]
+                score = int(scores[group] * 100)
+                if concept != Catalogue.UNTAGGED and score > config.min_score_for_rendering:
                     attribute, value = concept.for_serialization
                     attribute_list[attribute] = value
                     attribute_score[attribute] = score
             html_classes = ' '.join([a + "_" + attribute_list[a] for a in attribute_list])
-            score_classes = ' '.join([a + "_score_" + str(int(100*attribute_score[a])) for a in attribute_score])
+            score_classes = ' '.join([a + "_score_" + str(attribute_score[a]) for a in attribute_score])
             html_string = "<span class=\"{} {} {}\">{}</span>".format(tag, html_classes, score_classes, inner_text)
         return html_string
 
