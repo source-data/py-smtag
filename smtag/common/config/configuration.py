@@ -51,7 +51,7 @@ class Config():
     _min_size          = 380 # input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
     _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
     _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
-    _min_score_for_rendering = 5 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
+    _min_score_for_rendering = 1 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
 
     ############################################################################
     # MODELS
