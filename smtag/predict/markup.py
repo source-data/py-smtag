@@ -11,6 +11,7 @@ from collections import OrderedDict
 from ..common.utils import xml_escape, timer
 from ..common.mapper import Catalogue, Boundary
 from ..predict.decode import Decoder
+from .. import config
 
 
 class AbstractElementSerializer(object):
