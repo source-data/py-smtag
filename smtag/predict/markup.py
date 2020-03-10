@@ -39,7 +39,7 @@ class XMLElementSerializer(AbstractElementSerializer):
             for group in concepts:
                 concept = concepts[group]
                 score = int(scores[group] * 100)
-                if concept != Catalogue.UNTAGGED and score > config.min_score_for_rendering:
+                if concept != Catalogue.UNTAGGED: # and score > config.min_score_for_rendering:
                     attribute, value = concept.for_serialization
                     attribute_score[attribute] = score
                     attribute_list[attribute] = value
@@ -72,7 +72,7 @@ class HTMLElementSerializer(AbstractElementSerializer):
             for group in concepts:
                 concept = concepts[group]
                 score = int(scores[group] * 100)
-                if concept != Catalogue.UNTAGGED and score > config.min_score_for_rendering:
+                if concept != Catalogue.UNTAGGED: # and score > config.min_score_for_rendering:
                     attribute, value = concept.for_serialization
                     attribute_list[attribute] = value
                     attribute_score[attribute] = score
