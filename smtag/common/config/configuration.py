@@ -51,11 +51,11 @@ class Config():
     _min_size          = 380 # input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
     _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
     _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
-    _min_score_for_rendering = 1 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
+    _min_score_for_rendering = 0 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
 
     ############################################################################
     # MODELS
-    _model_entity = "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
+    _model_entity = "2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip" # NEW MIXED FIGURE/PANEL LEVEL # OLD PANEL: LEVEL "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
     _model_geneprod_role = "2020-02-29-22-47_intervention_assayed_epoch_019.zip"
     _model_molecule_role = "2020-03-01-01-29_intervention_assayed_epoch_019.zip"
     _model_geneprod_reporter = "2020-03-01-08-07_reporter_epoch_004.zip"

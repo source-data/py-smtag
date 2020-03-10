@@ -68,7 +68,9 @@ Limited to early emboj with consistent panel labels:
 
 # Models
 
-## Multi-entities with exp assays:
+## Multi-entities with exp assays
+
+### Panel level model:
 
 Training:
 
@@ -82,6 +84,37 @@ Benchmarking:
     python -m smtag.train.evaluator 10X_L1200_article_embeddings_32 2020-02-27-12-38_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip
 
 __Production model (`--production`): `2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip`__
+
+### Figure level model:
+
+Training:
+
+    python -m smtag.train.meta -f 10X_L1200_figure_article_embeddings_32 -E30 -Z32 -R0.005 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay --kernel 7 --padding 3 --dropout_rate 0.5 --N_layers 10 --hidden_channels 128
+
+Model: `2020-03-10-08-23_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip`
+
+
+Benchmarking:
+
+    python -m smtag.train.evaluator 10X_L1200_figure_article_embeddings_32 2020-03-10-08-23_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip
+
+__Production model (`--production`): `2020-03-10-12-05_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_029.zip`__
+
+
+### Figure and panel level model:
+
+Training:
+
+    python -m smtag.train.meta -f 10X_L1200_figure_article_embeddings_32,10X_L1200_article_embeddings_32  -E40 -Z32 -R0.005 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay --kernel 7 --padding 3 --dropout_rate 0.5 --N_layers 10 --hidden_channels 128
+
+Model: `2020-03-10-13-31_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_007.zip`
+
+
+Benchmarking:
+
+    python -m smtag.train.evaluator 10X_L1200_figure_article_embeddings_32,10X_L1200_article_embeddings_32 2020-03-10-13-31_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_007.zip
+
+__Production model (`--production`): `2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip`__
 
 
 ## Roles for gene products:
@@ -165,9 +198,9 @@ Benchmarking:
 __Production model (`--production`): `2020-03-01-09-21_panel_stop_epoch_012.zip`__
 
 
-# Benchmarking of production models:
+# Benchmarking of **production** models:
 
-python -m smtag.train.evaluator 10X_L1200_article_embeddings_32 2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip
+<!-- python -m smtag.train.evaluator 10X_L1200_article_embeddings_32 2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip
 
 ========================================================                                                                                                        
  Data: /workspace/py-smtag/resources/data4th/10X_L1200_article_embeddings_32                                                                                    
@@ -227,11 +260,76 @@ python -m smtag.train.evaluator 10X_L1200_article_embeddings_32 2020-02-29-13-10
 
         precision = 0.99
         recall = 1.00
+        f1 = 0.99 -->
+
+---
+
+    python -m smtag.train.evaluator 10X_L1200_figure_article_embeddings_32,10X_L1200_article_embeddings_32 2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_figure_article_embeddings_32 + /workspace/py-smtag/resources/data4th/10X_L1200_article_embeddings_32
+
+ Model: 2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip
+
+ Global stats:
+
+        precision = 0.8236414790153503
+        recall = 0.79
+        f1 = 0.80
+
+ Feature: 'small_molecule'
+
+        precision = 0.76
+        recall = 0.74
+        f1 = 0.75
+
+ Feature: 'geneprod'
+
+        precision = 0.85
+        recall = 0.89
+        f1 = 0.87
+
+ Feature: 'subcellular'
+
+        precision = 0.78
+        recall = 0.71
+        f1 = 0.74
+
+ Feature: 'cell'
+
+        precision = 0.86
+        recall = 0.83
+        f1 = 0.85
+
+ Feature: 'tissue'
+
+        precision = 0.71
+        recall = 0.73
+        f1 = 0.72
+
+ Feature: 'organism'
+
+        precision = 0.80
+        recall = 0.76
+        f1 = 0.78
+
+ Feature: 'assay'
+
+        precision = 0.83
+        recall = 0.66
+        f1 = 0.73
+
+ Feature: 'untagged'
+
+        precision = 0.99
+        recall = 0.99
         f1 = 0.99
 
 ---
 
-python -m smtag.train.evaluator 10X_L1200_anonym_not_reporter_article_embeddings_32 2020-02-29-22-47_intervention_assayed_epoch_019.zip
+    python -m smtag.train.evaluator 10X_L1200_anonym_not_reporter_article_embeddings_32 2020-02-29-22-47_intervention_assayed_epoch_019.zip
+
 ========================================================
 
  Data: /workspace/py-smtag/resources/data4th/10X_L1200_anonym_not_reporter_article_embeddings_32
@@ -264,7 +362,8 @@ python -m smtag.train.evaluator 10X_L1200_anonym_not_reporter_article_embeddings
 
 ---
 
-python -m smtag.train.evaluator 10X_L1200_molecule_anonym_article_embeddings_32 2020-03-01-01-29_intervention_assayed_epoch_019.zip
+    python -m smtag.train.evaluator 10X_L1200_molecule_anonym_article_embeddings_32 2020-03-01-01-29_intervention_assayed_epoch_019.zip
+
 ========================================================
 
  Data: /workspace/py-smtag/resources/data4th/10X_L1200_molecule_anonym_article_embeddings_32
@@ -297,7 +396,7 @@ python -m smtag.train.evaluator 10X_L1200_molecule_anonym_article_embeddings_32 
 
 ---
 
-python -m smtag.train.evaluator 10X_L1200_article_embeddings_32 2020-03-01-08-07_reporter_epoch_004.zip
+    python -m smtag.train.evaluator 10X_L1200_article_embeddings_32 2020-03-01-08-07_reporter_epoch_004.zip
 
 ========================================================
 
@@ -325,7 +424,7 @@ python -m smtag.train.evaluator 10X_L1200_article_embeddings_32 2020-03-01-08-07
 
 ---
 
-python -m smtag.train.evaluator 10X_L1200_disease_article_embeddings_32,10X_L1200_figure_emboj_2012_article_embeddings_32 2020-03-01-08-49_disease_epoch_020.zip
+    python -m smtag.train.evaluator 10X_L1200_disease_article_embeddings_32,10X_L1200_figure_emboj_2012_article_embeddings_32 2020-03-01-08-49_disease_epoch_020.zip
 
 ========================================================
 
@@ -353,7 +452,7 @@ python -m smtag.train.evaluator 10X_L1200_disease_article_embeddings_32,10X_L120
 
 ---
 
-python -m smtag.train.evaluator 10X_L1200_figure_emboj_2012_article_embeddings_32 2020-03-01-09-21_panel_stop_epoch_012.zip
+    python -m smtag.train.evaluator 10X_L1200_figure_emboj_2012_article_embeddings_32 2020-03-01-09-21_panel_stop_epoch_012.zip
 
 ========================================================
 
@@ -382,7 +481,9 @@ python -m smtag.train.evaluator 10X_L1200_figure_emboj_2012_article_embeddings_3
 
 Transfer of production models to local rack
 
-       scp -i ~/.ssh/id_rsa.pub lemberge@embo-dgx01:/raid/lemberge/py-smtag/resources/models/2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip .
+       <!-- scp -i ~/.ssh/id_rsa.pub lemberge@embo-dgx01:/raid/lemberge/py-smtag/resources/models/2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip . -->
+
+       scp -i ~/.ssh/id_rsa.pub lemberge@embo-dgx01:/raid/lemberge/py-smtag/resources/models/2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip .
 
        scp -i ~/.ssh/id_rsa.pub lemberge@embo-dgx01:/raid/lemberge/py-smtag/resources/models/2020-02-29-22-47_intervention_assayed_epoch_019.zip .
 
