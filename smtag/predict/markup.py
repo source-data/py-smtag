@@ -39,16 +39,14 @@ class XMLElementSerializer(AbstractElementSerializer):
             for group in concepts:
                 concept = concepts[group]
                 score = int(scores[group] * 100)
-                if concept != Catalogue.UNTAGGED: # and score > config.min_score_for_rendering:
+                if concept != Catalogue.UNTAGGED:
                     attribute, value = concept.for_serialization
                     attribute_score[attribute] = score
                     attribute_list[attribute] = value
-            # if any attribute passed the score threshold, then we can include a tag
             if attribute_list:
                 xml_attributes = ' '.join(['{}="{}"'.format(a, attribute_list[a]) for a in attribute_list])
                 xml_scores = ' '.join(['{}_score="{}"'.format(a, str(attribute_score[a])) for a in attribute_score])
                 xml_string = "<{} {} {}>{}</{}>".format(tag, xml_attributes, xml_scores, inner_text, tag)
-            # if the score did not reach treshold for any attribute, then return the innert_text as is
             else:
                 xml_string = inner_text
         return xml_string # because both HTML and XML handled, working with strings is easier than return ET.tostring(xml_string)
@@ -72,16 +70,14 @@ class HTMLElementSerializer(AbstractElementSerializer):
             for group in concepts:
                 concept = concepts[group]
                 score = int(scores[group] * 100)
-                if concept != Catalogue.UNTAGGED: # and score > config.min_score_for_rendering:
+                if concept != Catalogue.UNTAGGED:
                     attribute, value = concept.for_serialization
                     attribute_list[attribute] = value
                     attribute_score[attribute] = score
-            # if any attribute passed the score threshold, then we can include a tag
             if attribute_list:
                 html_classes = ' '.join([a + "_" + attribute_list[a] for a in attribute_list])
                 score_classes = ' '.join([a + "_score_" + str(attribute_score[a]) for a in attribute_score])
                 html_string = "<span class=\"{} {} {}\">{}</span>".format(tag, html_classes, score_classes, inner_text)
-            # if the score did not reach treshold for any attribute, then return the innert_text as is
             else:
                 html_string = inner_text
         return html_string
