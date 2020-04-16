@@ -8,138 +8,39 @@ from torch import nn
 import torch.nn.functional as F
 from copy import deepcopy
 from math import sqrt
-from ..common.mapper import Concept, Catalogue
-from ..datagen.context import PRETRAINED
+from toolbox.models import HyperparametersUnet, Unet1d, Container1d
+from ..common.mapper import Concept, Catalogue, concept2index
 from .. import config
 
-class SmtagModel(nn.Module):
+class HyperparemetersSmtagModel(HyperparametersUnet):
 
-    def __init__(self, opt):
-        super(SmtagModel, self).__init__()
-        nf_input = opt.nf_input
-        nf_output = opt.nf_output
-        nf_table = deepcopy(opt.nf_table)
-        kernel_table = deepcopy(opt.kernel_table)
-        pool_table = deepcopy(opt.pool_table)
-        context_table = deepcopy(opt.viz_context_table)
-        context_in = PRETRAINED(torch.Tensor(1, 3, config.resized_img_size, config.resized_img_size)).numel()
-        dropout = opt.dropout
+    def __init__(self, opt=None):
+        self.namebase = opt['namebase']
+        self.data_path_list = opt['data_path_list']
+        self.modelname = opt['modelname']
+        self.learning_rate = opt['learning_rate']
+        self.epochs = opt['epochs']
+        self.minibatch_size = opt['minibatch_size']
+        self.in_channels = opt['nf_input']
+        self.hidden_channels = opt['hidden_channels']
+        self.selected_features = Catalogue.from_list(opt['selected_features'])
+        self.out_channels = len(self.selected_features)
+        self.nf_table = opt['nf_table']
+        self.kernel_table = opt['kernel_table']
+        self.stride_table = opt['stride_table']
+        self.pool = opt['pool']
+        self.dropout_rate = opt['dropout_rate']
+        self.padding = opt['padding']
+        
+        # softmax requires an <untagged> class
+        self.index_of_notag_class = self.out_channels
+        self.out_channels += 1
 
-        self.viz_ctxt = VizContext(context_in, context_table)
-        # self.pre = nn.BatchNorm1d(nf_input)
-        self.net = Unet2(nf_input, nf_table, kernel_table, pool_table, context_table, dropout)
-        self.adapter = nn.Conv1d(nf_input, nf_output, 1, 1) # reduce output features of model to final desired number of output features
-        self.BN = nn.BatchNorm1d(nf_output)
-        self.output_semantics = deepcopy(opt.selected_features) # will be modified by adding <untagged>
-        self.output_semantics.append(Catalogue.UNTAGGED)
-        self.opt = opt
 
-    def forward(self, x, viz_context):
-        context_list = self.viz_ctxt(viz_context)
-        # x = self.pre(x) # should be in embeddings
-        x = self.net(x, context_list)
-        x = self.adapter(x)
-        x = self.BN(x)
-        x = F.log_softmax(x, 1)
-        # x = F.sigmoid(x)
-        return x
+class SmtagModel(Container1d):
 
-class VizContext(nn.Module):
-    def __init__(self, in_channels, context_table):
-        super(VizContext, self).__init__()
-        self.in_channels = in_channels
-        self.context_table = context_table
-        # in context_table is empty, self.linears is empty too
-        self.linears = nn.ModuleList([nn.Linear(self.in_channels, out_channels) for out_channels in self.context_table])
-
-    def forward(self, context):
-        embedding_list = []
-        if context.size(0) > 0: # don't compute context embedding if no context provided 
-            for lin in self.linears: # skipped in self.linears empty
-                ctx = lin(context) # from batch of vectors B x V to batch of embeddings B x E
-                ctx = F.softmax(ctx, 1) # auto-classifies images; possibly interpretable
-                ctx = ctx.unsqueeze(2) # B x E x 1
-                embedding_list.append(ctx)
-        return embedding_list
-
- 
-class Unet2(nn.Module):
-    def __init__(self, nf_input, nf_table, kernel_table, pool_table, context_table, dropout_rate, skip=True):
-        super(Unet2, self).__init__()
-        self.context_table = context_table
-        self.nf_input = nf_input
-        self.nf_context = 0
-        if self.context_table:
-            self.nf_context = context_table.pop(0)
-        self.nf_table = nf_table
-        self.nf_output = nf_table.pop(0)
-        self.pool_table = pool_table
-        self.pool = pool_table.pop(0)
-        self.kernel_table = kernel_table
-        self.kernel = kernel_table.pop(0)
-        # if self.kernel % 2 == 0:
-        #    self.padding = int(self.kernel/2)
-        # else:
-        #    self.padding = floor((self.kernel-1)/2) # TRY WITHOUT ANY PADDING
-        self.padding = 0 
-        self.stride = 1
-        self.dropout_rate = dropout_rate
-        self.skip = skip
-        self.dropout = nn.Dropout(self.dropout_rate)
-        self.BN_pre = nn.BatchNorm1d(self.nf_input+self.nf_context)
-        self.conv_down_A = nn.Conv1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride, self.padding)
-        self.BN_down_A = nn.BatchNorm1d(self.nf_input+self.nf_context)
-
-        self.conv_down_B = nn.Conv1d(self.nf_input+self.nf_context, self.nf_output, self.kernel, self.stride, self.padding)
-        self.BN_down_B = nn.BatchNorm1d(self.nf_output)
-
-        self.conv_up_B = nn.ConvTranspose1d(self.nf_output, self.nf_input+self.nf_context, self.kernel, self.stride)
-        self.BN_up_B = nn.BatchNorm1d(self.nf_input+self.nf_context)
-
-        self.conv_up_A = nn.ConvTranspose1d(self.nf_input+self.nf_context, self.nf_input+self.nf_context, self.kernel, self.stride)
-        self.BN_up_A = nn.BatchNorm1d(self.nf_input+self.nf_context)
-
-        if len(self.nf_table) > 0:
-            self.unet2 = Unet2(self.nf_output, self.nf_table, self.kernel_table, self.pool_table, context_table, self.dropout_rate, self.skip)
-            self.BN_middle = nn.BatchNorm1d(self.nf_output,)
-        else:
-            self.unet2 = None
-
-        if self.skip:
-            self.reduce = nn.Conv1d(2*(self.nf_input+self.nf_context), self.nf_input, 1, 1)
-
-    def forward(self, x, context_list):
-        if context_list: # skipped if no context_list empty in which case nf_context is also 0
-            viz_context = context_list[0]
-            viz_context = viz_context.repeat(1, 1, x.size(2)) # expand into B x E x L
-            x = torch.cat((x, viz_context), 1) # concatenate visual context embeddings to the input B x C+E x L
-            # need to normalize this together? output of densenet161 is normalized but scale of x can be very different if internal layer of U-net
-            context_list = context_list[1:]
-        x = self.BN_pre(x) # or y = self.BN_pre(x); makes a difference for the final reduce(torch.cat([x,y],1))
-        y = self.dropout(x)
-        y = self.conv_down_A(y)
-        y = F.relu(self.BN_down_A(y), inplace=True)
-        y_size_1 = list(y.size())
-        y, pool_1_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
-        y = self.conv_down_B(y)
-        y = F.relu(self.BN_down_B(y), inplace=True)
-
-        if self.unet2 is not None:
-            y_size_2 = list(y.size())
-            y, pool_2_indices = nn.MaxPool1d(self.pool, self.pool, return_indices=True)(y)
-            y = self.unet2(y, context_list)
-            y = F.relu(self.BN_middle(y), inplace=True)
-            y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_2_indices, y_size_2) # problem on 1.0.1 ses issue #16486
-        y = self.dropout(y)
-        y = self.conv_up_B(y)
-        y = F.relu(self.BN_up_B(y), inplace=True)
-        y = nn.MaxUnpool1d(self.pool, self.pool)(y, pool_1_indices, y_size_1)
-        y = self.conv_up_A(y)
-        y = F.relu(self.BN_up_A(y), inplace=True)
-
-        if self.skip:
-            y = torch.cat((x, y), 1) # merge via concatanation of output layers 
-            y = self.reduce(y) # reducing from 2*nf_output to nf_output
-            # y = x + y # this would be the residual block way of making the shortcut through the branche of the U; simpler, less params, no need for self.reduce()
-
-        return y
+    def __init__(self, hp: HyperparemetersSmtagModel):
+        self.hp = hp
+        super().__init__(self.hp, Unet1d)
+        self.output_semantics = deepcopy(self.hp.selected_features) # will be modified by adding <untagged>
+        self.output_semantics.append(Catalogue.UNTAGGED) # because softmax (as included in cross_entropy loss) needs untagged class when classifying entities.

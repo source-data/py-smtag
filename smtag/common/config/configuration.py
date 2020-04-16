@@ -37,47 +37,31 @@ class Config():
     _log_dir_name        = "log" # general logging dir
     _runs_log_dir_name   = "runs" # dir for tensorboard logs
     _scans_dir_name      = "scans" # results of hyperparameter scans
-    _embeddings_dir_name = "embeddings" # pretrained networks generating context-aware character-level embeddings
 
     ############################################################################
     # VARIABLES
     #
     _cache_dataset     = 1024 # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
-    _dirignore         = ['.DS_Store'] # directories that should be ignored when scanning data or document compendia
-    _allowed_img       = ['.jpg', '.jpeg', '.png']
-    _img_grid_size     = 7 # grid size used to encode the location of elements on images
-    _resized_img_size  = 512 # size of the resized image used for visual context
-    _viz_context_features = 2208*7*7 # number of features used as visual context features; output of densenet161.features
-    _ocr_max_edit_dist = 0.1 # max edit distance per character length between ocr term and matching term in caption
-    _ocr_min_overlap   = 2 # minimum length of overlap between ocr term and caption term
-    _nbits             = 17 # 8 # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
-    _embedding_out_channels = 128 # the number of channels used for learned deep embeddings
-    _marking_char      = '_' #u'\uE000' # Substitution special xml-compatible character used to mark anonymized entities.
+    _dirignore         = ['.DS_Store', '__MACOSX'] # directories that should be ignored when scanning data or document compendia
+    nbits             = int(os.getenv('NBITS')) # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
+    _marking_char      = '_' # Substitution special xml-compatible character used to mark anonymized entities.
+    _masking_proba     = 1.0 # probability with wich an element selected to be potentially masked is effectively masked
     _padding_char      = '`' # " " # character used to padd strings; would be smarter to use character different from space
     _min_padding       = 380 # 800 # 380? the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
     _min_size          = 380 # 1530?? input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
     _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
     _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
+    _min_score_for_rendering = 0 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
 
     ############################################################################
     # MODELS
-    #
-    # WITH VISUAL CONTEXT
-    # _model_entity_viz = "5X_L1200_fig_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-05-01-16-07.zip"
-    # _model_geneprod_role_viz = "5X_L1200_geneprod_anonym_not_reporter_fig_intervention_assayed_2019-05-20-14-52.zip"
-    # _model_molecule_role_viz = "5X_L1200_molecule_anonym_fig_intervention_assayed_2019-05-03-15-17.zip"
-    # # no diseasee model with viz context because no traininset for this
-    # no reporter model with viz because viz does not help
-    # no panel_stop model with viz because viz does not help
-
-    # WITHOUT VISUAL CONTEXT
-    _model_entity_no_viz = "5X_L1200_article_embeddings_128_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_2019-08-23-17-46.zip" # 
-    _model_geneprod_reporter_no_viz = "5X_L1200_article_embeddings_128_reporter_2019-08-28-00-08_epoch_23_.zip"
-    _model_geneprod_role_no_viz = "5X_L1200_anonym_not_reporter_article_embeddings_128_intervention_assayed_2019-08-22-16-25.zip"
-    _model_molecule_role_no_viz = "5X_L1200_molecule_anonym_article_embeddings_128_intervention_assayed_2019-08-28-23-33_epoch_51.zip"
-    _model_disease_no_viz = "10X_L1200_disease_articke_embeddings_128-5X_L1200_article_embeddings_128_disease_2019-08-25-21-47.zip"
-    _model_panel_stop_no_viz = "5X_L1200_emboj_2012_no_viz_panel_stop_2019-08-29-08-31.zip"
-    _embeddings_model = None # "article_embeddings_128.zip" # article_embedding_pmc.zip" #shuffle3_embedding_pmc.zip" # embeddings_verbs_pmc_abstracts.zip" # "shuffle3_embeddings.py" # "verbs_embeddings.zip" #
+    _model_entity = "2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip" # NEW MIXED FIGURE/PANEL LEVEL # OLD PANEL: LEVEL "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
+    _model_geneprod_role = "2020-02-29-22-47_intervention_assayed_epoch_019.zip"
+    _model_molecule_role = "2020-03-01-01-29_intervention_assayed_epoch_019.zip"
+    _model_geneprod_reporter = "2020-03-01-08-07_reporter_epoch_004.zip"
+    _model_disease = "2020-03-01-08-49_disease_epoch_020.zip"
+    _model_panel_stop = "2020-03-01-09-21_panel_stop_epoch_012.zip"
+    _embeddings_model = "2020-02-24-01-31_last_saved.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
@@ -109,24 +93,21 @@ class Config():
         if not os.path.exists(image_dir):
             os.mkdir(image_dir)
         return image_dir
+
     @property
     def data_dir(self):
         data_dir = os.path.join(self.working_directory, self._data_dir_name)
         if not os.path.exists(data_dir):
             os.mkdir(data_dir)
         return data_dir
+
     @property
     def data4th_dir(self):
         data4th_dir = os.path.join(self.working_directory, self._data4th_dir_name)
         if not os.path.exists(data4th_dir):
             os.mkdir(data4th_dir)
         return data4th_dir
-    @property
-    def encoded_dir(self):
-        encoded_dir = os.path.join(self.working_directory, self._encoded_dir_name)
-        if not os.path.exists(encoded_dir):
-            os.mkdir(encoded_dir)
-        return encoded_dir
+
     @property
     def model_dir(self):
         model_dir = os.path.join(self.working_directory, self._model_dir_name)
@@ -140,6 +121,7 @@ class Config():
         if not os.path.exists(runs_log_dir):
             os.mkdir(runs_log_dir)
         return runs_log_dir
+
     @property
     def log_dir(self):
         log_dir = os.path.join(self.working_directory, self._log_dir_name)
@@ -147,6 +129,7 @@ class Config():
             os.mkdir(log_dir)
         return log_dir
     @property
+
     def scans_dir(self):
         """
         Path to results of hyperparameter scans.
@@ -155,135 +138,104 @@ class Config():
         if not os.path.exists(scans_dir):
             os.mkdir(scans_dir)
         return scans_dir
-    @property
-    def embeddings_dir(self):
-        embedd_dir = os.path.join(self.working_directory, self._embeddings_dir_name)
-        if not os.path.exists(embedd_dir):
-            os.mkdir(embedd_dir)
-        return embedd_dir
+
     @property
     def embeddings_model(self):
         return self._embeddings_model
+
     @property
     def cache_dataset(self):
         """
         Size of the cache used in Dataset
         """
         return self._cache_dataset
+
     @property
     def dirignore(self):
         """
         List of directory names that should be ignored when scanning for datasets
         """
         return self._dirignore
-    @property
-    def allowed_img(self):
-        return self._allowed_img
-    @property
-    def img_grid_size(self):
-        """
-        Grid size used to encode the location of elements on images.
-        """
-        return self._img_grid_size
-    @property
-    def resized_img_size(self):
-        """
-        Size of the resized image used for visual context.
-        """
-        return self._resized_img_size
-    @property
-    def viz_cxt_features(self):
-        """
-        The number of visual context features used
-        """
-        return self._viz_context_features
-    @property
-    def ocr_max_edit_dist(self):
-        """
-        Max edit distance per character length between ocr term and matching term in caption
-        """
-        return self._ocr_max_edit_dist
-    @property
-    def ocr_min_overlap(self):
-        """
-        Minimum length of overlap between ocr term and caption term
-        """
-        return self._ocr_min_overlap
-    @property
-    def nbits(self):
-        """
-        Number of features used to encode a character.
-        """
-        return self._nbits
-    @property
-    def embedding_out_channels(self):
-        """
-        Number of channels used for learned deep embeddings.
-        """
-        return self._embedding_out_channels
+
     @property
     def marking_char(self):
         """
         Substitution special xml-compatible character used to mark anonymized entities.
         """
         return self._marking_char
+
+    @property
+    def masking_proba(self):
+        """
+        Probability with wich an element selected for potential masking will actually be masked.
+        """
+        return self._masking_proba
+
     @property
     def padding_char(self):
         """
         Special character used to pad strings.
         """
         return self._padding_char
+
     @property
     def min_padding(self):
         """
         The number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
         """
         return self._min_padding
+
     @property
     def min_size(self):
         """
         Input needs to be of minimal size to survive successive convergent convolutions; ideally, should be calculated analytically
         """
         return self._min_size
+
     @property
     def default_threshold(self):
         """
         Threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
         """
         return self._default_threshold
+
     @property
     def fusion_threshold(self):
         """
         Threshold to allow adjascent token with identical features to be fused
         """
         return self._fusion_threshold
-    # @property
-    # def model_entity_viz(self):
-    #     return self._model_entity_viz
+
     @property
-    def model_entity_no_viz(self):
-        return self._model_entity_no_viz
-    # @property
-    # def model_geneprod_role_viz(self):
-    #     return self._model_geneprod_role_viz
+    def min_score_for_rendering(self):
+        """
+        Threshold below which a feature is not included in the rendered HTML/XML
+        """
+        return self._min_score_for_rendering
+
     @property
-    def model_geneprod_role_no_viz(self):
-        return self._model_geneprod_role_no_viz
+    def model_entity(self):
+        return self._model_entity
+
     @property
-    def model_geneprod_reporter_no_viz(self):
-        return self._model_geneprod_reporter_no_viz
-    # @property
-    # def model_molecule_role_viz(self):
-    #     return self._model_molecule_role_viz
+    def model_geneprod_role(self):
+        return self._model_geneprod_role
+
     @property
-    def model_molecule_role_no_viz(self):
-        return self._model_molecule_role_no_viz
+    def model_geneprod_reporter(self):
+        return self._model_geneprod_reporter
+
     @property
-    def model_panel_stop_no_viz(self):
-        return self._model_panel_stop_no_viz
+    def model_molecule_role(self):
+        return self._model_molecule_role
+
     @property
-    def model_disease_no_viz(self):
-        return self._model_disease_no_viz
+    def model_panel_stop(self):
+        return self._model_panel_stop
+
+    @property
+    def model_disease(self):
+        return self._model_disease
 
     def create_argument_parser_with_defaults(self, description=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter

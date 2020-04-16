@@ -5,11 +5,11 @@ import unittest
 import torch
 from xml.etree.ElementTree import fromstring, tostring
 from smtag.common.utils import tokenize
-from smtag.predict.binarize import Binarized
-from smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from smtag.predict.decode import Decoder
+from smtag.predict.markup import XMLElementSerializer, HTMLElementSerializer, Serializer
 from smtag.common.utils import timer
 from smtag.common.mapper import Catalogue
-from smtag.predict.updatexml import updatexml_
+from smtag.predict.updatexml import updatexml
 
 class SerializerTest(unittest.TestCase):
 
@@ -41,7 +41,7 @@ class SerializerTest(unittest.TestCase):
                                   ]])
 
         #self, text_examples, prediction, output_semantics
-        b = Binarized([input_string], prediction, Catalogue.from_list(['gene','small_molecule','tissue','protein']))
+        b = Decoder([input_string], prediction, Catalogue.from_list(['gene','small_molecule','tissue','protein']))
         token_list = tokenize(input_string)
         b.binarize_with_token([token_list])
         serializer = Serializer(tag="sd-tag", format="xml")
