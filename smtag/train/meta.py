@@ -71,7 +71,6 @@ def main():
     parser.add_argument('-k', '--kernel_table', default="7,7,7", help='Convolution kernel for each hidden layer.')
     parser.add_argument('--padding', default="0", help='Padding at each hidden layer.')
     parser.add_argument('--no_pool', action='store_true', help='Pooling for each hidden layer (use quotes if comma+space delimited).')
-    parser.add_argument('-g', '--padding_table',  default="3,3,3", help='Padding for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('--hyperscan', default='', nargs='+', choices=['learning_rate', 'minibatch_size','N_layers', 'hidden_channels'], help="Perform a scanning of the selected hyperparameters (learning_rate' | 'minibatch_size' | 'N_layers'| 'hidden_channels').")
     parser.add_argument('--iterations', default=25, type=int, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('--production', action='store_true', help='Production mode, where train and valid are combined and test used to control for overfitting.')
