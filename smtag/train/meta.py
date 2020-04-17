@@ -68,7 +68,6 @@ def main():
     parser.add_argument('-n', '--nf_table', default="32,32,32", help='Number of features in each hidden super-layer.')
     parser.add_argument('-s', '--stride_table', default="1,1,1", help='Strides in hidden super-layer.')
     parser.add_argument('-k', '--kernel_table', default="7,7,7", help='Convolution kernel for each hidden layer.')
-    parser.add_argument('--padding', default="0", help='Padding at each hidden layer.')
     parser.add_argument('--no_pool', action='store_true', help='Pooling for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('--hyperscan', default='', nargs='+', choices=['learning_rate', 'minibatch_size','N_layers', 'hidden_channels'], help="Perform a scanning of the selected hyperparameters (learning_rate' | 'minibatch_size' | 'N_layers'| 'hidden_channels').")
     parser.add_argument('--iterations', default=25, type=int, help='Number of iterations for the hyperparameters scanning.')
@@ -91,7 +90,6 @@ def main():
     opt['kernel_table'] = [int(x.strip()) for x in arguments.kernel_table.split(',')]
     opt['stride_table'] = [int(x.strip()) for x in arguments.stride_table.split(',')]
     opt['pool'] = not arguments.no_pool
-    opt['padding'] = arguments.padding
  
     if config.embeddings_model:
         opt['nf_input'] = EMBEDDINGS.model.hp.out_channels
