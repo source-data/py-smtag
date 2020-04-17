@@ -22,7 +22,6 @@ class HyperparemetersSmtagModel(HyperparametersUnet):
         self.epochs = opt['epochs']
         self.minibatch_size = opt['minibatch_size']
         self.in_channels = opt['nf_input']
-        self.hidden_channels = opt['hidden_channels']
         self.selected_features = Catalogue.from_list(opt['selected_features'])
         self.out_channels = len(self.selected_features)
         self.nf_table = opt['nf_table']
