@@ -333,7 +333,6 @@ class DataPreparator(object):
                     for sub in list(e):
                         e.remove(sub)
                     corrupted_text = rand(inner_text, config.corrupt_proba)
-                    import pdb; pdb.set_trace()
                     e.text = corrupted_text
         return xml
 

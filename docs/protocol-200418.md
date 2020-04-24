@@ -80,7 +80,7 @@ Training:
     -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay \
     --kernel_table 3,3,3,3 --nf_table 128,128,128,128,128 --stride_table 1,1,1,1 --dropout_rate 0.5
 
-Model: ` 2020-04-20-07-17_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_008.zip`
+Model: `2020-04-20-07-17_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_008.zip`
 
 
 Benchmarking:

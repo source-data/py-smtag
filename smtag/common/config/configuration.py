@@ -56,15 +56,21 @@ class Config():
 
     ############################################################################
     # MODELS CatStack
-    _model_entity = "2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip" # NEW MIXED FIGURE/PANEL LEVEL # OLD PANEL: LEVEL "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
-    _model_geneprod_role = "2020-02-29-22-47_intervention_assayed_epoch_019.zip"
-    _model_molecule_role = "2020-03-01-01-29_intervention_assayed_epoch_019.zip"
-    _model_geneprod_reporter = "2020-03-01-08-07_reporter_epoch_004.zip"
-    _model_disease = "2020-03-01-08-49_disease_epoch_020.zip"
-    _model_panel_stop = "2020-03-01-09-21_panel_stop_epoch_012.zip"
+    # _model_entity = "2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip" # NEW MIXED FIGURE/PANEL LEVEL # OLD PANEL: LEVEL "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
+    # _model_geneprod_role = "2020-02-29-22-47_intervention_assayed_epoch_019.zip"
+    # _model_molecule_role = "2020-03-01-01-29_intervention_assayed_epoch_019.zip"
+    # _model_geneprod_reporter = "2020-03-01-08-07_reporter_epoch_004.zip"
+    # _model_disease = "2020-03-01-08-49_disease_epoch_020.zip"
+    # _model_panel_stop = "2020-03-01-09-21_panel_stop_epoch_012.zip"
     # _embeddings_model = "2020-02-24-01-31_last_saved.zip"
 
     # MODELS Unet
+    _model_entity = "2020-04-21-14-55_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_004.zip"
+    _model_geneprod_role = "2020-04-22-11-12_intervention_assayed_epoch_007.zip"
+    _model_molecule_role = "2020-04-23-13-17_intervention_assayed_epoch_022.zip"
+    _model_geneprod_reporter = "2020-04-23-18-58_reporter_epoch_019.zip"
+    _model_disease = "2020-04-24-07-33_disease_epoch_099.zip"
+    _model_panel_stop = "2020-04-24-11-24_panel_stop_epoch_099.zip"
     _embeddings_model = "2020-04-18-23-03_final.zip"
 
     def __init__(self):
