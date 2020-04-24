@@ -46,7 +46,7 @@ class Config():
     nbits             = int(os.getenv('NBITS'))  # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
     _marking_char      = '_'  # Substitution special xml-compatible character used to mark anonymized entities.
     _masking_proba     = 1.0  # probability with wich an element selected to be potentially masked is effectively masked.
-    _corrupt_proba     = 0.1  # probability with which a character is replaced by a random characters when corrupting terms.
+    _corrupt_proba     = 0.05  # probability with which a character is replaced by a random characters when corrupting terms.
     _padding_char      = '`'  # " " # character used to padd strings; would be smarter to use character different from space
     _min_padding       = 380  # 800 # 380? the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
     _min_size          = 380  # 1530?? input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
