@@ -41,16 +41,17 @@ class Config():
     ############################################################################
     # VARIABLES
     #
-    _cache_dataset     = 1024 # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
-    _dirignore         = ['.DS_Store', '__MACOSX'] # directories that should be ignored when scanning data or document compendia
-    nbits             = int(os.getenv('NBITS')) # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
-    _marking_char      = '_' # Substitution special xml-compatible character used to mark anonymized entities.
-    _masking_proba     = 1.0 # probability with wich an element selected to be potentially masked is effectively masked
-    _padding_char      = '`' # " " # character used to padd strings; would be smarter to use character different from space
-    _min_padding       = 380 # 800 # 380? the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
-    _min_size          = 380 # 1530?? input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
-    _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
-    _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
+    _cache_dataset     = 1024  # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
+    _dirignore         = ['.DS_Store', '__MACOSX']  # directories that should be ignored when scanning data or document compendia
+    nbits             = int(os.getenv('NBITS'))  # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
+    _marking_char      = '_'  # Substitution special xml-compatible character used to mark anonymized entities.
+    _masking_proba     = 1.0  # probability with wich an element selected to be potentially masked is effectively masked.
+    _corrupt_proba     = 0.1  # probability with which a character is replaced by a random characters when corrupting terms.
+    _padding_char      = '`'  # " " # character used to padd strings; would be smarter to use character different from space
+    _min_padding       = 380  # 800 # 380? the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
+    _min_size          = 380  # 1530?? input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
+    _default_threshold = 0.5  # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
+    _fusion_threshold = 0.1  # threshold to allow adjascent token with identical features to be fused
     _min_score_for_rendering = 0 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
 
     ############################################################################
@@ -173,6 +174,21 @@ class Config():
         Probability with wich an element selected for potential masking will actually be masked.
         """
         return self._masking_proba
+
+    @property
+    def corrupt_proba(self):
+        """
+        Probability with wich characters are replaced by random character when corrupting terms.
+        """
+        return self._corrupt_proba
+
+    @property
+    def corrupt_path(self):
+        """
+        XPath to the elements to which noisy corruption should be applied
+        """
+        return self._corrupt_path
+
 
     @property
     def padding_char(self):

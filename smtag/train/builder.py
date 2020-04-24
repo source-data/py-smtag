@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-#T. Lemberger, 2018
-
 from math import floor
 from collections import OrderedDict
 import torch
@@ -39,6 +36,6 @@ class SmtagModel(Container1d):
 
     def __init__(self, hp: HyperparemetersSmtagModel):
         self.hp = hp
-        super().__init__(self.hp, Unet1d)
-        self.output_semantics = deepcopy(self.hp.selected_features) # will be modified by adding <untagged>
-        self.output_semantics.append(Catalogue.UNTAGGED) # because softmax (as included in cross_entropy loss) needs untagged class when classifying entities.
+        super().__init__(self.hp, Unet1d)  # architecture should be in config... eventually
+        self.output_semantics = deepcopy(self.hp.selected_features)  # will be modified by adding <untagged>
+        self.output_semantics.append(Catalogue.UNTAGGED)  # because softmax (as included in cross_entropy loss) needs untagged class when classifying entities.
