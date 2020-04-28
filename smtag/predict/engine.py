@@ -223,7 +223,7 @@ def main():
     elif method == 'tag':
         print(engine.tag([input_string], sdtag, format))
     elif method == 'entity':
-        print(engine.entity([input_string, input_string], sdtag, format))
+        print(engine.entity([input_string], sdtag, format))
     elif method == 'role':
         print(engine.role([input_string], sdtag)) # can only be xml format
     else:
