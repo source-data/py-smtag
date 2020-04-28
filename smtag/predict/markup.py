@@ -132,12 +132,15 @@ class AbstractTagger:
     def serialize(self, decoded: Decoder) -> List[str]:
         ml_list = []
         for n in range(decoded.N):
-            #INITIALIZATION
+            # INITIALIZATION FOR EACH EXAMPLE
             ml_string = ""
             inner_text = ""
             pos = 0
             num_open_elements = 0
             current_concepts = OrderedDict([(g, Catalogue.UNTAGGED) for g in decoded.semantic_groups]) # initialize with UNTAGGED?
+            longitudinal_tagging_groups = deepcopy(decoded.semantic_groups)
+            if 'panels' in longitudinal_tagging_groups:
+                del longitudinal_tagging_groups['panels']
             need_to_open = OrderedDict([(g, False) for g in decoded.semantic_groups])
             need_to_close = OrderedDict([(g, False) for g in decoded.semantic_groups])
             need_to_open_any = False
@@ -163,7 +166,7 @@ class AbstractTagger:
                 for count, token in enumerate(panel):
                     text = xml_escape(token.text)
                     left_spacer = token.left_spacer if count > 0 else ""
-                    for group in decoded.semantic_groups: # scan across feature groups the features that need to be opened
+                    for group in longitudinal_tagging_groups: # scan across feature groups the features that need to be opened
                         concept = decoded.concepts[n][group][pos]
                         if concept != Catalogue.UNTAGGED and concept != current_concepts[group]: # a new concept
                             need_to_open[group] = concept
@@ -181,7 +184,7 @@ class AbstractTagger:
 
                         # print(f"3.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
 
-                        for group in decoded.semantic_groups:
+                        for group in longitudinal_tagging_groups:
                             concept = decoded.concepts[n][group][pos]
                             current_scores[group] = decoded.scores[n][group][pos]
                             if need_to_open[group]: # CHANGED
@@ -193,7 +196,7 @@ class AbstractTagger:
                         # print(f"4.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
 
                     else:
-                        for group in decoded.semantic_groups:
+                        for group in longitudinal_tagging_groups:
                             concept = decoded.concepts[n][group][pos]
                             if current_concepts[group] != Catalogue.UNTAGGED and concept == Catalogue.UNTAGGED:
                                 need_to_close[group] = True
@@ -214,7 +217,7 @@ class AbstractTagger:
 
                             # print(f"6.inner_text: '{inner_text}', ml_string: '{ml_string}'"); import pdb; pdb.set_trace()
 
-                            for group in decoded.semantic_groups:
+                            for group in longitudinal_tagging_groups:
                                 if need_to_close[group]:
                                     need_to_close[group] = False
                                     current_concepts[group] = Catalogue.UNTAGGED
