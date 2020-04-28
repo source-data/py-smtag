@@ -192,3 +192,54 @@ Feature: 'untagged'
     precision = 1.00
     recall = 1.00
     f1 = 1.00
+
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_disease_article_embeddings_32 + /workspace/py-smtag/resources/data4th/10X_L1200_figure_emboj_2012_article_embeddings_32
+
+ Model: 2020-02-29-09-20_disease_epoch_030.zip
+
+ Global stats: 
+
+        precision = 0.9509285092353821
+        recall = 0.89
+        f1 = 0.92
+
+ Feature: 'disease'
+
+        precision = 0.91
+        recall = 0.79
+        f1 = 0.85
+
+ Feature: 'untagged'
+
+        precision = 0.99
+        recall = 1.00
+        f1 = 0.99
+
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_figure_emboj_2012_article_embeddings_32
+
+ Model: 2020-02-29-09-38_panel_stop_epoch_019.zip
+
+ Global stats: 
+
+        precision = 0.9925229549407959
+        recall = 1.00
+        f1 = 0.99
+
+ Feature: 'panel_stop'
+
+        precision = 0.99
+        recall = 0.99
+        f1 = 0.99
+
+ Feature: 'untagged'
+
+        precision = 1.00
+        recall = 1.00
+        f1 = 1.00
+

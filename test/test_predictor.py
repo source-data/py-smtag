@@ -9,9 +9,9 @@ from torch import nn, optim
 from smtag.common.utils import tokenize
 from test.smtagunittest import SmtagTestCase
 from test.mini_trainer import toy_model
-from smtag.common.converter import TString
+from smtag.common.converter import TString, StringList
 from smtag.predict.decode import Decoder
-from smtag.predict.serializer import XMLElementSerializer, HTMLElementSerializer, Serializer
+from smtag.predict.markup import XMLElementSerializer, HTMLElementSerializer, Serializer
 from smtag.predict.predictor import Predictor, ContextualPredictor
 from smtag.common.mapper import Catalogue
 from smtag.common.viz import Show
@@ -61,15 +61,17 @@ class PredictorTest(SmtagTestCase):
         p = Predictor(self.entity_model)
         test_string_200 = "a"*200
         test_string_200_encoded = TString(test_string_200)
-        padded_string_200_encoded = p.padding(test_string_200_encoded)
-        padding_length = ceil(max(config.min_size - 200, 0)/2) + config.min_padding
+        padded_string_200_encoded, padding_length = p.padding(test_string_200_encoded)
+        expected_padding_length = ceil(max(config.min_size - 200, 0)/2) + config.min_padding
+        self.assertEqual(expected_padding_length, padding_length)
         print("config.min_size, config.min_size, padding_length", config.min_size, config.min_size, padding_length)
-        expected_padded_string_200_encoded = TString(config.padding_char*padding_length + test_string_200 + config.padding_char*padding_length)
+        expected_padded_string_200_encoded = TString(config.padding_char*expected_padding_length + test_string_200 + config.padding_char*expected_padding_length)
+        print(padded_string_200_encoded.toStringList())
         self.assertTensorEqual(expected_padded_string_200_encoded.tensor, padded_string_200_encoded.tensor)
 
     def test_entity_predictor_1(self):
         p = Predictor(self.entity_model)
-        output = p.forward(TString(self.text_example))
+        output = p.forward(TString(StringList([self.text_example])), torch.Tensor(0))
         self.assertEqual(list(self.y.size()), list(output.size()))
 
     def test_context_predictor_anonymization(self):
@@ -81,12 +83,12 @@ class PredictorTest(SmtagTestCase):
         group = 'test'
         concepts = [Catalogue.GENEPROD, Catalogue.UNTAGGED]
         semantic_groups = OrderedDict([(group, concepts)])
-        d = Decoder(input_string, prediction, semantic_groups)
+        d = Decoder(StringList([input_string]), prediction, semantic_groups)
         d.decode()
         d.fuse_adjacent()
         p = ContextualPredictor(self.context_model)
         anonymized_encoded = p.anonymize(d, 'test', Catalogue.GENEPROD)
-        anonymized = str(anonymized_encoded)
+        anonymized = anonymized_encoded.words[0]
         expected = "A "+config.marking_char*len("ge ne") + " or others"
         self.assertEqual(expected, anonymized)
 
