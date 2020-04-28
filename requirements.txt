@@ -13,4 +13,4 @@ google-auth==1.5.1
 opencv-python==3.4.2.16
 scikit-learn == 0.20.1
 python-dotenv==0.10.1 # to load .env file
--e git+https://29bfda3a0ce493fc39355903ad48c0fa9fe69bdf@github.com/source-data/ai.git#egg=ai
+-e git+https://77b104ff8a48e8547d7daec6f229358505bd5685@github.com/source-data/ai.git#egg=ai
