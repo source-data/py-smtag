@@ -37,10 +37,10 @@ Unmodified panel-level captions:
 
 Unmodified panel-level captions with noise:
 
-    _corrupt_path      = ".//sd-tag"
     _corrupt_proba     = 0.1
 
-    python -m smtag.datagen.convert2th -c 191012 -f 10X_L1200_noisy_article_embeddings_unet_32 -X10 -L1200 -E ".//sd-panel"
+    python -m smtag.datagen.convert2th -c 191012 -f 10X_L1200_noisy_article_embeddings_unet_32 -X10 -L1200 -E ".//sd-panel" \
+    --corrupt ".//sd-tag"
 
 Anonymized geneproduct, except reporters:
 
