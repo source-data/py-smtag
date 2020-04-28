@@ -65,16 +65,15 @@ def main():
     parser.add_argument('-R', '--learning_rate', default=0.01, type=float, help='Learning rate.')
     parser.add_argument('-D', '--dropout_rate', default=0.1, type=float, help='Dropout rate.')
     parser.add_argument('-o', '--output_features', default='geneprod', help='Selected output features (use quotes if comma+space delimited).')
-    parser.add_argument('-c', '--hidden_channels', default=32, type=int, help='Number of features in each hidden super-layer.')
-    parser.add_argument('-k', '--kernel', default=7, type=int, help='Convolution kernel for each hidden layer.')
-    parser.add_argument('-s', '--stride', default=1, type=int, help='Stride of the convolution.')
-    parser.add_argument('-g', '--padding',  default=3, type=int, help='Padding for each hidden layer (use quotes if comma+space delimited).')
-    parser.add_argument('-N', '--N_layers', default=3, type=int, help="Number of layers in the model.")
+    parser.add_argument('-n', '--nf_table', default="32,32,32", help='Number of features in each hidden super-layer.')
+    parser.add_argument('-s', '--stride_table', default="1,1,1", help='Strides in hidden super-layer.')
+    parser.add_argument('-k', '--kernel_table', default="7,7,7", help='Convolution kernel for each hidden layer.')
+    parser.add_argument('--no_pool', action='store_true', help='Pooling for each hidden layer (use quotes if comma+space delimited).')
     parser.add_argument('--hyperscan', default='', nargs='+', choices=['learning_rate', 'minibatch_size','N_layers', 'hidden_channels'], help="Perform a scanning of the selected hyperparameters (learning_rate' | 'minibatch_size' | 'N_layers'| 'hidden_channels').")
     parser.add_argument('--iterations', default=25, type=int, help='Number of iterations for the hyperparameters scanning.')
     parser.add_argument('--production', action='store_true', help='Production mode, where train and valid are combined and test used to control for overfitting.')
     parser.add_argument('--model', default='', help='Load pre-trained model and continue training.')
-    
+ 
     arguments = parser.parse_args()
     hyperscan = [x.strip() for x in arguments.hyperscan]
     iterations = int(arguments.iterations)
@@ -87,11 +86,11 @@ def main():
     opt['epochs'] = arguments.epochs
     opt['minibatch_size'] = arguments.minibatch_size
     opt['selected_features'] = [x.strip() for x in arguments.output_features.split(',') if x.strip()]
-    opt['N_layers'] = arguments.N_layers
-    opt['hidden_channels'] = arguments.hidden_channels
-    opt['kernel'] = arguments.kernel
-    opt['padding'] = arguments.padding
-    opt['stride'] = arguments.stride
+    opt['nf_table'] = [int(x.strip()) for x in arguments.nf_table.split(',')]
+    opt['kernel_table'] = [int(x.strip()) for x in arguments.kernel_table.split(',')]
+    opt['stride_table'] = [int(x.strip()) for x in arguments.stride_table.split(',')]
+    opt['pool'] = not arguments.no_pool
+ 
     if config.embeddings_model:
         opt['nf_input'] = EMBEDDINGS.model.hp.out_channels
     else:

@@ -12,6 +12,7 @@ import copy
 import pickle
 import threading
 import time
+from string import ascii_letters, ascii_lowercase, ascii_uppercase, digits, punctuation
 from math import floor, ceil
 from xml.etree.ElementTree  import XML, parse, fromstring, tostring, XMLParser, ParseError
 
@@ -29,6 +30,7 @@ from .encoder import XMLEncoder, BratEncoder
 from .brat import BratImport
 from .. import config
 
+greek_letters = 'ΑαΒβΓγΔδΕεΖζΗηΘθΙιΚκΛλΜμΝνΞξΟοΠπΡρΣσςΤτΥυΦφΧχΨψΩω'
 
 class EncodedExample:
     features_filename = 'features.pyth'
@@ -213,6 +215,7 @@ class DataPreparator(object):
         self.anonymization_xpath = options['anonymize']
         self.enrichment_xpath = options['enrich']
         self.exclusive_xpath = options['exclusive']
+        self.corrupt_xpath = options['corrupt']
         # self.XPath_to_fig_title = options['Xpath_to_fig_title'] # './/fig/caption/title
         self.XPath_to_examples = options['XPath_to_examples'] # './/fig/caption' or './/sd-panel'
 
@@ -293,6 +296,46 @@ class DataPreparator(object):
                     e.text = mixed_masking(inner_text, config.masking_proba)
         return xml
 
+    def corrupt(self, xml, xpath_expressions):
+        """
+        Randomly replaces some characters in selected elements from xml. 
+        The element are selected using XPath expressions.
+        """
+        def rand(text, p_corrupt):
+            """
+            Replaces characters with probability p_corrupt with random char a-zA-Z0-9.
+            Corruption is done relatively conservatively, keeping upper case, lowercase, digits and greek.
+            Will not change characters that don't belong to the above subsets to keep separators like hyphen, slashes intact.
+            """
+
+            replacement = list(text) # mutable
+            for i, c in enumerate(replacement):
+                p = random()
+                if p <= p_corrupt: # True with probability p_masking
+                    if  c.isdigit():
+                        replacement[i] = choice(digits)
+                    elif c.isupper():
+                        replacement[i] = choice(ascii_uppercase)
+                    elif c.islower():
+                        replacement[i] = choice(ascii_lowercase)
+                    elif c in greek_letters:
+                        replacement[i] = choice(greek_letters)
+                    # don't change hyphen and other separators
+            replacement = "".join(replacement)
+            return replacement
+
+        if xpath_expressions:
+            xml = copy.deepcopy(xml)
+            for xpath in xpath_expressions: 
+                to_be_processed = xml.findall(xpath)
+                for e in to_be_processed: # 
+                    inner_text = "".join([s for s in e.itertext()])
+                    for sub in list(e):
+                        e.remove(sub)
+                    corrupted_text = rand(inner_text, config.corrupt_proba)
+                    e.text = corrupted_text
+        return xml
+
     def import_files(self, subset):
         """
         Import xml documents from dir. In each document, extracts examples using XPath_to_examples.
@@ -315,6 +358,8 @@ class DataPreparator(object):
                     else:
                         filtered_xml = self.exclusive(e, self.exclusive_xpath)
                         original_text = restorative_innertext(filtered_xml) # restores missing spaces and updates the xml accordingly
+                        if config.corrupt_proba > 0 and self.corrupt_xpath: 
+                            filtered_xml = self.corrupt(filtered_xml, self.corrupt_xpath)
                         processed_xml = self.anonymize(filtered_xml, self.anonymization_xpath)
                         processed_text = innertext(processed_xml)
                         assert len(processed_text) == len(original_text), f"{len(processed_text)} != {len(original_text)}, \n {original_text}"
@@ -469,6 +514,7 @@ def main():
     parser.add_argument('-A', '--anonymize', default='', help='Xpath expressions to select xml that will be processed. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-e', '--exclusive', default='', help='Xpath expressions to keep only specific tags. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-y', '--enrich', default='', help='Xpath expressions to make sure all examples include a given element. Example .//sd-tag[@type=\'gene\']')
+    parser.add_argument('-C', '--corrupt', default='', help='Xpath expressions to specify elements that need to be corrupted with noise. Example .//sd-tag[@type=\'gene\']')
     parser.add_argument('-E', '--example', default='.//sd-panel', help='Xpath to extract examples from XML documents')
     parser.add_argument('--decoy', default='', help='List of tags to use in order to generate a randomly tagged decoy dataset. Use "--decoy notag" to generate a decoy without tags')
   
@@ -491,6 +537,7 @@ def main():
     options['anonymize'] =  [a for a in args.anonymize.split(',') if a] # to make sure list is empty if args is ''
     options['exclusive'] =  [a for a in args.exclusive.split(',') if a]
     options['enrich'] =  [a for a in args.enrich.split(',') if a]
+    options['corrupt'] =  [a for a in args.corrupt.split(',') if a]
     options['decoy_tags'] = [a for a in args.decoy.split(',') if a]
     print(options)
     if args.brat:

@@ -1,9 +1,9 @@
 from .mapper import Catalogue, concept2index
-from toolbox.models import HyperparametersCatStack
+from toolbox.models import HyperparametersUnet
 from .. import config
 
 # TODO: derive this by extending toolbox.models.Hyperparameters class
-class HyperparemetersSmtagModel(HyperparametersCatStack):
+class HyperparemetersSmtagModel(HyperparametersUnet):
 
     def __init__(self, opt=None):
         self.descriptor = "undefined"
@@ -16,6 +16,11 @@ class HyperparemetersSmtagModel(HyperparametersCatStack):
             self.epochs = opt['epochs']
             self.minibatch_size = opt['minibatch_size']
             self.L = None # can only be update when loading dataset...
+            self.nf_table = opt['nf_table']
+            self.pool_table = opt['pool_table']
+            #self.padding_table = opt['padding_table']
+            self.kernel_table = opt['kernel_table']
+            self.selected_features = Catalogue.from_list(opt['selected_features'])
             self.nf_input = opt['nf_input']
             self.selected_features = Catalogue.from_list(opt['selected_features'])
             self.nf_output = len(self.selected_features)

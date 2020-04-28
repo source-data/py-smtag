@@ -41,27 +41,37 @@ class Config():
     ############################################################################
     # VARIABLES
     #
-    _cache_dataset     = 1024 # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
-    _dirignore         = ['.DS_Store', '__MACOSX'] # directories that should be ignored when scanning data or document compendia
-    nbits             = int(os.getenv('NBITS')) # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
-    _marking_char      = '_' # Substitution special xml-compatible character used to mark anonymized entities.
-    _masking_proba     = 1.0 # probability with wich an element selected to be potentially masked is effectively masked
-    _padding_char      = '`' # " " # character used to padd strings; would be smarter to use character different from space
-    _min_padding       = 100 # the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
-    _min_size          = 380 # input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
-    _default_threshold = 0.5 # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
-    _fusion_threshold = 0.1 # threshold to allow adjascent token with identical features to be fused
+    _cache_dataset     = 1024  # size of the cache used in Dataset to cache individual examples that will be packaged into a minibatch
+    _dirignore         = ['.DS_Store', '__MACOSX']  # directories that should be ignored when scanning data or document compendia
+    nbits             = int(os.getenv('NBITS'))  # number of features use to encode characters; 31 for full unicode, 17 for emoji and greek; 7 for ASCII; WARNING should be a multiple of attention heads when multihead attention used
+    _marking_char      = '_'  # Substitution special xml-compatible character used to mark anonymized entities.
+    _masking_proba     = 1.0  # probability with wich an element selected to be potentially masked is effectively masked.
+    _corrupt_proba     = 0.05  # probability with which a character is replaced by a random characters when corrupting terms.
+    _padding_char      = '`'  # " " # character used to padd strings; would be smarter to use character different from space
+    _min_padding       = 380  # 800 # 380? the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
+    _min_size          = 380  # 1530?? input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
+    _default_threshold = 0.5  # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
+    _fusion_threshold = 0.1  # threshold to allow adjascent token with identical features to be fused
     _min_score_for_rendering = 0 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
 
     ############################################################################
-    # MODELS
-    _model_entity = "2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip" # NEW MIXED FIGURE/PANEL LEVEL # OLD PANEL: LEVEL "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
-    _model_geneprod_role = "2020-02-29-22-47_intervention_assayed_epoch_019.zip"
-    _model_molecule_role = "2020-03-01-01-29_intervention_assayed_epoch_019.zip"
-    _model_geneprod_reporter = "2020-03-01-08-07_reporter_epoch_004.zip"
-    _model_disease = "2020-03-01-08-49_disease_epoch_020.zip"
-    _model_panel_stop = "2020-03-01-09-21_panel_stop_epoch_012.zip"
-    _embeddings_model = "2020-02-24-01-31_last_saved.zip"
+    # MODELS CatStack
+    # _model_entity = "2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip" # NEW MIXED FIGURE/PANEL LEVEL # OLD PANEL: LEVEL "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
+    # _model_geneprod_role = "2020-02-29-22-47_intervention_assayed_epoch_019.zip"
+    # _model_molecule_role = "2020-03-01-01-29_intervention_assayed_epoch_019.zip"
+    # _model_geneprod_reporter = "2020-03-01-08-07_reporter_epoch_004.zip"
+    # _model_disease = "2020-03-01-08-49_disease_epoch_020.zip"
+    # _model_panel_stop = "2020-03-01-09-21_panel_stop_epoch_012.zip"
+    # _embeddings_model = "2020-02-24-01-31_last_saved.zip"
+
+    # MODELS Unet
+    _model_entity = "2020-04-21-14-55_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_004.zip"
+    _model_geneprod_role = "2020-04-22-11-12_intervention_assayed_epoch_007.zip"
+    _model_molecule_role = "2020-04-23-13-17_intervention_assayed_epoch_022.zip"
+    _model_geneprod_reporter = "2020-04-23-18-58_reporter_epoch_019.zip"
+    _model_disease = "2020-04-24-07-33_disease_epoch_099.zip"
+    _model_panel_stop = "2020-04-24-11-24_panel_stop_epoch_099.zip"
+    _embeddings_model = "2020-04-18-23-03_final.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
@@ -170,6 +180,21 @@ class Config():
         Probability with wich an element selected for potential masking will actually be masked.
         """
         return self._masking_proba
+
+    @property
+    def corrupt_proba(self):
+        """
+        Probability with wich characters are replaced by random character when corrupting terms.
+        """
+        return self._corrupt_proba
+
+    @property
+    def corrupt_path(self):
+        """
+        XPath to the elements to which noisy corruption should be applied
+        """
+        return self._corrupt_path
+
 
     @property
     def padding_char(self):

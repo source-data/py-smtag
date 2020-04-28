@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 import torch
 from toolbox import importexport as model_io
-from toolbox.models import Autoencoder1d, Container1d, CatStack1d
+from toolbox.models import Autoencoder1d, Container1d, CatStack1d, Unet1d
 from .. import config
 from ..train.builder import SmtagModel, HyperparemetersSmtagModel
 
@@ -26,5 +26,5 @@ def export_smtag_model(model: SmtagModel, filename: str, model_dir: str=config.m
 
 def load_autoencoder(model_dir:str, filename:str):
     path = os.path.join(model_dir, filename)
-    autoencoder = model_io.load_autoencoder(path)
+    autoencoder = model_io.load_autoencoder(path, Unet1d) # architecture should be in config... eventually
     return autoencoder

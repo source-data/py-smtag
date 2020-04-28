@@ -17,9 +17,19 @@ Processing of images:
 
 # Preparation of ready-to-train datasets, panel level
 
+<<<<<<< HEAD
+    smtag-convert2th -c 190414 -f 5X_L1200_unet_no_embed -X5 -L1200 -E ".//sd-panel" -p rack
+
+    smtag-convert2th -c 190414 -f 5X_L1200_anonym_not_reporter_unet_no_embed -L1200 -X5 -E ".//sd-panel" -y ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -e ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']"
+    
+    smtag-convert2th -c 190414 -L1200 -X5 -E ".//sd-panel" -e ".//sd-tag[@type='molecule']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']" -f 5X_L1200_molecule_anonym_article_embeddings_128 -p rack --noocr --noviz
+    
+    smtag-convert2th -c NCBI_disease -b -L1200 -X10 -f 10X_L1200_disease_articke_embeddings_128 --noviz --noocr
+=======
     smtag-convert2th -c 191012 -f 10X_L1200_article_embeddings_128 -X10 -L1200 -E ".//sd-panel" --noocr --noviz -p rack
 
     smtag-convert2th -c 191012 -f 10X_L1200_anonym_not_reporter_article_embbeddings_128 -L1200 -X10 -E ".//sd-panel" -y ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -e ".//sd-tag[@type='gene']",".//sd-tag[@type='protein']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']" --noocr --noviz
+>>>>>>> dev
 
     smtag-convert2th -c 191012 -f 10X_L1200_molecule_anonym_article_embeddings_128 -L1200 -X10 -E ".//sd-panel" -e ".//sd-tag[@type='molecule']" -A ".//sd-tag[@role='intervention']",".//sd-tag[@role='assayed']" -p rack --noocr --noviz
 
@@ -52,7 +62,11 @@ __Production model: `10X_L1200_article_embeddings_128_small_molecule_geneprod_su
 
 ## Geneprod roles __without__ viz:
 
+<<<<<<< HEAD
+    smtag-meta -f 5X_L1200_unet_no_embed -E120 -Z32 -R0.001 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay -k 7,7,7 -n 128,128,128 --pool_table 2,2,2
+=======
     smtag-meta -f 10X_L1200_anonym_not_reporter_article_embbeddings_128 -E30 -Z32 -R0.001 -D0.2 -o intervention,assayed -k 7,7,7,7,7,7,7,7,7,7 -n 128,128,128,128,128,128,128,128,128,128 -g 3,3,3,3,3,3,3,3,3,3 -p rack
+>>>>>>> dev
     
 __Model: `10X_L1200_anonym_not_reporter_article_embbeddings_128_intervention_assayed_2019-10-15-13-49_epoch_6.zip`__
 
