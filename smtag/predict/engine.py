@@ -197,7 +197,7 @@ def main():
     sdtag = arguments.tag
     format = arguments.format
     from .cartridges import CARTRIDGE
-    
+
     if DEMO:
         input_string = '''The indicated panel of cell lines was exposed to either normoxia (20% O2) or hypoxia (1% O2) for up to 48 h prior to RNA and protein extraction.
 
@@ -215,7 +215,7 @@ def main():
     input_string = re.sub(" +", " ", input_string)
     engine = SmtagEngine(CARTRIDGE)
     engine.DEBUG = DEBUG
-    
+
     if method == 'smtag':
         print(engine.smtag([input_string], sdtag, format))
     elif method == 'panelize':
