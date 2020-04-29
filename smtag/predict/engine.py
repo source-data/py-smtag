@@ -37,7 +37,7 @@ class SmtagEngine:
             B, C, L = decoded.prediction.size()
             print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
-        return decoded
+        return decoded.clone()
 
     @timer
     def __entity(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
@@ -46,7 +46,7 @@ class SmtagEngine:
             B, C, L = decoded.prediction.size()
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
-        return decoded
+        return decoded.clone()
     @timer
     def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists)
@@ -54,7 +54,7 @@ class SmtagEngine:
             B, C, L = decoded.prediction.size()
             print(f"\nafter reporter: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
-        return decoded
+        return decoded.clone()
 
     @timer
     def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
@@ -63,7 +63,7 @@ class SmtagEngine:
             B, C, L = decoded.prediction.size()
             print(f"\nafter context: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
-        return decoded
+        return decoded.clone()
 
     def __entity_and_role(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
         output = self.__entity(input_t_strings, token_lists)
@@ -73,7 +73,7 @@ class SmtagEngine:
         output.cat_(reporter)
         context = self.__context(entities_less_reporter)
         output.cat_(context)
-        return output
+        return output.clone()
 
     def __role_from_pretagged(self, input_xml_list: List[Element]) -> Decoder:
         input_strings = []
@@ -103,7 +103,7 @@ class SmtagEngine:
         output = reporter # there was a clone() here??
         context = self.__context(entities_less_reporter)
         output.cat_(context)
-        return output
+        return output.clone()
 
     def __all(self, input_t_strings: TString, token_lists: List[List[Token]]):
         if self.DEBUG:
@@ -114,7 +114,7 @@ class SmtagEngine:
         output = panels
 
         entities = self.__entity(input_t_strings, token_lists)
-        output.cat_(entities.clone())
+        output.cat_(entities)
 
         reporter = self.__reporter(input_t_strings, token_lists)
         output.cat_(reporter) # add reporter prediction to output features
@@ -128,7 +128,7 @@ class SmtagEngine:
             print(f"\nfinal concatenated output: {output.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(output.prediction))
 
-        return output
+        return output.clone()
 
     @timer
     def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml") -> List[str]:
