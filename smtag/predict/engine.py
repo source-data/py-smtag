@@ -6,6 +6,7 @@ from torch import nn
 import torch
 from collections import OrderedDict
 from typing import List, Tuple
+from copy import deepcopy
 from xml.etree.ElementTree import tostring, fromstring, Element
 from ..common.utils import tokenize, Token, timer
 from ..common.converter import TString, StringList
@@ -25,10 +26,10 @@ class SmtagEngine:
     DEBUG = False
 
     def __init__(self, cartridge: Cartridge):
-        self.entity_models = cartridge.entity_models
-        self.reporter_models = cartridge.reporter_models
-        self.context_models = cartridge.context_models
-        self.panelize_model = cartridge.panelize_model
+        self.entity_models = deepcopy(cartridge.entity_models)
+        self.reporter_models = deepcopy(cartridge.reporter_models)
+        self.context_models = deepcopy(cartridge.context_models)
+        self.panelize_model = deepcopy(cartridge.panelize_model)
 
     @timer
     def __panels(self, input_t_strings: TString, token_lists: List[List[Token]]) -> CharLevelDecoder:
@@ -193,6 +194,7 @@ class SmtagEngine:
         prepro = self.__preprocess(input_strings)
         pred = self.__panels(*prepro)
         return self.__serialize(pred, format=format)
+
 
 def main():
     parser = config.create_argument_parser_with_defaults(description='SmartTag semantic tagging engine.')
