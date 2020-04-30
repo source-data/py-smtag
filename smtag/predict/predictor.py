@@ -162,7 +162,7 @@ class ContextualPredictor(Predictor):
             concept = anonymization['concept']
             anonymized_tstring = self.anonymize(for_anonymization, group, concept)
             input_t_strings_list.append(anonymized_tstring)
-        
+
         prediction = self.forward(input_t_strings_list)
         input_strings = for_anonymization.input_strings
         token_lists = for_anonymization.token_lists

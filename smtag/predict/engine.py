@@ -47,6 +47,7 @@ class SmtagEngine:
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
         return decoded.clone()
+
     @timer
     def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists)
@@ -100,7 +101,7 @@ class SmtagEngine:
         entities.decode(token_lists)
         reporter = self.__reporter(input_t_strings, token_lists)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
-        output = reporter # there was a clone() here??
+        output = reporter.clone() # there was a clone() here??
         context = self.__context(entities_less_reporter)
         output.cat_(context)
         return output.clone()
