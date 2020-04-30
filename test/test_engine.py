@@ -7,7 +7,7 @@ from xml.etree.ElementTree import fromstring
 from smtag.common.utils import timer
 from smtag.predict.engine import SmtagEngine
 from test.smtagunittest import SmtagTestCase
-from smtag.predict.cartridges import NO_VIZ
+from smtag.predict.cartridges import CARTRIDGE
 #maybe import https://github.com/pytorch/pytorch/blob/master/test/common.py and use TestCase()
 
 
@@ -15,7 +15,7 @@ class EngineTest(SmtagTestCase):
 
     @classmethod
     def setUpClass(self): # run only once
-        self.engine = SmtagEngine(NO_VIZ)
+        self.engine = SmtagEngine(CARTRIDGE)
         self.engine.DEBUG = False
         self.text_examples = ["We analyzed brain and muscle from Creb1-/- knockout mice after bafilomycin A treatment."] * 2
 
@@ -23,7 +23,7 @@ class EngineTest(SmtagTestCase):
         ml_old = []
         for i in range(n):
             ml = method(examples, sdtag='sd-tag', format='xml')
-            print(ml)
+            # print(ml)
             self.assertIsInstance(ml, list)
             self.assertIsInstance(ml[0], str)
             self.assertEqual(len(ml), len(examples))

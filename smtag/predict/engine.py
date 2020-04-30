@@ -15,7 +15,7 @@ from ..datagen.encoder import XMLEncoder
 from .decode import CharLevelDecoder, Decoder
 from .predictor import Predictor, ContextualPredictor, CharLevelPredictor
 from .markup import Serializer
-from .cartridges import Cartridge, CARTRIDGE
+from .cartridges import Cartridge
 from .updatexml import updatexml_list
 from .. import config
 
@@ -40,7 +40,7 @@ class SmtagEngine:
             B, C, L = decoded.prediction.size()
             print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
-        return decoded.clone()
+        return decoded
 
     @timer
     def __entity(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
@@ -52,7 +52,7 @@ class SmtagEngine:
             B, C, L = decoded.prediction.size()
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
-        return decoded.clone()
+        return decoded
 
     @timer
     def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
@@ -64,7 +64,7 @@ class SmtagEngine:
             B, C, L = decoded.prediction.size()
             print(f"\nafter reporter: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
-        return decoded.clone()
+        return decoded
 
     @timer
     def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
@@ -76,7 +76,7 @@ class SmtagEngine:
             B, C, L = decoded.prediction.size()
             print(f"\nafter context: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
-        return decoded.clone()
+        return decoded
 
     def __entity_and_role(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
         output = self.__entity(input_t_strings, token_lists)
@@ -86,7 +86,7 @@ class SmtagEngine:
         output.cat_(reporter)
         context = self.__context(entities_less_reporter)
         output.cat_(context)
-        return output.clone()
+        return output
 
     @timer
     def __role_from_pretagged(self, input_xml_list: List[Element]) -> Decoder:
@@ -114,10 +114,10 @@ class SmtagEngine:
         entities.decode(token_lists)
         reporter = self.__reporter(input_t_strings, token_lists)
         entities_less_reporter = entities.erase_with(reporter, ('reporter', Catalogue.REPORTER), ('entities', Catalogue.GENEPROD))
-        output = reporter.clone() # there was a clone() here??
+        output = reporter
         context = self.__context(entities_less_reporter)
         output.cat_(context)
-        return output.clone()
+        return output
 
     def __all(self, input_t_strings: TString, token_lists: List[List[Token]]):
         if self.DEBUG:
@@ -142,7 +142,7 @@ class SmtagEngine:
             print(f"\nfinal concatenated output: {output.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(output.prediction))
 
-        return output.clone()
+        return output
 
     @timer
     def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml") -> List[str]:
