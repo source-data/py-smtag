@@ -34,6 +34,9 @@ class SmtagEngine:
     def __panels(self, input_t_strings: TString, token_lists: List[List[Token]]) -> CharLevelDecoder:
         decoded = CharLevelPredictor(self.panelize_model).predict(input_t_strings, token_lists)
         if self.DEBUG:
+            print()
+            print("_".join([t.text for t in decoded.token_lists[0]]))
+            print()
             B, C, L = decoded.prediction.size()
             print(f"\nafter panels: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
@@ -43,6 +46,9 @@ class SmtagEngine:
     def __entity(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists)
         if self.DEBUG:
+            print()
+            print("_".join([t.text for t in decoded.token_lists[0]]))
+            print()
             B, C, L = decoded.prediction.size()
             print(f"\nafter entity: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
@@ -52,6 +58,9 @@ class SmtagEngine:
     def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists)
         if self.DEBUG:
+            print()
+            print("_".join([t.text for t in decoded.token_lists[0]]))
+            print()
             B, C, L = decoded.prediction.size()
             print(f"\nafter reporter: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
@@ -61,6 +70,9 @@ class SmtagEngine:
     def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
         decoded = ContextualPredictor(self.context_models).predict(entities)
         if self.DEBUG:
+            print()
+            print("_".join([t.text for t in decoded.token_lists[0]]))
+            print()
             B, C, L = decoded.prediction.size()
             print(f"\nafter context: {decoded.semantic_groups} {B}x{C}x{L}")
             print(Show().print_pretty(decoded.prediction))
@@ -76,6 +88,7 @@ class SmtagEngine:
         output.cat_(context)
         return output.clone()
 
+    @timer
     def __role_from_pretagged(self, input_xml_list: List[Element]) -> Decoder:
         input_strings = []
         for xml_str in input_xml_list:
