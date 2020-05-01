@@ -195,3 +195,264 @@ Panels:
     python -m smtag.train.evaluator 10X_L1200_figure_emboj_2012_article_embeddings_unet_32 2020-04-24-11-24_panel_stop_epoch_099.zip
 
 
+
+
+
+======================================================== 
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_article_embeddings_unet_32 + /workspace/py-smtag/resources/data4th/10X_L1200_figure_article_embeddings$
+unet_32
+
+ Model: 2020-04-21-13-31_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_004.zip 
+ 
+ Global stats:
+ 
+        precision = 0.8195339441299438
+        recall = 0.78
+        f1 = 0.80
+
+ Feature: 'small_molecule'
+
+        precision = 0.76
+        recall = 0.73
+        f1 = 0.74
+
+ Feature: 'geneprod'
+
+        precision = 0.87
+        recall = 0.87
+        f1 = 0.87
+
+ Feature: 'subcellular'
+
+        precision = 0.76
+        recall = 0.72
+        f1 = 0.74
+
+ Feature: 'cell'
+
+        precision = 0.83
+        recall = 0.84
+        f1 = 0.83
+
+Feature: 'tissue'
+
+        precision = 0.74
+        recall = 0.69
+        f1 = 0.72
+
+ Feature: 'organism'
+
+        precision = 0.78
+        recall = 0.77
+        f1 = 0.77
+
+ Feature: 'assay'
+
+        precision = 0.82
+        recall = 0.66
+        f1 = 0.73
+
+ Feature: 'untagged'
+
+        precision = 0.99
+        recall = 0.99
+        f1 = 0.99
+
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_noisy_article_embeddings_unet_32 + /workspace/py-smtag/resources/data4th/10X_L1200_noisy_figure_article
+_embeddings_unet_32
+
+ Model: 2020-04-30-00-42_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_020.zip
+
+Global stats: 
+
+        precision = 0.8328481912612915
+        recall = 0.78
+        f1 = 0.80
+
+ Feature: 'small_molecule'
+
+        precision = 0.77
+        recall = 0.74
+        f1 = 0.75
+
+ Feature: 'geneprod'
+
+        precision = 0.88
+        recall = 0.88
+        f1 = 0.88
+
+ Feature: 'subcellular'
+
+        precision = 0.78
+        recall = 0.71
+        f1 = 0.74
+
+ Feature: 'cell'
+
+        precision = 0.87
+        recall = 0.82
+        f1 = 0.84
+
+ Feature: 'tissue'
+
+        precision = 0.77
+        recall = 0.66
+        f1 = 0.71
+
+ Feature: 'organism'
+
+        precision = 0.79
+        recall = 0.75
+        f1 = 0.77
+
+ Feature: 'assay'
+
+        precision = 0.82
+        recall = 0.66
+        f1 = 0.73
+
+ Feature: 'untagged'
+
+        precision = 0.99
+        recall = 1.00
+        f1 = 0.99
+
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_anonym_not_reporter_article_embeddings_unet_32
+
+ Model: 2020-04-22-11-12_intervention_assayed_epoch_007.zip
+
+ Global stats: 
+
+        precision = 0.9069655537605286
+        recall = 0.91
+        f1 = 0.91
+
+ Feature: 'intervention'
+
+        precision = 0.83
+        recall = 0.85
+        f1 = 0.84
+
+ Feature: 'assayed'
+
+        precision = 0.89
+        recall = 0.88
+        f1 = 0.88
+
+ Feature: 'untagged'
+
+        precision = 1.00
+        recall = 1.00
+        f1 = 1.00
+
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_molecule_anonym_article_embeddings_unet_32
+
+ Model: 2020-04-23-13-17_intervention_assayed_epoch_022.zip
+
+ Global stats: 
+
+        precision = 0.9329233169555664
+        recall = 0.91
+        f1 = 0.92
+
+ Feature: 'intervention'
+
+        precision = 0.95
+        recall = 0.97
+        f1 = 0.96
+
+ Feature: 'assayed'
+
+        precision = 0.85
+        recall = 0.75
+        f1 = 0.80
+
+ Feature: 'untagged'
+
+        precision = 1.00
+        recall = 1.00
+        f1 = 1.00
+
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_article_embeddings_unet_32
+
+ Model: 2020-04-23-18-58_reporter_epoch_019.zip
+
+ Global stats:
+
+        precision = 0.9218883514404297
+        recall = 0.90
+        f1 = 0.91
+
+ Feature: 'reporter'
+
+        precision = 0.84
+        recall = 0.79
+        f1 = 0.82
+
+ Feature: 'untagged'
+
+        precision = 1.00
+        recall = 1.00
+        f1 = 1.00
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_disease_article_embeddings_unet_32 + /workspace/py-smtag/resources/data4th/10X_L1200_figure_emboj_2012_article_embeddings_unet_32
+
+ Model: 2020-04-24-07-33_disease_epoch_099.zip
+
+ Global stats: 
+
+        precision = 0.9428324699401855
+        recall = 0.93
+        f1 = 0.94
+
+ Feature: 'disease'
+
+        precision = 0.89
+        recall = 0.86
+        f1 = 0.87
+
+ Feature: 'untagged'
+
+        precision = 0.99
+        recall = 1.00
+        f1 = 1.00
+
+
+========================================================
+
+ Data: /workspace/py-smtag/resources/data4th/10X_L1200_figure_emboj_2012_article_embeddings_unet_32
+
+ Model: 2020-04-24-11-24_panel_stop_epoch_099.zip
+
+ Global stats: 
+
+        precision = 0.9986858367919922
+        recall = 1.00
+        f1 = 1.00
+
+ Feature: 'panel_stop'
+
+        precision = 1.00
+        recall = 0.99
+        f1 = 1.00
+
+ Feature: 'untagged'
+
+        precision = 1.00
+        recall = 1.00
+        f1 = 1.00
