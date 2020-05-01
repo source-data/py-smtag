@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-#from abc import ABC
-import torch
 import json
 from xml.etree.ElementTree import fromstring
 from copy import deepcopy
 from typing import List
 from collections import OrderedDict
-from ..common.utils import xml_escape, timer
-from ..common.mapper import Catalogue, Boundary
+from ..common.utils import xml_escape
+from ..common.mapper import Catalogue
 from ..predict.decode import Decoder
-from .. import config
 
 
 class AbstractElementSerializer(object):
@@ -27,6 +24,7 @@ class AbstractElementSerializer(object):
     @staticmethod
     def map(tag, on_features, concept):
         pass
+
 
 class XMLElementSerializer(AbstractElementSerializer):
 
@@ -110,7 +108,6 @@ class AbstractTagger:
     def closing_tag(self):
         raise NotImplementedError
 
-
     def panel_segmentation(self, char_level_panel_marks, token_list) -> List:
         panels = []
         indices = [i for i, c in enumerate(char_level_panel_marks) if c == Catalogue.PANEL_STOP]
@@ -127,7 +124,6 @@ class AbstractTagger:
         if rest:
             panels.append(rest)
         return panels
-
 
     def serialize(self, decoded: Decoder) -> List[str]:
         ml_list = []
@@ -289,6 +285,7 @@ class HTMLTagger(AbstractTagger):
         html_string_list = [f"<ul>{x}</ul>" for x in html_string_list]
         return html_string_list
 
+
 class JSONTagger(XMLTagger):
 
     def __init__(self, tag):
@@ -316,6 +313,7 @@ class JSONTagger(XMLTagger):
             js = json.dumps(j)
             js_list.append(js)
         return js_list
+
 
 class Serializer():
 

@@ -2,19 +2,14 @@
 #T. Lemberger, 2018
 
 import torch
-import numpy as np
-import re
 from typing import List, Tuple
 from collections import OrderedDict
 from copy import copy, deepcopy
 from ..common.converter import StringList
-from ..common.utils import xml_escape, timer, tokenize, Token
+from ..common.utils import tokenize, Token
 from ..common.mapper import Catalogue, Concept
 from .. import config
 
-from time import time
-import cProfile
-from functools import lru_cache
 
 FUSION_THRESHOLD = config.fusion_threshold
 

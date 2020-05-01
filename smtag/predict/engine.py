@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 #T. Lemberger, 2018
 
-import re
-from torch import nn
 import torch
 from collections import OrderedDict
 from typing import List, Tuple
 from copy import deepcopy
 from xml.etree.ElementTree import tostring, fromstring, Element
-from ..common.utils import tokenize, Token, timer
+from ..common.utils import tokenize, Token, timer, cleanup
 from ..common.converter import TString, StringList
 from ..common.mapper import Catalogue
 from ..common.viz import Show
@@ -212,7 +210,6 @@ def main():
     DEMO = arguments.demo
     sdtag = arguments.tag
     format = arguments.format
-    from .cartridges import CARTRIDGE
 
     if DEMO:
         input_string = '''The indicated panel of cell lines was exposed to either normoxia (20% O2) or hypoxia (1% O2) for up to 48 h prior to RNA and protein extraction.
@@ -227,8 +224,8 @@ def main():
 
 (F) Sequence alignment and (G) sequence logo of LIMD1 promoters from the indicated species demonstrate that the HRE3 consensus sequence is highly conserved.'''
 
-    input_string = re.sub("[\n\r\t]", " ", input_string)
-    input_string = re.sub(" +", " ", input_string)
+    input_string = cleanup(input_string)
+    from .cartridges import CARTRIDGE
     engine = SmtagEngine(CARTRIDGE)
     engine.DEBUG = DEBUG
 
@@ -244,6 +241,7 @@ def main():
         print(engine.role([input_string], sdtag)) # can only be xml format
     else:
         print("unknown method {}".format(method))
+
 
 if __name__ == "__main__":
     main()

@@ -5,12 +5,10 @@ import torch
 import torch.nn
 from torch.nn import functional as F
 from math import ceil
-from collections import namedtuple
 from typing import List, Tuple
 from ..common.converter import TString, StringList
 from .decode import Decoder, CharLevelDecoder
-from .markup import Serializer
-from ..common.utils import tokenize, timer, Token
+from ..common.utils import tokenize, Token
 from ..common.embeddings import EMBEDDINGS
 from ..common.mapper import Concept
 from ..train.dataset import Minibatch, BxCxL, BxL
@@ -18,11 +16,11 @@ from ..train.builder import SmtagModel
 from .. import config
 
 # import cProfile
-from time import time
 
 PADDING_CHAR = config.padding_char
 
-def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool=False) -> Tuple[BxCxL, BxL, BxCxL, torch.Tensor]:
+
+def predict_fn(model: SmtagModel, batch: Minibatch, eval: bool = False) -> Tuple[BxCxL, BxL, BxCxL, torch.Tensor]:
     """
     Prediction function used during training or evaluation of a model. 
 
@@ -69,7 +67,7 @@ class Predictor:
         #        this cat               len(input)==8, min_size==10, min_padding=5
         #       +this cat+              pad to bring to min_size
         #  _____+this cat+_____         add min_padding on both sides
-        min_size= config.min_size
+        min_size = config.min_size
         min_padding = config.min_padding
         padding_length = ceil(max(min_size - len(input_t_strings), 0) / 2) + min_padding
         pad = TString(StringList([PADDING_CHAR * padding_length] * input_t_strings.depth))
@@ -86,7 +84,7 @@ class Predictor:
     def forward(self, input_t_strings:TString) -> torch.Tensor:
         # PADD TO MINIMAL LENGTH
         safely_padded, padding_length = self.padding(input_t_strings)
-        
+
         # EMBEDDING
         x = self.embed(safely_padded)
 
@@ -112,6 +110,7 @@ class Predictor:
         prediction = self.forward(input_t_strings)
         decoded = self.decode(input_t_strings.toStringList(), token_lists, prediction, self.model.semantic_groups)
         return decoded
+
 
 class ContextualPredictor(Predictor):
 
