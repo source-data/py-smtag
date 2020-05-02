@@ -29,7 +29,7 @@ class NeoImport():
 
 
     @staticmethod
-    def caption_text2xml(panel_caption, tags, safe_mode = True, keep_roles_only_for_selected_tags = False):
+    def caption_text2xml(panel_caption, tags, safe_mode=True):
 
         tag_errors = []
         # panel_caption = panel_caption.encode('utf-8')
@@ -71,8 +71,8 @@ class NeoImport():
         panel_xml = fromstring(panel_caption)
 
         tags_xml = panel_xml.findall('.//sd-tag')
-        tags_neo = {f"sdTag{t['data']['id']}": t['data'] for t in tags}
-        tags_neo_id = tags_neo.keys() #[u"sdTag{}".format(t['data']['id']) for t in tags]
+        tags_neo = {f"sdTag{t['data']['tag_id']}": t['data'] for t in tags}
+        tags_neo_id = tags_neo.keys()
         tags_not_found = set(tags_neo_id) - set([t.attrib['id'] for t in tags_xml])
         if tags_not_found:
             print("WARNING, tag(s) not found: ", tags_not_found)
@@ -121,7 +121,7 @@ class NeoImport():
         paper_errors = []
 
         q_articles = '''
-        MATCH (a:Article)
+        MATCH (a:SDArticle)
         {} //WHERE clause
         RETURN id(a), a.doi
         {} //LIMIT clause
@@ -139,7 +139,7 @@ class NeoImport():
                 paper_errors.append([a_id, doi])
             else:
                 q_figures = '''
-                    MATCH (a:Article )-->(f:Figure)
+                    MATCH (a:SDArticle )-->(f:SDFigure)
                     WHERE id(a) = {}
                     RETURN id(f), f.fig_label, f.href, f.caption
                     ORDER BY f.fig_label ASC
@@ -187,16 +187,16 @@ class NeoImport():
                     # figure_caption_element.append(figure_title_element) # THIS FOLLOWS JATS
 
                     q_panel = '''
-                    MATCH (f:Figure)-->(p:Panel)-->(t:Tag)
+                    MATCH (f:SDFigure)-->(p:SDPanel)-->(t:SDTag)
                     WHERE id(f) = {} AND t.in_caption = true
-                    WITH p.caption AS caption, p.label AS panel_label, p.panel_id AS panel_id, p.href As url, COLLECT(DISTINCT t) AS tags
-                    RETURN caption, panel_label, panel_id, url, tags
+                    WITH p.caption AS caption, p.panel_label AS panel_label, p.panel_id AS panel_id, p.href As href, COLLECT(DISTINCT t) AS tags
+                    RETURN caption, panel_label, panel_id, href, tags
                     '''.format(f_id)
                     results_panels = DB.query(q_panel)
                     print("{} panels found for figure {} ({}) in paper {}".format(len(results_panels), fig_label, f_id, doi))
 
                     if results_panels:
-                        #panels not in the proper order, need resorting via label
+                        # panels not in the proper order, need resorting via label
                         results_labeled = {p[1]:{'panel_caption':p[0], 'panel_id':p[2], 'panel_label':p[1], 'href': p[3], 'tags':p[4]} for p in results_panels}
                         sorted_panel_labels = list(results_labeled.keys())
                         sorted_panel_labels.sort()
@@ -382,12 +382,11 @@ def main():
     options['where_clause'] = where_clause
     options['limit_clause'] = limit_clause
     options['safe_mode'] = safe_mode
-    #options['source'] = {'db': 'http://localhost:7474/db/data/', 'username': 'neo4j', 'password': 'sourcedata'} #getpass()}
     options['source'] = {
-       'db': os.environ.get('SMTAG_NEO4J_URL', 'http://localhost:7474/db/data/'),
-       'username': os.environ.get('SMTAG_NEO4J_USER', 'neo4j'),
-       'password': os.environ.get('SMTAG_NEO4J_PASS', 'sourcedata'),
-  }
+       'db': os.environ.get('SMTAG_NEO4J_URL'),
+       'username': os.environ.get('SMTAG_NEO4J_USER'),
+       'password': os.environ.get('SMTAG_NEO4J_PASS'),
+    }
 
     if options['verbose']: print(options)
 
