@@ -163,6 +163,12 @@ Model: `2020-04-23-22-20_disease_epoch_060.zip`
 
 __Production model (`--production`): `2020-04-24-07-33_disease_epoch_099.zip`__
 
+With SARS minidataset:
+
+    python -m smtag.train.meta -f 10X_L1200_disease_article_embeddings_unet_32,10X_L1200_figure_emboj_2012_article_embeddings_unet_32,10X_L1200_SARS_article_embeddings_unet_32  -E100 -Z32 -R0.0001 -o disease --kernel_table 3,3,3 --nf_table 64,128,128,128 --stride_table 1,1,1 --dropout_rate 0.2 --production
+
+
+__Production model (`--production`): `2020-05-02-17-54_disease_epoch_099.zip`__
 
 ## Panel segmentation:
 
