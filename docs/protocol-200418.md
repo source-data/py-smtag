@@ -50,6 +50,10 @@ Disease brat
 
     python -m smtag.datagen.convert2th -c NCBI_disease -b -L1200 -X10 -f 10X_L1200_disease_article_embeddings_unet_32
 
+SARS minidataset
+
+    python -m smtag.datagen.convert2th -c 200502SARS -f 10X_L1200_SARS_article_embeddings_unet_32 -X10 -L1200 -E ".//sd-panel
+
 
 ## __figure-level__
 
@@ -106,6 +110,13 @@ __Production model (`--production`): `2020-04-21-14-55_small_molecule_geneprod_s
 model: `2020-04-29-15-34_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_025.zip`
 
 __Production model__ (`--production`): `2020-04-30-00-42_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_020.zip `
+
+
+### Model with noisy datasets and SARS minidataset:
+
+    python -m smtag.train.meta -f 10X_L1200_noisy_article_embeddings_unet_32,10X_L1200_noisy_figure_article_embeddings_unet_32,10X_L1200_SARS_article_embeddings_unet_32 -E200 -Z32 -R0.0001 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay --kernel_table 3,3,3 --nf_table 64,128,128,128 --stride_table 1,1,1 --dropout_rate 0.2
+
+__Production model__ (`--production`): `2020-05-02-16-45_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_020.zip`
 
 
 ## Roles for gene products:

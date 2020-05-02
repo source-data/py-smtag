@@ -65,7 +65,7 @@ class Config():
     # _embeddings_model = "2020-02-24-01-31_last_saved.zip"
 
     # MODELS Unet
-    _model_entity = "2020-04-30-00-42_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_020.zip" # trained with noisy entities
+    _model_entity = "2020-05-02-16-45_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_020.zip" # "2020-04-30-00-42_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_020.zip" # trained with noisy entities
     _model_geneprod_role = "2020-04-22-11-12_intervention_assayed_epoch_007.zip"
     _model_molecule_role = "2020-04-23-13-17_intervention_assayed_epoch_022.zip"
     _model_geneprod_reporter = "2020-04-23-18-58_reporter_epoch_019.zip"
