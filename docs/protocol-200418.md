@@ -118,6 +118,11 @@ __Production model__ (`--production`): `2020-04-30-00-42_small_molecule_geneprod
 
 __Production model__ (`--production`): `2020-05-02-16-45_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_020.zip`
 
+### Model with only figure-level noisy and SARS minidataset:
+
+    python -m smtag.train.meta -f 10X_L1200_noisy_figure_article_embeddings_unet_32,10X_L1200_SARS_article_embeddings_unet_32 -E200 -Z32 -R0.0001 -o small_molecule,geneprod,subcellular,cell,tissue,organism,assay --kernel_table 3,3,3 --nf_table 64,128,128,128 --stride_table 1,1,1 --dropout_rate 0.2 --production
+
+__Production model__ (`--production`): `2020-05-04-16-52_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_040.zip`
 
 ## Roles for gene products:
 
