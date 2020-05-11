@@ -71,7 +71,7 @@ class Config():
     _model_geneprod_reporter = "2020-04-23-18-58_reporter_epoch_019.zip"
     _model_disease = "2020-05-02-17-54_disease_epoch_099.zip"  # "2020-04-24-07-33_disease_epoch_099.zip"
     _model_panel_stop = "2020-04-24-11-24_panel_stop_epoch_099.zip"
-    _embeddings_model = "2020-04-18-23-03_final.zip"
+    _embeddings_model = "2020-05-10-16-35_last_saved.zip" # "2020-04-18-23-03_final.zip"
 
     def __init__(self):
         self.working_directory = fetch_working_directory()
