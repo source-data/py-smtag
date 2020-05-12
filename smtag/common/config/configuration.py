@@ -54,23 +54,13 @@ class Config():
     _fusion_threshold = 0.1  # threshold to allow adjascent token with identical features to be fused
     _min_score_for_rendering = 0 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
 
-    ############################################################################
-    # MODELS CatStack
-    # _model_entity = "2020-03-10-16-58_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip" # NEW MIXED FIGURE/PANEL LEVEL # OLD PANEL: LEVEL "2020-02-29-13-10_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_019.zip"
-    # _model_geneprod_role = "2020-02-29-22-47_intervention_assayed_epoch_019.zip"
-    # _model_molecule_role = "2020-03-01-01-29_intervention_assayed_epoch_019.zip"
-    # _model_geneprod_reporter = "2020-03-01-08-07_reporter_epoch_004.zip"
-    # _model_disease = "2020-03-01-08-49_disease_epoch_020.zip"
-    # _model_panel_stop = "2020-03-01-09-21_panel_stop_epoch_012.zip"
-    # _embeddings_model = "2020-02-24-01-31_last_saved.zip"
-
     # MODELS Unet
-    _model_entity = "2020-05-04-16-52_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_040.zip"
-    _model_geneprod_role = "2020-04-22-11-12_intervention_assayed_epoch_007.zip"
-    _model_molecule_role = "2020-04-23-13-17_intervention_assayed_epoch_022.zip"
-    _model_geneprod_reporter = "2020-04-23-18-58_reporter_epoch_019.zip"
-    _model_disease = "2020-05-02-17-54_disease_epoch_099.zip"  # "2020-04-24-07-33_disease_epoch_099.zip"
-    _model_panel_stop = "2020-04-24-11-24_panel_stop_epoch_099.zip"
+    _model_entity = "2020-05-11-19-14_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip"
+    _model_geneprod_role = "2020-05-11-21-05_intervention_assayed_epoch_012.zip"
+    _model_molecule_role = "2020-05-12-01-50_intervention_assayed_epoch_032.zip"
+    _model_geneprod_reporter = "2020-05-12-08-09_reporter_epoch_015.zip"
+    _model_disease = "2020-05-12-12-30_disease_epoch_088.zip"
+    _model_panel_stop = "2020-05-12-19-32_panel_stop_epoch_100.zip"
     _embeddings_model = "2020-05-10-16-35_last_saved.zip" # "2020-04-18-23-03_final.zip"
 
     def __init__(self):
@@ -138,8 +128,8 @@ class Config():
         if not os.path.exists(log_dir):
             os.mkdir(log_dir)
         return log_dir
-    @property
 
+    @property
     def scans_dir(self):
         """
         Path to results of hyperparameter scans.
