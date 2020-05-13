@@ -49,7 +49,7 @@ class Config():
     _corrupt_proba     = 0.01  # probability with which a character is replaced by a random characters when corrupting terms.
     _padding_char      = '`'  # " " # character used to padd strings; would be smarter to use character different from space
     _min_padding       = 380  # 800 # 380? the number of (usually space) characters added to each example as padding to mitigate 'border effects' in learning
-    _min_size          = 380  # 1530?? input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
+    _min_size          = 1200  # 1530?? input needs to be of minimal size to survive successive convergent convolutions with unet2 with 3 super layers and no padding; ideally, should be calculated analytically
     _default_threshold = 0.5  # threshold applied by default when descritizing predicted value and when considering a predicted value a 'hit' in accuracy calculation
     _fusion_threshold = 0.1  # threshold to allow adjascent token with identical features to be fused
     _min_score_for_rendering = 0 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
