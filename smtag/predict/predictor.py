@@ -70,8 +70,13 @@ class Predictor:
         min_size = config.min_size
         min_padding = config.min_padding
         padding_length = ceil(max(min_size - len(input_t_strings), 0) / 2) + min_padding
-        pad = TString(StringList([PADDING_CHAR * padding_length] * input_t_strings.depth))
-        padded_t_strings = pad + input_t_strings + pad
+        # this is a hopefully temporary hack to avoid border effects at pred stage
+        some_left_buffering_text = TString(StringList(["xxxxx   "] * input_t_strings.depth)) 
+        left_padding_length = padding_length - len(some_left_buffering_text)
+        right_padding_length = padding_length
+        left_pad = TString(StringList([PADDING_CHAR * left_padding_length] * input_t_strings.depth))
+        right_pad = TString(StringList([PADDING_CHAR * right_padding_length] * input_t_strings.depth))
+        padded_t_strings = left_pad + some_left_buffering_text + input_t_strings + right_pad
         return padded_t_strings, padding_length
 
     @staticmethod
