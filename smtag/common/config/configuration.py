@@ -55,11 +55,11 @@ class Config():
     _min_score_for_rendering = 0 # minimum score required to justify inclusion of a feature as attrbute in the rendered XML/HTML
 
     # MODELS Unet
-    _model_entity = "2020-05-11-19-14_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip"
+    _model_entity = "2020-09-13-16-30_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_016.zip" # "2020-05-11-19-14_small_molecule_geneprod_subcellular_cell_tissue_organism_assay_epoch_012.zip"
     _model_geneprod_role = "2020-05-11-21-05_intervention_assayed_epoch_012.zip"
     _model_molecule_role = "2020-05-12-01-50_intervention_assayed_epoch_032.zip"
     _model_geneprod_reporter = "2020-05-12-08-09_reporter_epoch_015.zip"
-    _model_disease = "2020-05-12-12-30_disease_epoch_088.zip"
+    _model_disease = "2020-09-13-20-33_disease_epoch_088.zip" # "2020-05-12-12-30_disease_epoch_088.zip"
     _model_panel_stop = "2020-05-12-19-32_panel_stop_epoch_100.zip"
     _embeddings_model = "2020-05-10-16-35_last_saved.zip" # "2020-04-18-23-03_final.zip"
 
