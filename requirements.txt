@@ -1,5 +1,5 @@
 
-pillow==6.2.1 # 7.0.0 breaks torchvision
+pillow==8.1.1 # 7.0.0 breaks torchvision
 numpy==1.16.3
 torch==1.0.1
 torchvision==0.2.2.post3
