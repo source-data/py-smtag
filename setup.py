@@ -19,7 +19,7 @@ setuptools.setup(
     py_modules=['smtag.command_line'],
     install_requires=[
         #'tensorflow==1.8.0', # dgx
-        'tensorflow==1.14.0', # mac needed for tensorboardX visualization
+        'tensorflow==2.5.1', # mac needed for tensorboardX visualization
         'tensorboardX',
         'docopt',
         'torch==1.0.1',
