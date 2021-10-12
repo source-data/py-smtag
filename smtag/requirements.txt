@@ -10,7 +10,7 @@ tensorboardX==1.6
 google-cloud-vision==0.34
 google-auth==1.5.1
 # opencv-python==3.4.1.15 # dgx
-opencv-python==3.4.2.16 # mac
+opencv-python==3.4.7.28 # mac
 scikit-learn == 0.20.1
 python-dotenv==0.10.1 # to load .env file
 # vsearch==0.2.1 # update with git submodule update --remote
