@@ -6,7 +6,7 @@ from collections import OrderedDict
 from typing import List, Tuple
 from copy import deepcopy
 from xml.etree.ElementTree import tostring, fromstring, Element
-from ..common.utils import tokenize, Token, timer, cleanup
+from ..common.utils import tokenize, Token, cleanup
 from ..common.converter import TString, StringList
 from ..common.mapper import Catalogue
 from ..common.viz import Show
@@ -29,7 +29,6 @@ class SmtagEngine:
         self.context_models = deepcopy(cartridge.context_models)
         self.panelize_model = deepcopy(cartridge.panelize_model)
 
-    @timer
     def __panels(self, input_t_strings: TString, token_lists: List[List[Token]]) -> CharLevelDecoder:
         decoded = CharLevelPredictor(self.panelize_model).predict(input_t_strings, token_lists)
         if self.DEBUG:
@@ -41,7 +40,6 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    @timer
     def __entity(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
         decoded = Predictor(self.entity_models).predict(input_t_strings, token_lists)
         if self.DEBUG:
@@ -53,7 +51,6 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    @timer
     def __reporter(self, input_t_strings: TString, token_lists: List[List[Token]]) -> Decoder:
         decoded = Predictor(self.reporter_models).predict(input_t_strings, token_lists)
         if self.DEBUG:
@@ -65,7 +62,6 @@ class SmtagEngine:
             print(Show().print_pretty(decoded.prediction))
         return decoded
 
-    @timer
     def __context(self, entities: Decoder) -> Decoder: # entities carries the copy of the input_string and token_list
         decoded = ContextualPredictor(self.context_models).predict(entities)
         if self.DEBUG:
@@ -87,7 +83,6 @@ class SmtagEngine:
         output.cat_(context)
         return output
 
-    @timer
     def __role_from_pretagged(self, input_xml_list: List[Element]) -> Decoder:
         input_strings = []
         for xml_str in input_xml_list:
@@ -143,7 +138,6 @@ class SmtagEngine:
 
         return output
 
-    @timer
     def __serialize(self, output: Decoder, sdtag="sd-tag", format="xml") -> List[str]:
         output.fuse_adjacent()
         ml = Serializer(tag=sdtag, format=format).serialize(output)
@@ -156,30 +150,25 @@ class SmtagEngine:
         token_lists = [tokenize(s)['token_list'] for s in input_strings]
         return input_t_strings, token_lists
 
-    @timer
     def __preprocess(self, input_strings: List[str]) -> Tuple[TString, List[List[Token]], List[torch.Tensor]]:
         input_t_strings, token_lists = self.__string_preprocess(input_strings)
         return input_t_strings, token_lists
 
-    @timer
     def entity(self, input_strings: List[str], sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings) # input_t_strings, token_lists
         pred = self.__entity(*prepro)
         return self.__serialize(pred, sdtag, format)
 
-    @timer
     def tag(self, input_strings: List[str], sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings)
         pred = self.__entity_and_role(*prepro)
         return self.__serialize(pred, sdtag, format)
 
-    @timer
     def smtag(self, input_strings: List[str], sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings)
         pred = self.__all(*prepro)
         return self.__serialize(pred, sdtag, format)
 
-    @timer
     def role(self, input_xml_strings: List[str], sdtag)  -> List[bytes]:
         input_xmls = [fromstring(s) for s in input_xml_strings]
         pred = self.__role_from_pretagged(input_xmls)
@@ -187,7 +176,6 @@ class SmtagEngine:
         updated_xml_bytes = [tostring(x) for x in updated_xml] # tostring() returns bytes...
         return updated_xml_bytes
 
-    @timer
     def panelizer(self, input_strings: List[str], sdtag, format) -> List[str]:
         prepro = self.__preprocess(input_strings)
         pred = self.__panels(*prepro)
